@@ -30,6 +30,7 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
     "@tiptap/extension-bullet-list": "^3.4.3",
+    "@tiptap/extension-code-block-lowlight": "^3.4.4",
     "@tiptap/extension-link": "^3.4.3",
     "@tiptap/extension-list-item": "^3.4.3",
     "@tiptap/extension-ordered-list": "^3.4.3",
@@ -39,6 +40,7 @@
     "@tiptap/starter-kit": "^3.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lowlight": "^3.3.0",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

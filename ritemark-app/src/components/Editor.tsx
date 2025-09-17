@@ -5,7 +5,11 @@ import Placeholder from '@tiptap/extension-placeholder'
 import BulletList from '@tiptap/extension-bullet-list'
 import OrderedList from '@tiptap/extension-ordered-list'
 import ListItem from '@tiptap/extension-list-item'
-// Note: Link is currently disabled to avoid duplicate extension warnings during dev
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { createLowlight, common } from 'lowlight'
+
+// Create lowlight instance with common languages
+const lowlight = createLowlight(common)
 
 interface EditorProps {
   value: string
@@ -29,8 +33,16 @@ export function Editor({
         bulletList: false,
         orderedList: false,
         listItem: false,
+        codeBlock: false, // Disable default to use enhanced version
         heading: {
           levels: [1, 2, 3, 4, 5, 6],
+        },
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: 'plaintext',
+        HTMLAttributes: {
+          class: 'tiptap-code-block',
         },
       }),
       BulletList.configure({
@@ -66,6 +78,43 @@ export function Editor({
         class: 'prose prose-lg max-w-none focus:outline-none',
       },
       handleKeyDown: (view, event): boolean => {
+        // Handle keyboard shortcuts
+        const isMod = event.metaKey || event.ctrlKey
+
+        // Code block shortcut: Mod+Shift+C
+        if (isMod && event.shiftKey && event.key === 'C') {
+          event.preventDefault()
+          return editor?.commands.toggleCodeBlock() || false
+        }
+
+        // Ordered list shortcut: Mod+Shift+7
+        if (isMod && event.shiftKey && event.key === '&') { // Shift+7
+          event.preventDefault()
+          return editor?.commands.toggleOrderedList() || false
+        }
+
+        // Bullet list shortcut: Mod+Shift+8
+        if (isMod && event.shiftKey && event.key === '*') { // Shift+8
+          event.preventDefault()
+          return editor?.commands.toggleBulletList() || false
+        }
+
+        // Tab handling for lists
+        if (event.key === 'Tab') {
+          const { selection } = view.state
+          const { $from } = selection
+
+          if ($from.parent.type.name === 'listItem') {
+            event.preventDefault()
+            if (event.shiftKey) {
+              return editor?.commands.liftListItem('listItem') || false
+            } else {
+              return editor?.commands.sinkListItem('listItem') || false
+            }
+          }
+        }
+
+        // Enter handling for lists
         if (event.key === 'Enter') {
           const { selection } = view.state
           const { $from } = selection
@@ -77,6 +126,7 @@ export function Editor({
             }
           }
         }
+
         return false
       },
     },
@@ -193,7 +243,40 @@ export function Editor({
         }
 
         .wysiwyg-editor .ProseMirror ::selection {
-          background: rgba(59, 130, 246, 0.1) !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-radius: 2px !important;
+        }
+
+        .wysiwyg-editor .ProseMirror ::-moz-selection {
+          background: rgba(59, 130, 246, 0.15) !important;
+        }
+
+        /* Code block styling with dark theme */
+        .wysiwyg-editor .ProseMirror pre.tiptap-code-block {
+          background: #1f2937 !important;
+          color: #f9fafb !important;
+          border-radius: 8px !important;
+          padding: 1rem !important;
+          margin: 1em 0 !important;
+          overflow-x: auto !important;
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+          position: relative !important;
+        }
+
+        .wysiwyg-editor .ProseMirror pre.tiptap-code-block code {
+          background: none !important;
+          padding: 0 !important;
+          font-size: inherit !important;
+          color: inherit !important;
+        }
+
+        /* Enhanced mobile selection */
+        @media (max-width: 768px) {
+          .wysiwyg-editor .ProseMirror ::selection {
+            background: rgba(59, 130, 246, 0.2) !important;
+          }
         }
 
         .wysiwyg-editor .ProseMirror p.is-editor-empty:first-child::before {

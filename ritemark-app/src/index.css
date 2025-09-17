@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import 'prosemirror-view/style/prosemirror.css';
 
-/* Johnny Ive Invisible Interface - TOC Styles */
+/* Invisible interface design - TOC scroll behavior */
 html {
   scroll-behavior: smooth;
   /* CSS-first approach for scroll offset */
@@ -85,7 +85,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* TOC Component Styling - Johnny Ive Principles */
+/* TOC component styling - minimal interface */
 .toc-container {
   background: transparent;
   border: none;

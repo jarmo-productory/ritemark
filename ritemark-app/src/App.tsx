@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Editor } from './components/Editor'
 import type { Editor as TipTapEditor } from '@tiptap/react'
 import { TableOfContents } from './components/TableOfContents'
+import { SettingsButton } from './components/SettingsButton'
 
 function App() {
   const [title, setTitle] = useState('Untitled Document')
@@ -41,6 +42,11 @@ function App() {
 
   return (
     <main className="app-container">
+      <SettingsButton
+        authState="anonymous"
+        onClick={() => {}}
+      />
+
       <aside className={`toc-sidebar ${hasHeadings ? 'has-headings' : ''}`}>
         <TableOfContents editor={editor} />
       </aside>
