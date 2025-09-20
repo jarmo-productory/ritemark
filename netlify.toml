@@ -1,6 +1,7 @@
 [build]
-  publish = "ritemark-app/dist"
-  command = "cd ritemark-app && npm run build"
+  base = "ritemark-app"
+  publish = "dist"
+  command = "npm ci --ignore-scripts && npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
