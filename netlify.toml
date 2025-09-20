@@ -1,8 +1,6 @@
 [build]
-  base = "ritemark-app"
-  publish = "dist"
-  command = "npm run build"
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':!netlify.toml'"
+  publish = "ritemark-app/dist"
+  command = "cd ritemark-app && npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
