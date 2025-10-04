@@ -5,6 +5,15 @@ import type { GoogleUser } from '../../types/auth'
 import { X, AlertCircle } from 'lucide-react'
 
 // Google Identity Services types
+interface TokenResponse {
+  access_token?: string
+  expires_in?: number
+  scope?: string
+  token_type?: string
+  error?: string
+  error_description?: string
+}
+
 declare global {
   interface Window {
     google?: {
@@ -13,7 +22,7 @@ declare global {
           initTokenClient: (config: {
             client_id: string
             scope: string
-            callback: (response: { access_token: string; expires_in: number; scope: string; token_type: string }) => void
+            callback: (response: TokenResponse) => void
           }) => {
             requestAccessToken: () => void
           }
@@ -32,38 +41,70 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { user, logout, error, clearError } = useAuth()
   const [localLoading, setLocalLoading] = useState(false)
   const [tokenClient, setTokenClient] = useState<{ requestAccessToken: () => void } | null>(null)
+  const [accessTokenReceived, setAccessTokenReceived] = useState(false)
 
   // Initialize Google OAuth2 tokenClient for Drive API access
+  // Poll until GIS script loads (handles async script loading)
   useEffect(() => {
-    if (!window.google?.accounts?.oauth2) return
-
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!clientId) return
 
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/drive.file', // Drive API scope
-      callback: (tokenResponse) => {
-        if (tokenResponse.access_token) {
-          // Store real access token for Drive API
-          const existingTokens = sessionStorage.getItem('ritemark_oauth_tokens')
-          const tokens = existingTokens ? JSON.parse(existingTokens) : {}
+    let retryCount = 0
+    const maxRetries = 20 // 10 seconds max (500ms * 20)
 
-          sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
-            ...tokens,
-            access_token: tokenResponse.access_token, // Real access token for API calls
-            expires_in: tokenResponse.expires_in,
-            scope: tokenResponse.scope,
-            token_type: tokenResponse.token_type,
-            expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
-          }))
+    const initTokenClient = () => {
+      if (window.google?.accounts?.oauth2) {
+        // GIS script loaded, initialize tokenClient
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/drive.file', // Drive API scope
+          callback: (tokenResponse) => {
+            if (tokenResponse.access_token) {
+              // Success: Store real access token for Drive API
+              const existingTokens = sessionStorage.getItem('ritemark_oauth_tokens')
+              const tokens = existingTokens ? JSON.parse(existingTokens) : {}
 
-          console.log('✅ Access token obtained for Drive API')
-        }
-      },
-    })
+              sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
+                ...tokens,
+                access_token: tokenResponse.access_token, // Real access token for API calls
+                expires_in: tokenResponse.expires_in,
+                scope: tokenResponse.scope,
+                token_type: tokenResponse.token_type,
+                expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
+              }))
 
-    setTokenClient(client)
+              console.log('✅ Access token obtained for Drive API')
+              setAccessTokenReceived(true) // Signal that token is ready
+            } else {
+              // Error: User denied access or Google returned error
+              console.error('❌ Drive API access token failed:', tokenResponse)
+              setLocalLoading(false) // Clear loading spinner
+
+              // Check if user explicitly denied access
+              const errorMessage = tokenResponse.error === 'access_denied'
+                ? 'Drive access denied. You can still use the app without Drive integration.'
+                : `Failed to get Drive API access: ${tokenResponse.error_description || tokenResponse.error || 'Unknown error'}`
+
+              alert(errorMessage)
+
+              // Reload anyway with just ID token (auth works, but no Drive access)
+              window.location.reload()
+            }
+          },
+        })
+
+        setTokenClient(client)
+        console.log('✅ TokenClient initialized')
+      } else if (retryCount < maxRetries) {
+        // GIS script not loaded yet, retry
+        retryCount++
+        setTimeout(initTokenClient, 500)
+      } else {
+        console.error('❌ Google Identity Services script failed to load')
+      }
+    }
+
+    initTokenClient()
   }, [])
 
   const handleGoogleSuccess = useCallback(async (credentialResponse: CredentialResponse) => {
@@ -111,18 +152,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       // Request access token for Drive API
       if (tokenClient) {
         console.log('🔑 Requesting Drive API access token...')
+        setAccessTokenReceived(false) // Reset flag
         tokenClient.requestAccessToken()
+        // Don't reload here - wait for access token callback
+      } else {
+        // No tokenClient available, reload immediately
+        console.warn('⚠️ TokenClient not initialized, proceeding without Drive access')
+        window.location.reload()
       }
-
-      // Force page reload to update auth context
-      window.location.reload()
     } catch (err) {
       console.error('Failed to process Google login:', err)
       alert('Authentication failed. Please try again.')
-    } finally {
       setLocalLoading(false)
     }
   }, [tokenClient])
+
+  // Reload page after access token is received
+  useEffect(() => {
+    if (accessTokenReceived) {
+      console.log('🔄 Reloading with complete tokens (ID + Access)')
+      window.location.reload()
+    }
+  }, [accessTokenReceived])
 
   const handleGoogleError = useCallback(() => {
     console.error('Google login failed')
