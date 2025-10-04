@@ -6,13 +6,21 @@ import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+const useMockOAuth = import.meta.env.VITE_USE_MOCK_OAUTH === 'true'
+
+// Skip GoogleOAuthProvider in mock mode or use placeholder client ID
+const AppWithAuth = useMockOAuth ? (
+  <App />
+) : (
+  <GoogleOAuthProvider clientId={clientId || 'mock-client-id-for-dev'}>
+    <App />
+  </GoogleOAuthProvider>
+)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <GoogleOAuthProvider clientId={clientId}>
-        <App />
-      </GoogleOAuthProvider>
+      {AppWithAuth}
     </ErrorBoundary>
   </StrictMode>
 )

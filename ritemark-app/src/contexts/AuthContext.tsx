@@ -32,16 +32,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true)
     setError(null)
 
-    // This will be triggered by Google OAuth button in AuthModal
-    // The actual OAuth flow is handled by @react-oauth/google
-    // This function sets the loading state for UI feedback
+    try {
+      // This will be triggered by Google OAuth button in AuthModal
+      // The actual OAuth flow is handled by @react-oauth/google
+      // This function sets the loading state for UI feedback
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setIsLoading(false) // Always clear loading state
+    }
   }, [])
 
   const logout = useCallback(async () => {
-    setUser(null)
-    setError(null)
-    sessionStorage.removeItem('ritemark_user')
-    sessionStorage.removeItem('ritemark_tokens')
+    setIsLoading(true)
+    try {
+      setUser(null)
+      setError(null)
+      sessionStorage.removeItem('ritemark_user')
+      sessionStorage.removeItem('ritemark_oauth_tokens') // Use correct key
+    } finally {
+      setIsLoading(false) // Always clear loading state
+    }
   }, [])
 
   const clearError = useCallback(() => {
@@ -49,12 +60,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const getAccessToken = useCallback(async (): Promise<string | null> => {
-    const tokens = sessionStorage.getItem('ritemark_tokens')
+    const tokens = sessionStorage.getItem('ritemark_oauth_tokens') // Use correct key
     if (!tokens) return null
 
     try {
       const tokenData = JSON.parse(tokens)
-      return tokenData.accessToken || tokenData.access_token || null
+      return tokenData.access_token || tokenData.accessToken || null
     } catch {
       return null
     }

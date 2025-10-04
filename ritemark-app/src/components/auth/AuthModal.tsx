@@ -44,11 +44,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         emailVerified: payload.email_verified,
       }
 
-      // Store user in sessionStorage
+      // Store user and tokens with consistent keys (matching TokenManager and AuthContext)
       sessionStorage.setItem('ritemark_user', JSON.stringify(userData))
-      sessionStorage.setItem('ritemark_tokens', JSON.stringify({
-        idToken: credential,
-        expiresAt: payload.exp * 1000,
+      sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
+        access_token: credential, // Use id_token as access_token for Google OAuth
+        id_token: credential,
+        token_type: 'Bearer',
+        expires_in: payload.exp - Math.floor(Date.now() / 1000), // Seconds until expiry
+        expiresAt: payload.exp * 1000, // Milliseconds
       }))
 
       // Force page reload to update auth context
