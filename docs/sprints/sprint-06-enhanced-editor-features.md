@@ -39,15 +39,39 @@ Enhance the existing TipTap WYSIWYG editor with essential formatting features wh
 - **Architecture**: Clean foundation in place for adding new features
 
 ### 2. Plan Sprint Phase
-**Status**: ⏳ PENDING
+**Status**: ✅ COMPLETED
 
 **Sprint Planning Tasks**:
-- [ ] Define code block user experience (language selection, formatting)
-- [ ] Plan enhanced ordered list behavior (nesting, numbering styles)
-- [ ] Design text selection improvements (visual feedback, touch handling)
-- [ ] Establish keyboard shortcuts for new features
-- [ ] Plan mobile-first implementation approach
-- [ ] Define testing strategy for new features
+- [x] Define code block user experience (language selection, formatting)
+- [x] Plan enhanced ordered list behavior (nesting, numbering styles)
+- [x] Design text selection improvements (visual feedback, touch handling)
+- [x] Establish keyboard shortcuts for new features
+- [x] Plan mobile-first implementation approach
+- [x] Define testing strategy for new features
+
+**Key Planning Decisions (Based on Codex Q&A)**:
+
+#### **Code Block UX Strategy**
+- **Language Detection**: Hybrid approach - autodetect from ``` syntax, manual picker on focus
+- **Copy Button**: Progressive disclosure on hover (invisible by default, Johnny Ive compliant)
+- **Visual Treatment**: Language label appears top-right on hover, minimal dropdown for selection
+
+#### **Keyboard Shortcuts (Cross-Platform Safe)**
+- **Code Block**: `Mod+Shift+C` (Mod = Cmd on Mac, Ctrl on Windows)
+- **Ordered List**: `Mod+Shift+7` (number 7 universal across layouts)
+- **Bullet List**: `Mod+Shift+8` (number 8 universal across layouts)
+- **List Navigation**: `Tab` / `Shift+Tab` (standard expectations)
+- **Language Picker**: `Mod+L` (when cursor in code block)
+
+#### **Text Selection Scope (Mobile-Realistic)**
+- **In Scope**: Enhanced visual styling, better desktop selection, focus management
+- **Out of Scope**: Custom mobile handles (iOS/Android restrictions), multi-cursor support
+
+#### **Settings Button Foundation (Sprint 7 Prep)**
+- **Visual Strategy**: Always present at 15% opacity (discoverable but subtle)
+- **Hover State**: 80% opacity for clear interaction feedback
+- **Future States**: 40% when auth needed, 25% when authenticated
+- **Position**: Fixed top-right (20px from edges)
 
 ### 3. Code Phase (Single PR Implementation)
 **Status**: ⏳ PENDING
@@ -95,35 +119,64 @@ Enhance the existing TipTap WYSIWYG editor with essential formatting features wh
   - [ ] `Cmd+Shift+7` / `Ctrl+Shift+7` for ordered lists
   - [ ] `Cmd+Shift+8` / `Ctrl+Shift+8` for bullet lists
   - [ ] `Tab` / `Shift+Tab` for list indentation
+  - [ ] `Cmd+L` / `Ctrl+L` for language picker (in code blocks)
 
-**SCOPE LIMIT**: Only essential formatting features - NO floating toolbars, NO complex menus, NO additional editor chrome
+#### **Step 5**: Settings Button Foundation (Sprint 7 Prep)
+- [ ] **Add settings button infrastructure**:
+  - [ ] Create SettingsButton component with 15% opacity
+  - [ ] Position fixed top-right (20px from edges)
+  - [ ] Implement hover state (80% opacity)
+  - [ ] Add basic icon (gear or three dots)
+- [ ] **Prepare for future states**:
+  - [ ] Add opacity state management hooks
+  - [ ] Create settings context for auth state
+  - [ ] Ensure no interference with writing experience
+
+**SCOPE LIMIT**: Essential formatting features + settings foundation - NO floating toolbars, NO complex menus, NO additional editor chrome
 
 ### 4. Testing/Validation Phase
 **Status**: ⏳ PENDING
 
-**Testing Plan**:
-- [ ] **Code Block Testing**:
-  - [ ] Syntax highlighting works for major languages
-  - [ ] Copy functionality works correctly
-  - [ ] Mobile code block display and interaction
-  - [ ] Keyboard shortcuts for code block creation
+**Testing Strategy (Merge Blockers vs Follow-ups)**:
 
-- [ ] **Enhanced List Testing**:
-  - [ ] Nested numbering displays correctly
-  - [ ] List continuation after paragraphs
-  - [ ] Tab/Shift+Tab indentation behavior
-  - [ ] Conversion between list types
+#### **Merge Blockers (Must Pass for PR)**:
+- [ ] **Core Functionality**:
+  - [ ] Code blocks create and render correctly (JS/CSS/HTML)
+  - [ ] Syntax highlighting works for 3 core languages
+  - [ ] Keyboard shortcuts function on Mac/Windows (`Mod+Shift+C`, `Mod+Shift+7`)
+  - [ ] Lists indent/outdent properly with Tab/Shift+Tab
+  - [ ] No TypeScript errors or build failures
+  - [ ] Mobile basic functionality works (touch, scroll)
 
-- [ ] **Text Selection Testing**:
-  - [ ] Enhanced selection visuals on desktop
-  - [ ] Touch selection on mobile devices
-  - [ ] Keyboard selection behavior
-  - [ ] Multi-paragraph selection handling
+- [ ] **Settings Button Foundation**:
+  - [ ] Settings button appears at 15% opacity
+  - [ ] Hover state works (80% opacity)
+  - [ ] No interference with writing experience
+  - [ ] Positioned correctly (top-right, 20px margins)
 
-- [ ] **Integration Testing**:
-  - [ ] All features work with existing TOC navigation
-  - [ ] No conflicts with existing editor shortcuts
-  - [ ] Performance with large documents containing code blocks
+#### **Follow-up Testing (Not Merge Blockers)**:
+- [ ] **Enhanced Features**:
+  - [ ] Copy button comprehensive testing
+  - [ ] All 20+ programming languages
+  - [ ] Advanced keyboard navigation edge cases
+  - [ ] Cross-browser compatibility (Firefox, Safari)
+
+- [ ] **Quality Assurance**:
+  - [ ] Accessibility audit (screen readers)
+  - [ ] Performance with large documents
+  - [ ] Mobile device testing across iOS/Android
+
+#### **Quick Validation Script**:
+```typescript
+// Sprint 6 validation checklist
+const sprintValidation = {
+  codeBlocks: '```js\nconsole.log("test")\n```',
+  orderedList: '1. First\n2. Second\n\t1. Nested',
+  shortcuts: ['Cmd+Shift+C', 'Cmd+Shift+7', 'Tab'],
+  settingsButton: 'opacity: 0.15, hover: 0.8',
+  mobile: 'Basic touch interaction works'
+}
+```
 
 ### 5. Cleanup Phase
 **Status**: ⏳ PENDING
