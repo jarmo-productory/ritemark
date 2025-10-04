@@ -149,13 +149,16 @@ export class GoogleAuth {
       console.error('OAuth callback handling failed:', error);
       this.clearStoredState();
 
+      // Check if error is already an AuthError (has code, message, retryable, recoverable)
+      const isAuthError = error && typeof error === 'object' && 'code' in error && 'message' in error && 'retryable' in error && 'recoverable' in error;
+
       return {
         success: false,
-        error: error instanceof Error && 'code' in error && 'recoverable' in error
+        error: isAuthError
           ? (error as AuthError)
           : this.createAuthError(
               AUTH_ERRORS.CONFIGURATION_ERROR,
-              'OAuth callback failed',
+              error instanceof Error ? error.message : 'OAuth callback failed',
               true
             ),
       };

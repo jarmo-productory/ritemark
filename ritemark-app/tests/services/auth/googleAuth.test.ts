@@ -30,7 +30,7 @@ describe('GoogleAuth Service', () => {
     })
 
     it('should throw error with missing client ID', () => {
-      const invalidConfig = { ...mockConfig, clientId: '' }
+      const invalidConfig = { ...mockConfig, clientId: '', useMockOAuth: false }
       expect(() => new GoogleAuth(invalidConfig)).toThrow()
     })
   })
@@ -78,12 +78,15 @@ describe('GoogleAuth Service', () => {
 
       sessionStorage.setItem('ritemark_oauth_state', JSON.stringify(expiredState))
 
-      const params = new URLSearchParams({
+      const params = {
         code: 'test-code',
         state: 'expired-state',
-      })
+      }
 
-      await expect(googleAuth.handleCallback(params)).rejects.toThrow('expired')
+      const result = await googleAuth.handleCallback(params)
+
+      expect(result.success).toBe(false)
+      expect(result.error?.message).toContain('expired')
     })
   })
 
@@ -117,16 +120,16 @@ describe('GoogleAuth Service', () => {
 
   describe('Error Handling', () => {
     it('should handle OAuth errors in callback', async () => {
-      const params = new URLSearchParams({
+      const params = {
         error: 'access_denied',
         error_description: 'User denied access',
-      })
+      }
 
       const result = await googleAuth.handleCallback(params)
 
       expect(result.success).toBe(false)
       expect(result.error).toBeTruthy()
-      expect(result.error?.code).toContain('USER_CANCELLED')
+      expect(result.error?.code).toBe('USER_CANCELLED')
     })
 
     it('should validate state parameter mismatch', async () => {
@@ -138,12 +141,15 @@ describe('GoogleAuth Service', () => {
 
       sessionStorage.setItem('ritemark_oauth_state', JSON.stringify(validState))
 
-      const params = new URLSearchParams({
+      const params = {
         code: 'test-code',
         state: 'invalid-state', // Mismatch
-      })
+      }
 
-      await expect(googleAuth.handleCallback(params)).rejects.toThrow('CSRF')
+      const result = await googleAuth.handleCallback(params)
+
+      expect(result.success).toBe(false)
+      expect(result.error?.message).toContain('CSRF')
     })
   })
 
