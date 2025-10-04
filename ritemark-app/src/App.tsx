@@ -3,8 +3,10 @@ import { Editor } from './components/Editor'
 import type { Editor as TipTapEditor } from '@tiptap/react'
 import { TableOfContents } from './components/TableOfContents'
 import { SettingsButton } from './components/SettingsButton'
+import { AuthStatus } from './components/auth/AuthStatus'
+import { AuthProvider } from './contexts/AuthContext'
 
-function App() {
+function AppContent() {
   const [title, setTitle] = useState('Untitled Document')
   const [text, setText] = useState('')
   const [hasHeadings, setHasHeadings] = useState(false)
@@ -42,10 +44,8 @@ function App() {
 
   return (
     <main className="app-container">
-      <SettingsButton
-        authState="anonymous"
-        onClick={() => {}}
-      />
+      <SettingsButton />
+      <AuthStatus />
 
       <aside className={`toc-sidebar ${hasHeadings ? 'has-headings' : ''}`}>
         <TableOfContents editor={editor} />
@@ -79,6 +79,14 @@ function App() {
         </div>
       </div>
     </main>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 
