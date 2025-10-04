@@ -69,7 +69,8 @@ export class TokenManager {
         return refreshResult.success ? refreshResult.tokens?.accessToken || null : null;
       }
 
-      return tokens.accessToken || null;
+      // Return access token (check both snake_case and camelCase for compatibility)
+      return tokens.accessToken || tokens.access_token || null;
     } catch (_error) {
       console.error('Failed to retrieve access token:', _error);
       return null;

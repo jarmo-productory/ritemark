@@ -67,9 +67,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
                 ...tokens,
                 access_token: tokenResponse.access_token, // Real access token for API calls
+                accessToken: tokenResponse.access_token, // CamelCase alias for TokenManager
                 expires_in: tokenResponse.expires_in,
                 scope: tokenResponse.scope,
                 token_type: tokenResponse.token_type,
+                tokenType: 'Bearer',
                 expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
               }))
 
