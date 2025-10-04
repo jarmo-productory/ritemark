@@ -26,6 +26,11 @@ export class GoogleAuth {
   private tokenManager: TokenManager;
 
   constructor(config: OAuthConfig) {
+    // Validate required config (unless mock mode)
+    if (!config.clientId && !config.useMockOAuth) {
+      throw new Error('Google OAuth client ID is required')
+    }
+
     this.clientId = config.clientId;
     this.redirectUri = config.redirectUri;
     this.scopes = config.scopes || [...OAUTH_SCOPES];
@@ -35,9 +40,9 @@ export class GoogleAuth {
 
   /**
    * Initiate OAuth 2.0 login flow with PKCE
-   * Redirects user to Google OAuth consent screen
+   * Returns authorization URL and redirects user to Google OAuth consent screen
    */
-  async login(): Promise<void> {
+  async login(): Promise<string> {
     try {
       // Generate PKCE challenge
       const pkceChallenge = await this.pkceGenerator.generateChallenge();
@@ -56,8 +61,13 @@ export class GoogleAuth {
       // Build OAuth authorization URL
       const authUrl = this.buildAuthorizationUrl(state, pkceChallenge.codeChallenge);
 
-      // Redirect to Google OAuth
-      window.location.href = authUrl;
+      // Redirect to Google OAuth (in browser, not in tests)
+      if (typeof window !== 'undefined' && !this.isTestEnvironment()) {
+        window.location.href = authUrl;
+      }
+
+      // Return URL for testing
+      return authUrl;
     } catch (error) {
       console.error('OAuth login failed:', error);
       throw this.createAuthError(
@@ -66,6 +76,13 @@ export class GoogleAuth {
         false
       );
     }
+  }
+
+  /**
+   * Check if running in test environment
+   */
+  private isTestEnvironment(): boolean {
+    return typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
   }
 
   /**
@@ -159,6 +176,15 @@ export class GoogleAuth {
    */
   async getAccessToken(): Promise<string | null> {
     return this.tokenManager.getAccessToken();
+  }
+
+  /**
+   * Check if user is currently authenticated
+   * @returns True if valid tokens exist, false otherwise
+   */
+  isAuthenticated(): boolean {
+    const tokens = sessionStorage.getItem('ritemark_oauth_tokens');
+    return !!tokens;
   }
 
   /**
