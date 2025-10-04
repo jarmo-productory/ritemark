@@ -3,13 +3,16 @@
  */
 
 export interface OAuthTokens {
-  // Google OAuth standard properties
+  // Real OAuth2 access token (from google.accounts.oauth2.initTokenClient - for API calls)
   access_token?: string
   refresh_token?: string
   expires_in?: number
   token_type?: 'Bearer'
   scope?: string
+
+  // ID token (from @react-oauth/google GoogleLogin - for user identity only, NOT for API calls)
   id_token?: string
+
   // Convenience aliases for easier access
   accessToken?: string
   refreshToken?: string

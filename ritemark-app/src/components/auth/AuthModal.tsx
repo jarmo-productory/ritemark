@@ -1,8 +1,27 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useAuth } from '../../hooks/useAuth'
 import type { GoogleUser } from '../../types/auth'
 import { X, AlertCircle } from 'lucide-react'
+
+// Google Identity Services types
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string
+            scope: string
+            callback: (response: { access_token: string; expires_in: number; scope: string; token_type: string }) => void
+          }) => {
+            requestAccessToken: () => void
+          }
+        }
+      }
+    }
+  }
+}
 
 interface AuthModalProps {
   isOpen: boolean
@@ -12,12 +31,46 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { user, logout, error, clearError } = useAuth()
   const [localLoading, setLocalLoading] = useState(false)
+  const [tokenClient, setTokenClient] = useState<{ requestAccessToken: () => void } | null>(null)
+
+  // Initialize Google OAuth2 tokenClient for Drive API access
+  useEffect(() => {
+    if (!window.google?.accounts?.oauth2) return
+
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) return
+
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file', // Drive API scope
+      callback: (tokenResponse) => {
+        if (tokenResponse.access_token) {
+          // Store real access token for Drive API
+          const existingTokens = sessionStorage.getItem('ritemark_oauth_tokens')
+          const tokens = existingTokens ? JSON.parse(existingTokens) : {}
+
+          sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
+            ...tokens,
+            access_token: tokenResponse.access_token, // Real access token for API calls
+            expires_in: tokenResponse.expires_in,
+            scope: tokenResponse.scope,
+            token_type: tokenResponse.token_type,
+            expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
+          }))
+
+          console.log('✅ Access token obtained for Drive API')
+        }
+      },
+    })
+
+    setTokenClient(client)
+  }, [])
 
   const handleGoogleSuccess = useCallback(async (credentialResponse: CredentialResponse) => {
     setLocalLoading(true)
 
     try {
-      // Decode JWT token to get user info
+      // Decode JWT ID token to get user info
       const credential = credentialResponse.credential
       if (!credential) {
         throw new Error('No credential received from Google')
@@ -44,15 +97,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         emailVerified: payload.email_verified,
       }
 
-      // Store user and tokens with consistent keys (matching TokenManager and AuthContext)
+      // Store user data
       sessionStorage.setItem('ritemark_user', JSON.stringify(userData))
+
+      // Store ID token (for identity verification, NOT for API calls)
       sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
-        access_token: credential, // Use id_token as access_token for Google OAuth
         id_token: credential,
         token_type: 'Bearer',
-        expires_in: payload.exp - Math.floor(Date.now() / 1000), // Seconds until expiry
-        expiresAt: payload.exp * 1000, // Milliseconds
+        expires_in: payload.exp - Math.floor(Date.now() / 1000),
+        expiresAt: payload.exp * 1000,
       }))
+
+      // Request access token for Drive API
+      if (tokenClient) {
+        console.log('🔑 Requesting Drive API access token...')
+        tokenClient.requestAccessToken()
+      }
 
       // Force page reload to update auth context
       window.location.reload()
@@ -62,7 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     } finally {
       setLocalLoading(false)
     }
-  }, [])
+  }, [tokenClient])
 
   const handleGoogleError = useCallback(() => {
     console.error('Google login failed')
