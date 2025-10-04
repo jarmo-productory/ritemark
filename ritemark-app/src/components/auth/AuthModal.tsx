@@ -72,7 +72,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 scope: tokenResponse.scope,
                 token_type: tokenResponse.token_type,
                 tokenType: 'Bearer',
-                expiresAt: Date.now() + (tokenResponse.expires_in * 1000),
+                expiresAt: Date.now() + ((tokenResponse.expires_in || 3600) * 1000),
               }))
 
               console.log('✅ Access token obtained for Drive API')
