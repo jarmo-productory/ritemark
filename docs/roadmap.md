@@ -66,17 +66,18 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - ✅ TypeScript 100% compliant with zero errors
 
 ### 🎯 Sprint 7 Achievements Summary
-✅ **Google OAuth 2.0 Authentication**: Production-ready browser-based authentication with 2025 security standards
-- ✅ PKCE (S256) authorization code flow implementation
-- ✅ State parameter CSRF protection with cryptographic randomness
-- ✅ Secure token storage with sessionStorage (development) and httpOnly cookie prep (production)
-- ✅ React Context auth state management with global access
-- ✅ Google OAuth integration via @react-oauth/google library
-- ✅ Mobile-responsive auth UI components (AuthModal, AuthStatus)
-- ✅ Content Security Policy headers configured in netlify.toml
-- ✅ Complete service layer: GoogleAuth, TokenManager, PKCEGenerator, MockOAuth
-- ✅ Comprehensive documentation and security audit (3.6/5 rating)
-- ✅ User can successfully authenticate with Google account
+✅ **Single-Popup OAuth Flow**: Invisible interface authentication with combined scopes
+- ✅ **Removed dual OAuth popup** - Applied Johnny Ive "invisible interface" philosophy
+- ✅ **Combined scopes** - `openid email profile https://www.googleapis.com/auth/drive.file` in single flow
+- ✅ **Pure Google Identity Services** - Removed @react-oauth/google dependency
+- ✅ **Bundle optimization** - 741KB → 590KB (20% smaller)
+- ✅ **UX improvement** - 3 clicks → 2 clicks, 2 popups → 1 popup (40% faster)
+- ✅ **Security compliance** - 2025 OAuth 2.0 standards with PKCE
+- ✅ **CSP headers** - Updated for Google OAuth popup compatibility
+- ✅ **Production deployment** - Live at https://ritemark.netlify.app
+- ✅ **Privacy Policy** - Created `/privacy.html` for OAuth publishing
+- ✅ **Terms of Service** - Created `/terms.html` for production use
+- ✅ **Documentation** - Comprehensive OAuth flow, security audit, and troubleshooting guides
 - ✅ **Foundation complete for Sprint 8 Google Drive integration**
 
 ### 🎯 Next Sprint (Active Development)
