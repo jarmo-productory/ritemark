@@ -259,7 +259,9 @@ async function searchDriveFiles(
   accessToken: string,
   searchQuery: string
 ): Promise<FileListResult> {
-  const query = `trashed=false and (mimeType='text/markdown' or mimeType='text/plain') and name contains '${searchQuery}'`
+  // Escape single quotes in search query to prevent Drive API 400 errors
+  const escapedQuery = searchQuery.replace(/'/g, "\\'")
+  const query = `trashed=false and (mimeType='text/markdown' or mimeType='text/plain') and name contains '${escapedQuery}'`
   const params = new URLSearchParams({
     q: query,
     fields:

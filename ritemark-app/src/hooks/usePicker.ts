@@ -37,11 +37,14 @@ export interface UsePickerReturn {
    * Show the Google Picker dialog
    * @param onFileSelect - Callback when user selects a file (receives DriveFile object)
    * @param onCancel - Optional callback when user cancels the picker
+   * @param onError - Optional callback when picker fails to open
+   * @returns boolean - true if picker opened successfully, false otherwise
    */
   showPicker: (
     onFileSelect: (file: { id: string; name: string; mimeType: string }) => void,
-    onCancel?: () => void
-  ) => void
+    onCancel?: () => void,
+    onError?: (error: string) => void
+  ) => boolean
 }
 
 /**
@@ -142,23 +145,30 @@ export function usePicker(): UsePickerReturn {
   const showPicker = useCallback(
     (
       onFileSelect: (file: { id: string; name: string; mimeType: string }) => void,
-      onCancel?: () => void
+      onCancel?: () => void,
+      onError?: (error: string) => void
     ) => {
       if (!isPickerReady || !oauthToken) {
-        console.warn('Picker not ready - please wait or sign in')
-        return
+        const error = 'Picker not ready - please wait or sign in'
+        console.warn(error)
+        onError?.(error)
+        return false
       }
 
       if (!window.google?.picker) {
-        console.error('Google Picker API not loaded')
-        return
+        const error = 'Google Picker API not loaded'
+        console.error(error)
+        onError?.(error)
+        return false
       }
 
       try {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
         if (!clientId) {
-          console.error('Google Client ID not configured')
-          return
+          const error = 'Google Client ID not configured'
+          console.error(error)
+          onError?.(error)
+          return false
         }
 
         // Extract project number from client ID (format: 730176557860-xxx.apps.googleusercontent.com)
@@ -178,7 +188,7 @@ export function usePicker(): UsePickerReturn {
 
         // Only set developer key if it's configured (optional)
         const developerKey = import.meta.env.VITE_GOOGLE_API_KEY
-        if (developerKey) {
+        if (developerKey && developerKey.trim()) {
           pickerBuilder.setDeveloperKey(developerKey)
         }
 
@@ -203,8 +213,12 @@ export function usePicker(): UsePickerReturn {
 
         // Show picker
         picker.setVisible(true)
+        return true
       } catch (error) {
-        console.error('Failed to show Google Picker:', error)
+        const errorMsg = `Failed to show Google Picker: ${error instanceof Error ? error.message : 'Unknown error'}`
+        console.error(errorMsg)
+        onError?.(errorMsg)
+        return false
       }
     },
     [isPickerReady, oauthToken]
