@@ -3,8 +3,13 @@ import { Editor } from './components/Editor'
 import type { Editor as TipTapEditor } from '@tiptap/react'
 import { TableOfContents } from './components/TableOfContents'
 import { SettingsButton } from './components/SettingsButton'
+import { FileMenu } from './components/FileMenu'
 import { AuthStatus } from './components/auth/AuthStatus'
 import { AuthProvider } from './contexts/AuthContext'
+import { SaveStatus } from './components/drive/SaveStatus'
+import { DriveFilePicker } from './components/drive/DriveFilePicker'
+import { useDriveSync } from './hooks/useDriveSync'
+import type { DriveFile } from './types/drive'
 
 function AppContent() {
   const [title, setTitle] = useState('Untitled Document')
@@ -12,6 +17,10 @@ function AppContent() {
   const [hasHeadings, setHasHeadings] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const [editor, setEditor] = useState<TipTapEditor | null>(null)
+  const [fileId, setFileId] = useState<string | null>(null)
+  const [showFilePicker, setShowFilePicker] = useState(false)
+
+  const { syncStatus, loadFile, forceSave } = useDriveSync(fileId, title, text)
 
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0
   const charCount = text.length
@@ -42,8 +51,45 @@ function AppContent() {
     return () => clearInterval(interval)
   }, [text])
 
+  const handleFileSelect = async (file: DriveFile) => {
+    try {
+      const { metadata, content } = await loadFile(file.id)
+      setFileId(file.id)
+      setTitle(metadata.name.replace('.md', ''))
+      setText(content)
+      setShowFilePicker(false)
+    } catch (error) {
+      console.error('Failed to load file:', error)
+      alert(`Failed to load file from Drive: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleNewFile = () => {
+    setFileId(null)
+    setTitle('Untitled Document')
+    setText('')
+  }
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (syncStatus.status === 'saving') {
+        e.preventDefault()
+        e.returnValue = ''
+        forceSave()
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [syncStatus.status, forceSave])
+
   return (
     <main className="app-container">
+      <SaveStatus syncStatus={syncStatus} />
+      <FileMenu
+        onOpenFromDrive={() => setShowFilePicker(true)}
+        onNewDocument={handleNewFile}
+      />
       <SettingsButton />
       <AuthStatus />
 
@@ -78,6 +124,13 @@ function AppContent() {
           )}
         </div>
       </div>
+
+      {showFilePicker && (
+        <DriveFilePicker
+          onFileSelect={handleFileSelect}
+          onClose={() => setShowFilePicker(false)}
+        />
+      )}
     </main>
   )
 }

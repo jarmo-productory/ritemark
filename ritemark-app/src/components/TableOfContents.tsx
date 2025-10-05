@@ -154,6 +154,19 @@ export function TableOfContents({ editor }: TableOfContentsProps) {
     if (!editor) return
 
     try {
+      // Validate position is within document bounds
+      const docSize = editor.state.doc.content.size
+      if (heading.pos < 0 || heading.pos > docSize) {
+        console.warn('Heading position out of bounds, refreshing headings')
+        return
+      }
+
+      // Ensure editor is focused and has valid selection before getting coordinates
+      if (!editor.state.selection || !editor.view.state) {
+        console.warn('Editor not ready for position calculation')
+        return
+      }
+
       // Get the exact position of the heading using ProseMirror coordinates
       const coords = editor.view.coordsAtPos(heading.pos)
       const headingTop = coords.top + window.scrollY
@@ -166,10 +179,12 @@ export function TableOfContents({ editor }: TableOfContentsProps) {
       })
 
       // Set selection to the heading for editor focus
+      // Use a safe position inside the heading node (pos + 1 ensures we're inside the text)
+      const safePos = Math.min(heading.pos + 1, docSize - 1)
       editor
         .chain()
         .focus()
-        .setTextSelection(heading.pos)
+        .setTextSelection(safePos)
         .run()
 
       // Update active heading immediately for UI feedback

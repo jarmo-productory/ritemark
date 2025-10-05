@@ -3,34 +3,6 @@ import { useAuth } from '../../hooks/useAuth'
 import type { GoogleUser } from '../../types/auth'
 import { X, AlertCircle } from 'lucide-react'
 
-// Google Identity Services types
-interface TokenResponse {
-  access_token?: string
-  expires_in?: number
-  scope?: string
-  token_type?: string
-  error?: string
-  error_description?: string
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: {
-            client_id: string
-            scope: string
-            callback: (response: TokenResponse) => void
-          }) => {
-            requestAccessToken: () => void
-          }
-        }
-      }
-    }
-  }
-}
-
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void

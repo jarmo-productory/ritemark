@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useEditor, EditorContent, type Editor as TipTapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -7,6 +7,7 @@ import OrderedList from '@tiptap/extension-ordered-list'
 import ListItem from '@tiptap/extension-list-item'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
+import { marked } from 'marked'
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common)
@@ -138,6 +139,26 @@ export function Editor({
       onEditorReady?.(editor)
     }
   }, [editor, onEditorReady])
+
+  // Update editor content when value prop changes (e.g., when loading a file)
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      // Check if value looks like markdown (contains markdown syntax)
+      const isMarkdown = value.includes('**') || value.includes('##') || value.includes('*')
+
+      if (isMarkdown && !value.startsWith('<')) {
+        // Convert markdown to HTML
+        const html = marked(value, {
+          breaks: true,
+          gfm: true
+        })
+        editor.commands.setContent(html)
+      } else {
+        // Already HTML or empty
+        editor.commands.setContent(value)
+      }
+    }
+  }, [editor, value])
 
   return (
     <div className={`wysiwyg-editor ${className}`}>

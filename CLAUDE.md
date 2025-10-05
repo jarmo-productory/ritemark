@@ -58,6 +58,85 @@
 3. Only create new directories when absolutely necessary
 4. Ask user before creating new top-level directories
 
+### **✅ MANDATORY VALIDATION BEFORE CLAIMING "DONE" (Step 4.5):**
+
+**🚨 ABSOLUTE REQUIREMENT: You must ALWAYS run these validations before telling the user work is complete:**
+
+```bash
+# 1. TypeScript compilation (zero errors required)
+npm run type-check
+
+# 2. Development server loads without errors
+curl -s localhost:5173 | grep -q "RiteMark" && echo "✅ Server OK" || echo "❌ Server FAILED"
+
+# 3. Check browser console for runtime errors (manual step - REQUIRED)
+# Open localhost:5173 in browser, check DevTools Console for:
+# - Import errors (red messages)
+# - React component errors
+# - Network errors (if applicable)
+# - TypeScript errors in browser
+
+# 4. Verify core functionality works (manual step - REQUIRED)
+# - Can you see the UI?
+# - Can you interact with buttons/inputs?
+# - Are there any visual errors or broken layouts?
+```
+
+**Why This Validation Failed in Sprint 8:**
+- ❌ Agent claimed "testing passed" but only checked server response via `curl`
+- ❌ Never opened browser to see actual JavaScript errors
+- ❌ Import path errors (`import '../../types/google-api'`) broke in browser but not in build
+- ❌ User saw red error overlay on first browser visit
+
+**New Rule: NEVER claim work complete without browser validation**
+
+**If you cannot open a browser (you're an AI), you MUST:**
+1. Run `npm run type-check` (catches most issues)
+2. Check dev server responds: `curl localhost:5173`
+3. **USE CHROME DEVTOOLS MCP** (if installed) to inspect browser console errors
+4. **EXPLICITLY TELL USER**: "I've validated TypeScript and server, but **you should check the browser** at localhost:5173 for runtime errors before I continue"
+
+**Chrome DevTools MCP Setup (MANDATORY for Sprint Validation):**
+```bash
+# Install Official Chrome DevTools MCP (Google 2025 release)
+claude mcp add chrome-devtools npx chrome-devtools-mcp@latest
+```
+
+**After Installation - You MUST Restart Claude Code for MCP tools to load**
+
+**MCP Tools Available After Restart:**
+- `mcp__chrome-devtools__new_page` - Open URL in Chrome
+- `mcp__chrome-devtools__navigate_page` - Navigate to URL
+- `mcp__chrome-devtools__list_pages` - List open tabs
+- `mcp__chrome-devtools__screenshot_page` - Take screenshots
+- `mcp__chrome-devtools__console_page` - Get console logs
+- `mcp__chrome-devtools__execute_script` - Run JavaScript in browser
+
+**Mandatory Browser Validation Workflow:**
+```bash
+# 1. Open localhost:5173 in Chrome via MCP
+mcp__chrome-devtools__new_page { url: "http://localhost:5173" }
+
+# 2. Get console logs to check for errors
+mcp__chrome-devtools__console_page
+
+# 3. Take screenshot to verify UI
+mcp__chrome-devtools__screenshot_page
+
+# 4. Execute test script if needed
+mcp__chrome-devtools__execute_script { script: "document.querySelector('.file-menu-trigger')" }
+```
+
+**Alternative MCP Servers (if chrome-devtools doesn't work):**
+- `chrome-debug` by Robert Headley - Advanced Chrome DevTools Protocol
+- `puppeteer-mcp-server` - Direct Puppeteer automation
+
+**Why Chrome DevTools MCP is Critical:**
+- Catches React Hooks order errors (like FileMenu issue)
+- Detects import path errors that break at runtime
+- Validates actual browser rendering vs. server response
+- Prevents user from seeing red error overlays
+
 ### **🧹 CLEANUP PHASE LESSONS LEARNED (Step 5):**
 
 **CRITICAL: Cleanup is NOT optional - it's MANDATORY before commit:**
