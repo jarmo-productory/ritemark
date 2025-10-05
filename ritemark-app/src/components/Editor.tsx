@@ -188,7 +188,6 @@ export function Editor({
           editor.commands.setContent(`<p>${value.replace(/\n/g, '</p><p>')}</p>`)
         }
       } else {
-        console.log('Content is already HTML, skipping conversion')
         // Already HTML or empty
         editor.commands.setContent(value)
       }
