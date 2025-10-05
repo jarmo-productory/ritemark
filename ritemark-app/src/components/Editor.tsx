@@ -17,9 +17,8 @@ const turndownService = new TurndownService({
   bulletListMarker: '-'
 })
 
-// CRITICAL: Disable escaping to prevent accumulation of backslashes
-// Without this, every save would add more escapes: # → \# → \\# → \\\#
-turndownService.escape = (text: string) => text
+// Keep Turndown's default escaping behavior to prevent content corruption
+// The unescape logic below handles loading escaped files correctly
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common)
