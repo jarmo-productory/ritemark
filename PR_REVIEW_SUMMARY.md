@@ -74,6 +74,19 @@ All Codex findings have been addressed and additional issues discovered during t
 ## Codex Review Results
 ✅ **Commit 68650a2** - Addressed Codex HIGH finding about content corruption from disabled escaping
 ✅ **Commit 6d4371f** - Fixed Netlify build errors and removed unsafe unescape logic (Codex HIGH finding)
+✅ **Final Review** - No findings, markdown escaping fix approved
+
+### Security Advisory from Codex:
+⚠️ **Residual XSS Risk:** We rely on marked.js output without extra sanitization. Be cautious when loading untrusted Drive files.
+
+**Current Mitigation:**
+- OAuth scope limited to `drive.file` (only app-created files)
+- Files are user's own markdown documents (not arbitrary HTML)
+
+**Future Enhancement (if needed):**
+- Add DOMPurify for HTML sanitization before rendering
+- Implement Content Security Policy (CSP) headers
+- Validate markdown content before passing to marked.js
 
 ### 6. `6d4371f` - Fix Netlify Build Errors & Remove Unsafe Unescape
 
