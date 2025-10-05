@@ -17,6 +17,10 @@ const turndownService = new TurndownService({
   bulletListMarker: '-'
 })
 
+// CRITICAL: Disable escaping to prevent accumulation of backslashes
+// Without this, every save would add more escapes: # → \# → \\# → \\\#
+turndownService.escape = (text: string) => text
+
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common)
 
@@ -162,7 +166,10 @@ export function Editor({
 
   // Update editor content when value prop changes (e.g., when loading a file)
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    // Convert current editor HTML back to markdown to compare with incoming value
+    const currentMarkdown = editor ? turndownService.turndown(editor.getHTML()) : ''
+
+    if (editor && value !== currentMarkdown) {
       // Check if value is HTML (starts with common HTML tags)
       // Only check for actual HTML block tags, not random < > characters
       const isHTML = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|strong|em|code)[\s>]/i.test(value.trim())
