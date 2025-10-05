@@ -255,7 +255,7 @@ export async function collaborationSyncStatusExample() {
 /**
  * Helper: Simulated Drive API save
  */
-async function saveToDrive(fileId: string, content: string): Promise<void> {
+async function saveToDrive(_fileId: string, _content: string): Promise<void> {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -264,7 +264,7 @@ async function saveToDrive(fileId: string, content: string): Promise<void> {
     throw new Error('Network error');
   }
 
-  console.log(`Saved to Drive: ${fileId}`);
+  console.log(`Saved to Drive: ${_fileId}`);
 }
 
 /**

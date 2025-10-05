@@ -40,12 +40,15 @@ export class AutoSaveManager {
    */
   constructor(
     fileId: string | null,
-    private readonly onSave: (content: string) => Promise<void>,
+    onSave: (content: string) => Promise<void>,
     options: AutoSaveOptions = {}
   ) {
     this.fileId = fileId;
+    this.onSave = onSave;
     this.debounceMs = options.debounceMs ?? 3000;
   }
+
+  private readonly onSave: (content: string) => Promise<void>;
 
   /**
    * Schedule a save operation with debouncing

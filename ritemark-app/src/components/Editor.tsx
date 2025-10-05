@@ -177,26 +177,10 @@ export function Editor({
         // Treat all non-HTML text as markdown (including plain text)
         // marked.js will handle plain text gracefully, converting line breaks to <p> tags
         try {
-          // Unescape markdown that was escaped by turndown
-          const unescapedMarkdown = value
-            .replace(/\\\*/g, '*')  // Unescape asterisks
-            .replace(/\\#/g, '#')   // Unescape hashes
-            .replace(/\\_/g, '_')   // Unescape underscores
-            .replace(/\\\[/g, '[')  // Unescape brackets
-            .replace(/\\\]/g, ']')
-            .replace(/\\`/g, '`')   // Unescape backticks
-
-          const html = marked(unescapedMarkdown, {
+          const html = marked(value, {
             breaks: true,
-            gfm: true,
-            mangle: false,
-            headerIds: false
-          })
-          console.log('Converted markdown to HTML:', {
-            originalLength: value.length,
-            htmlLength: html.length,
-            hadEscapes: value !== unescapedMarkdown
-          })
+            gfm: true
+          }) as string
           editor.commands.setContent(html)
         } catch (error) {
           console.error('Markdown conversion error:', error)

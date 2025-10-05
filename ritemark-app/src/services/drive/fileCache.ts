@@ -27,13 +27,18 @@ const STORE_NAME = 'files';
  * FileCache errors
  */
 export class FileCacheError extends Error {
+  public code: string;
+  public recoverable: boolean;
+
   constructor(
     message: string,
-    public code: string,
-    public recoverable: boolean = false
+    code: string,
+    recoverable: boolean = false
   ) {
     super(message);
     this.name = 'FileCacheError';
+    this.code = code;
+    this.recoverable = recoverable;
   }
 }
 
