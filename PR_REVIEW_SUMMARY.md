@@ -27,23 +27,26 @@ This PR addresses all Codex review findings from the initial Google Drive file p
 - Unescape: `\*` `\#` `\_` `\[` `\]` `` \` ``
 - Ensures proper WYSIWYG display for existing escaped files
 
-### 4. `7816c67` - Prevent Escape Accumulation & Cursor Jump
-**Problem 1 - Escape Accumulation:**
-Every save added more escapes: `#` → `\#` → `\\#` → `\\\#`
+### 4. `7816c67` - Fix Cursor Jump Issue
+**Problem:** Cursor jumped to end while typing.
 
-**Solution:** Disabled turndown escaping entirely:
-```typescript
-turndownService.escape = (text: string) => text
-```
-
-**Problem 2 - Cursor Jumping:**
-After disabling escapes, cursor jumped to end while typing.
+**Root Cause:** Comparing markdown (value prop) to HTML (editor.getHTML()) triggered unnecessary re-renders.
 
 **Solution:** Fixed comparison logic to compare markdown-to-markdown:
 ```typescript
 const currentMarkdown = turndownService.turndown(editor.getHTML())
 if (value !== currentMarkdown) { ... }
 ```
+
+### 5. `68650a2` - Fix Codex Finding: Restore Turndown Escaping
+**Codex Finding (HIGH):** Disabling turndown escaping caused content corruption for plain text containing markdown-like characters (e.g., `foo_bar` became italic).
+
+**Root Cause:** The approach of disabling escaping entirely was wrong. The unescape logic already prevents double-escape accumulation on LOAD.
+
+**Solution:** Reverted to default turndown escaping behavior. This ensures:
+- Plain text like `foo_bar` saves as `foo\_bar` (correct)
+- Unescape logic handles it properly on reload
+- No content corruption from misinterpreted markdown
 
 ## Files Modified
 - `.gitignore` - Excluded non-code folders
@@ -66,4 +69,7 @@ if (value !== currentMarkdown) { ... }
 All Codex findings have been addressed and additional issues discovered during testing have been fixed. The PR is ready for final review.
 
 **Branch:** `feature/sprint-08-google-drive-picker`
-**Latest Commit:** `7816c67`
+**Latest Commit:** `68650a2`
+
+## Codex Review Results
+✅ **Commit 68650a2** - Addressed Codex HIGH finding about content corruption from disabled escaping
