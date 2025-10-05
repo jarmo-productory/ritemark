@@ -8,6 +8,14 @@ import ListItem from '@tiptap/extension-list-item'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
 import { marked } from 'marked'
+import TurndownService from 'turndown'
+
+// Initialize Turndown for HTML to Markdown conversion
+const turndownService = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+  bulletListMarker: '-'
+})
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common)
@@ -37,6 +45,16 @@ export function Editor({
         codeBlock: false, // Disable default to use enhanced version
         heading: {
           levels: [1, 2, 3, 4, 5, 6],
+        },
+        bold: {
+          HTMLAttributes: {
+            class: 'font-bold',
+          },
+        },
+        italic: {
+          HTMLAttributes: {
+            class: 'italic',
+          },
         },
       }),
       CodeBlockLowlight.configure({
@@ -70,8 +88,10 @@ export function Editor({
       onEditorReady?.(editor)
     },
     onUpdate: ({ editor }) => {
-      const content = editor.getHTML()
-      onChange(content)
+      const html = editor.getHTML()
+      // Convert HTML back to markdown for storage
+      const markdown = turndownService.turndown(html)
+      onChange(markdown)
       onEditorReady?.(editor) // Ensure editor is always available
     },
     editorProps: {
@@ -143,17 +163,42 @@ export function Editor({
   // Update editor content when value prop changes (e.g., when loading a file)
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
-      // Check if value looks like markdown (contains markdown syntax)
-      const isMarkdown = value.includes('**') || value.includes('##') || value.includes('*')
+      // Check if value is HTML (starts with common HTML tags)
+      // Only check for actual HTML block tags, not random < > characters
+      const isHTML = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|strong|em|code)[\s>]/i.test(value.trim())
 
-      if (isMarkdown && !value.startsWith('<')) {
-        // Convert markdown to HTML
-        const html = marked(value, {
-          breaks: true,
-          gfm: true
-        })
-        editor.commands.setContent(html)
+      if (!isHTML && value.trim()) {
+        // Treat all non-HTML text as markdown (including plain text)
+        // marked.js will handle plain text gracefully, converting line breaks to <p> tags
+        try {
+          // Unescape markdown that was escaped by turndown
+          const unescapedMarkdown = value
+            .replace(/\\\*/g, '*')  // Unescape asterisks
+            .replace(/\\#/g, '#')   // Unescape hashes
+            .replace(/\\_/g, '_')   // Unescape underscores
+            .replace(/\\\[/g, '[')  // Unescape brackets
+            .replace(/\\\]/g, ']')
+            .replace(/\\`/g, '`')   // Unescape backticks
+
+          const html = marked(unescapedMarkdown, {
+            breaks: true,
+            gfm: true,
+            mangle: false,
+            headerIds: false
+          })
+          console.log('Converted markdown to HTML:', {
+            originalLength: value.length,
+            htmlLength: html.length,
+            hadEscapes: value !== unescapedMarkdown
+          })
+          editor.commands.setContent(html)
+        } catch (error) {
+          console.error('Markdown conversion error:', error)
+          // Fallback: treat as plain text
+          editor.commands.setContent(`<p>${value.replace(/\n/g, '</p><p>')}</p>`)
+        }
       } else {
+        console.log('Content is already HTML, skipping conversion')
         // Already HTML or empty
         editor.commands.setContent(value)
       }
