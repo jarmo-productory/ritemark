@@ -69,7 +69,31 @@ if (value !== currentMarkdown) { ... }
 All Codex findings have been addressed and additional issues discovered during testing have been fixed. The PR is ready for final review.
 
 **Branch:** `feature/sprint-08-google-drive-picker`
-**Latest Commit:** `68650a2`
+**Latest Commit:** `6d4371f`
 
 ## Codex Review Results
 ✅ **Commit 68650a2** - Addressed Codex HIGH finding about content corruption from disabled escaping
+✅ **Commit 6d4371f** - Fixed Netlify build errors and removed unsafe unescape logic (Codex HIGH finding)
+
+### 6. `6d4371f` - Fix Netlify Build Errors & Remove Unsafe Unescape
+
+**Netlify Build Errors Fixed:**
+1. ❌ `marked.js 'mangle' option` - Removed (not in MarkedOptions type)
+2. ❌ `@types/turndown missing` - Installed for type safety
+3. ❌ `marked() return type` - Cast to string (can be Promise in async)
+4. ❌ `FileCacheError constructor` - Parameter properties moved to class
+5. ❌ `AutoSaveManager constructor` - onSave moved to class property
+6. ❌ `Unused parameters` - Prefixed with underscore in example file
+
+**Codex Finding (HIGH) - Content Corruption from Unescape:**
+Blanket unescape logic was corrupting intentionally escaped text:
+- User types `\*literal\*` to show asterisks literally
+- Saved correctly as `\\*literal\\*`
+- **BUG:** Unescape stripped backslashes on reload → became italic
+- Same issue with `foo\_bar` → became `foo_bar` with unwanted emphasis
+
+**Solution:** Removed unescape logic entirely. Let marked.js handle escaped markdown correctly.
+
+**Result:**
+- ✅ `foo_bar` → saves as `foo\_bar` → reloads as plain text `foo_bar`
+- ✅ `\*literal\*` → saves as `\\*literal\\*` → reloads as `\*literal\*` with asterisks
