@@ -213,7 +213,7 @@ export class GoogleAuth {
    * Exchange authorization code for access and refresh tokens
    * Note: This requires backend implementation or @react-oauth/google library
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   private async exchangeCodeForTokens(
     _code: string,
     _codeVerifier: string
@@ -270,7 +270,7 @@ export class GoogleAuth {
   /**
    * Handle OAuth error from callback
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   private handleOAuthError(error: string, description?: string): AuthResult {
     const errorMap: Record<string, { code: string; recoverable: boolean }> = {
       access_denied: { code: AUTH_ERRORS.USER_CANCELLED, recoverable: true },

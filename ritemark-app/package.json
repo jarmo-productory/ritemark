@@ -42,10 +42,12 @@
     "clsx": "^2.1.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.544.0",
+    "marked": "^16.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "turndown": "^7.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
@@ -58,11 +60,13 @@
     "@types/google-apps-script": "^2.0.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@types/turndown": "^5.0.5",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "fake-indexeddb": "^6.2.2",
     "globals": "^16.3.0",
     "googleapis": "^159.0.0",
     "husky": "^8.0.0",

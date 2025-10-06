@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useEditor, EditorContent, type Editor as TipTapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -7,6 +7,18 @@ import OrderedList from '@tiptap/extension-ordered-list'
 import ListItem from '@tiptap/extension-list-item'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
+import { marked } from 'marked'
+import TurndownService from 'turndown'
+
+// Initialize Turndown for HTML to Markdown conversion
+const turndownService = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+  bulletListMarker: '-'
+})
+
+// Keep Turndown's default escaping behavior to prevent content corruption
+// The unescape logic below handles loading escaped files correctly
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common)
@@ -36,6 +48,16 @@ export function Editor({
         codeBlock: false, // Disable default to use enhanced version
         heading: {
           levels: [1, 2, 3, 4, 5, 6],
+        },
+        bold: {
+          HTMLAttributes: {
+            class: 'font-bold',
+          },
+        },
+        italic: {
+          HTMLAttributes: {
+            class: 'italic',
+          },
         },
       }),
       CodeBlockLowlight.configure({
@@ -69,8 +91,10 @@ export function Editor({
       onEditorReady?.(editor)
     },
     onUpdate: ({ editor }) => {
-      const content = editor.getHTML()
-      onChange(content)
+      const html = editor.getHTML()
+      // Convert HTML back to markdown for storage
+      const markdown = turndownService.turndown(html)
+      onChange(markdown)
       onEditorReady?.(editor) // Ensure editor is always available
     },
     editorProps: {
@@ -138,6 +162,37 @@ export function Editor({
       onEditorReady?.(editor)
     }
   }, [editor, onEditorReady])
+
+  // Update editor content when value prop changes (e.g., when loading a file)
+  useEffect(() => {
+    // Convert current editor HTML back to markdown to compare with incoming value
+    const currentMarkdown = editor ? turndownService.turndown(editor.getHTML()) : ''
+
+    if (editor && value !== currentMarkdown) {
+      // Check if value is HTML (starts with common HTML tags)
+      // Only check for actual HTML block tags, not random < > characters
+      const isHTML = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|strong|em|code)[\s>]/i.test(value.trim())
+
+      if (!isHTML && value.trim()) {
+        // Treat all non-HTML text as markdown (including plain text)
+        // marked.js will handle plain text gracefully, converting line breaks to <p> tags
+        try {
+          const html = marked(value, {
+            breaks: true,
+            gfm: true
+          }) as string
+          editor.commands.setContent(html)
+        } catch (error) {
+          console.error('Markdown conversion error:', error)
+          // Fallback: treat as plain text
+          editor.commands.setContent(`<p>${value.replace(/\n/g, '</p><p>')}</p>`)
+        }
+      } else {
+        // Already HTML or empty
+        editor.commands.setContent(value)
+      }
+    }
+  }, [editor, value])
 
   return (
     <div className={`wysiwyg-editor ${className}`}>
