@@ -13,10 +13,14 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 **Success**: ✅ Users edit visually, never see markdown syntax + seamless TOC navigation
 **Progress**: ✅ Sprint 5 achieved complete visual editing experience with production-ready TOC
 
-### 🎯 Milestone 2: Cloud Collaboration (Sprint 7-12) - 🚧 IN PROGRESS
-**Goal**: Google Docs-level real-time collaboration
-**Success**: Teams collaborate seamlessly on markdown docs
-**Progress**: ✅ Foundation complete (Sprints 7-8: OAuth + Drive integration). Next: Real-time editing (Sprint 9)
+### 🎯 Milestone 2: Cloud Storage & Invisible Interface UX (Sprint 7-12) - 🚧 IN PROGRESS
+**Goal**: Perfect single-user cloud experience with Johnny Ive invisible interface
+**Success**: Users write seamlessly with Google Drive storage, zero UI clutter
+**Progress**:
+- ✅ Sprints 7-8: OAuth + Drive integration complete
+- 🎯 Sprint 9: UX consolidation (fix 3-location UI problem)
+- 🎯 Sprint 10: In-context formatting menu
+- 🎯 Sprint 11-12: Enhanced operations & keyboard shortcuts
 
 ### 🎯 Milestone 3: AI Integration (Sprint 13-18)
 **Goal**: Native AI writing assistance
@@ -97,29 +101,44 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 ### 🎯 Future Sprints (Planned)
 
-#### **Sprint 9**: Real-Time Collaboration (Y.js CRDT)
-- **Goal**: Add real-time collaborative editing with Y.js
-- **Output**: 1 PR with Y.js CRDT integration
-- **Success**: Multiple users can edit same document simultaneously
-- **Architecture**: WebSocket fallback, conflict-free editing, cursor awareness
+#### **Sprint 9**: UX Consolidation & Invisible Interface
+- **Goal**: Fix UI/UX inconsistencies - apply Johnny Ive invisible interface philosophy
+- **Problem**: 3 different UI locations violate invisible interface principle:
+  - Upper right: File menu + Login
+  - Upper left: Save status alerts
+  - Bottom left: User badge
+- **Output**: 1 PR with consolidated, minimal UI
+- **Success**: Single, consistent UI location with graceful state indicators
+- **Architecture**: Consolidated top-right corner UI, subtle save indicators, remove visual clutter
 
-#### **Sprint 10**: Collaboration UI & Presence
-- **Goal**: User presence indicators and collaboration UI
-- **Output**: 1 PR with presence awareness
-- **Success**: Users see who else is editing, live cursor positions
-- **Features**: Avatar indicators, active user list, cursor colors
+#### **Sprint 10**: In-Context Formatting Menu (Text Selection)
+- **Goal**: Add formatting menu on text selection (like Medium/Notion)
+- **Output**: 1 PR with floating formatting toolbar
+- **Success**: Users format text by selecting it, menu appears above selection
+- **Features**: Bold, italic, heading levels, lists, links - all contextual
+- **UX**: No toolbar chrome, appears only when needed (invisible interface)
 
-#### **Sprint 11**: Comments & Suggestions
-- **Goal**: Add inline comments and suggested edits
-- **Output**: 1 PR with commenting system
-- **Success**: Users can comment on text, suggest changes
-- **Architecture**: ProseMirror decorations, comment threading
+#### **Sprint 11**: Enhanced Document Operations
+- **Goal**: Improve file management and document organization
+- **Output**: 1 PR with enhanced file operations
+- **Success**: Users can rename, duplicate, organize documents efficiently
+- **Features**: Inline rename, folder navigation, recent files, favorites
 
-#### **Sprint 12**: Sharing & Permissions
-- **Goal**: Document sharing with Google Drive permissions
-- **Output**: 1 PR with sharing controls
-- **Success**: Users can share documents, manage access levels
-- **Features**: Share dialog, permission management, public links
+#### **Sprint 12**: Keyboard Shortcuts & Power User Features
+- **Goal**: Add comprehensive keyboard shortcuts for power users
+- **Output**: 1 PR with keyboard shortcuts system
+- **Success**: Users can perform all actions via keyboard
+- **Features**: Shortcut palette (Cmd+K), customizable shortcuts, cheat sheet
+
+---
+
+### 🔮 Future Collaboration Features (Sprint 13+)
+**Note**: Real-time collaboration postponed until core UX is perfected
+
+- **Sprint 13+**: Real-Time Collaboration (Y.js CRDT)
+- **Sprint 14+**: Collaboration UI & Presence
+- **Sprint 15+**: Comments & Suggestions
+- **Sprint 16+**: Sharing & Permissions
 
 **Note**: Mobile responsive design already implemented in Sprint 4
 
@@ -141,8 +160,8 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 8 COMPLETED - Ready for Sprint 9 (Real-Time Collaboration)
-**Last Updated**: October 5, 2025 - Sprint 8 Google Drive Integration complete
+**Current Sprint**: Sprint 8 COMPLETED - Ready for Sprint 9 (UX Consolidation & Invisible Interface)
+**Last Updated**: October 5, 2025 - Sprint 8 complete, Sprints 9-12 refocused on UX perfection
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
@@ -151,10 +170,16 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - Seamless document navigation with intelligent Table of Contents
 - Production-ready code with Johnny Ive invisible interface design
 
-### ✅ MILESTONE 2 FOUNDATION: Cloud Collaboration Infrastructure (Sprints 7-8)
-- Google OAuth 2.0 authentication with single-popup flow
-- Complete Google Drive file lifecycle (create, open, save, auto-save)
-- WYSIWYG markdown editing with bidirectional conversion
-- IndexedDB offline caching for reliability
-- Mobile-first PWA architecture
-- **Foundation complete for real-time collaboration features (Sprint 9+)**
+### 🚧 MILESTONE 2: Cloud Storage & Invisible Interface UX (Sprints 7-12)
+**Foundation Complete (Sprints 7-8):**
+- ✅ Google OAuth 2.0 authentication with single-popup flow
+- ✅ Complete Google Drive file lifecycle (create, open, save, auto-save)
+- ✅ WYSIWYG markdown editing with bidirectional conversion
+- ✅ IndexedDB offline caching for reliability
+- ✅ Mobile-first PWA architecture
+
+**Next Steps (Sprints 9-12):**
+- 🎯 Sprint 9: Fix 3-location UI problem, consolidate to single corner
+- 🎯 Sprint 10: In-context formatting menu on text selection
+- 🎯 Sprint 11-12: Enhanced operations & keyboard shortcuts
+- **Note**: Real-time collaboration postponed to Sprint 13+ (after UX perfection)
