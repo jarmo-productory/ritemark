@@ -14,16 +14,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user
 
-  // Restore user session from sessionStorage on mount
+  // Restore user session from sessionStorage on mount (with token validation)
   useEffect(() => {
     const storedUser = sessionStorage.getItem('ritemark_user')
-    if (storedUser) {
+    const storedTokens = sessionStorage.getItem('ritemark_oauth_tokens')
+
+    if (storedUser && storedTokens) {
       try {
         const userData = JSON.parse(storedUser) as GoogleUser
-        setUser(userData)
+        const tokenData = JSON.parse(storedTokens)
+
+        // Validate token expiry
+        const expiresAt = tokenData.expiresAt
+        const isExpired = !expiresAt || expiresAt <= Date.now()
+
+        if (isExpired) {
+          console.warn('[AuthContext] Token expired, clearing session')
+          sessionStorage.removeItem('ritemark_user')
+          sessionStorage.removeItem('ritemark_oauth_tokens')
+          sessionStorage.removeItem('ritemark_refresh_token')
+          setUser(null)
+        } else {
+          console.log('[AuthContext] Valid token found, restoring session')
+          setUser(userData)
+        }
       } catch (err) {
         console.error('Failed to restore user session:', err)
         sessionStorage.removeItem('ritemark_user')
+        sessionStorage.removeItem('ritemark_oauth_tokens')
+        sessionStorage.removeItem('ritemark_refresh_token')
+        setUser(null)
       }
     }
   }, [])

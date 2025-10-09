@@ -5,4 +5,3 @@
 
 export { DriveFileBrowser } from './DriveFileBrowser'
 export { DriveFilePicker } from './DriveFilePicker'
-export { SaveStatus } from './SaveStatus'

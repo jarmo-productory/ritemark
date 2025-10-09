@@ -31,6 +31,11 @@ export interface UseDriveSyncOptions {
   onFileCreated?: (fileId: string) => void
 
   /**
+   * Callback when authentication error occurs (to show dialog)
+   */
+  onAuthError?: () => void
+
+  /**
    * Debounce time in milliseconds
    * @default 3000 (3 seconds)
    */
@@ -72,7 +77,7 @@ export function useDriveSync(
   content: string,
   options: UseDriveSyncOptions = {}
 ): UseDriveSyncReturn {
-  const { onFileCreated, debounceMs = 3000 } = options
+  const { onFileCreated, onAuthError, debounceMs = 3000 } = options
 
   const [syncStatus, setSyncStatus] = useState<DriveSyncStatus>({
     status: 'synced',
@@ -143,6 +148,17 @@ export function useDriveSync(
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error occurred'
 
+        // Check if it's an authentication error
+        if (errorMessage.includes('Not authenticated') || errorMessage.includes('authentication')) {
+          // Only trigger auth error dialog if we have a document (user was working)
+          // If no document, user should see welcome screen instead
+          if (fileId) {
+            onAuthError?.()
+          }
+          // Don't set error status for auth errors - they're handled by dialog or welcome screen
+          return
+        }
+
         setSyncStatus({
           status: 'error',
           lastSaved: undefined,
@@ -182,7 +198,6 @@ export function useDriveSync(
     const handleVisibilityChange = () => {
       if (document.hidden && autoSaveManager.current) {
         autoSaveManager.current.forceSave().catch((error) => {
-          console.error('Background save failed:', error)
         })
       }
     }
@@ -201,7 +216,6 @@ export function useDriveSync(
       // Validate fileId before making API call
       if (!loadFileId || typeof loadFileId !== 'string' || loadFileId.trim() === '') {
         const error = new Error('Invalid file ID - cannot load file')
-        console.error('Load failed: Invalid fileId provided', { loadFileId })
         setSyncStatus({
           status: 'error',
           lastSaved: undefined,
@@ -242,9 +256,18 @@ export function useDriveSync(
 
         return { metadata, content: fileContent }
       } catch (error) {
-        console.error('Load failed:', error)
         const errorMessage =
           error instanceof Error ? error.message : 'Failed to load file'
+
+        // Check if it's an authentication error
+        if (errorMessage.includes('Not authenticated') || errorMessage.includes('authentication')) {
+          // Only trigger auth error dialog if we have a document (user was working)
+          // If no document, user should see welcome screen instead
+          if (currentFileId.current) {
+            onAuthError?.()
+          }
+          throw error
+        }
 
         setSyncStatus({
           status: 'error',
@@ -427,7 +450,6 @@ async function loadDriveFile(
 
       // If 404 and we have retries left, wait and retry (transient permission propagation)
       if (contentResponse.status === 404 && retries > 0) {
-        console.log(`Retrying file content fetch (${retries} retries left)...`)
         await new Promise((resolve) => setTimeout(resolve, 1000)) // Wait 1s
         retries--
         continue
@@ -437,7 +459,6 @@ async function loadDriveFile(
       break
     } catch (networkError) {
       if (retries > 0) {
-        console.warn('Network error, retrying...', networkError)
         await new Promise((resolve) => setTimeout(resolve, 1000))
         retries--
       } else {
