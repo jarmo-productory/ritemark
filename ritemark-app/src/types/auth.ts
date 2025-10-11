@@ -149,12 +149,6 @@ export interface GoogleLoginButtonProps {
   className?: string
 }
 
-export interface AuthStatusProps {
-  user?: GoogleUser
-  onLogout?: () => void
-  showAvatar?: boolean
-  className?: string
-}
 
 // OAuth callback URL parameters
 export interface OAuthCallbackParams {

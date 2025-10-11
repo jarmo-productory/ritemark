@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar'
 import type { Editor as TipTapEditor } from '@tiptap/react'
 
 interface Heading {
@@ -8,11 +13,11 @@ interface Heading {
   pos: number
 }
 
-interface TableOfContentsProps {
+interface TableOfContentsNavProps {
   editor?: TipTapEditor | null
 }
 
-export function TableOfContents({ editor }: TableOfContentsProps) {
+export function TableOfContentsNav({ editor }: TableOfContentsNavProps) {
   const [headings, setHeadings] = useState<Heading[]>([])
   const [activeId, setActiveId] = useState<string>('')
 
@@ -205,28 +210,32 @@ export function TableOfContents({ editor }: TableOfContentsProps) {
     }
   }
 
-  // Don't render if no headings
+  // Don't render if no headings (Invisible Interface philosophy)
   if (headings.length === 0) {
     return null
   }
 
   return (
-    <nav className="toc-container" aria-label="Document navigation">
-      <ul className="toc-list">
-        {headings.map((heading) => (
-          <li key={heading.id} className="toc-item">
-            <button
-              onClick={(event) => scrollToHeading(heading, event)}
-              className={`toc-link toc-level-${heading.level} ${
-                activeId === heading.id ? 'toc-active' : ''
-              }`}
-              aria-current={activeId === heading.id ? 'location' : undefined}
-            >
-              {heading.textContent}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <SidebarMenu>
+      {headings.map((heading) => (
+        <SidebarMenuItem key={heading.id}>
+          <SidebarMenuButton
+            onClick={(event) => scrollToHeading(heading, event)}
+            isActive={activeId === heading.id}
+            className={`toc-level-${heading.level} ${
+              heading.level === 1 ? 'pl-2' : 
+              heading.level === 2 ? 'pl-4' : 
+              heading.level === 3 ? 'pl-6' : 
+              heading.level === 4 ? 'pl-8' : 
+              heading.level === 5 ? 'pl-10' : 
+              'pl-12'
+            }`}
+            aria-current={activeId === heading.id ? 'location' : undefined}
+          >
+            <span className="truncate">{heading.textContent}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
   )
 }

@@ -362,10 +362,6 @@ export interface DriveFilePickerProps {
   onClose: () => void
 }
 
-export interface SaveStatusProps {
-  syncStatus: DriveSyncStatus
-  className?: string
-}
 
 /**
  * Type aliases for DriveClient compatibility

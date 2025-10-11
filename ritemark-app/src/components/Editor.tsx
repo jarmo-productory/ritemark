@@ -6,6 +6,7 @@ import BulletList from '@tiptap/extension-bullet-list'
 import OrderedList from '@tiptap/extension-ordered-list'
 import ListItem from '@tiptap/extension-list-item'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import Link from '@tiptap/extension-link'
 import { createLowlight, common } from 'lowlight'
 import { marked } from 'marked'
 import TurndownService from 'turndown'
@@ -14,7 +15,9 @@ import TurndownService from 'turndown'
 const turndownService = new TurndownService({
   headingStyle: 'atx',
   codeBlockStyle: 'fenced',
-  bulletListMarker: '-'
+  bulletListMarker: '-',
+  emDelimiter: '*',  // Use * for italic (matches TipTap BubbleMenu input)
+  strongDelimiter: '**'  // Use ** for bold (matches TipTap BubbleMenu input)
 })
 
 // Keep Turndown's default escaping behavior to prevent content corruption
@@ -46,6 +49,7 @@ export function Editor({
         orderedList: false,
         listItem: false,
         codeBlock: false, // Disable default to use enhanced version
+        link: false, // Disable StarterKit's Link to use custom Link extension
         heading: {
           levels: [1, 2, 3, 4, 5, 6],
         },
@@ -84,6 +88,15 @@ export function Editor({
       }),
       Placeholder.configure({
         placeholder: placeholder,
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'tiptap-link',
+        },
+        validate: (url) => {
+          return url.startsWith('https://') || url.startsWith('http://')
+        },
       }),
     ],
     content: value,
@@ -208,6 +221,10 @@ export function Editor({
           font-size: 18px !important;
           line-height: 1.7 !important;
           color: #374151 !important;
+          max-width: 100% !important;
+          max-width: 900px !important;
+          margin: 0 auto !important;
+          padding: 2rem 2rem 0 2rem !important;
         }
 
         .wysiwyg-editor .ProseMirror p {
