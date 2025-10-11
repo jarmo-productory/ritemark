@@ -1,11 +1,52 @@
-# React + TypeScript + Vite
+# RiteMark - WYSIWYG Markdown Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**"Google Docs for Markdown"** - A visual editor for AI-native non-technical users who need markdown output with cloud collaboration.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **WYSIWYG Editor** - No markdown syntax visible to users
+- **Real-time Collaboration** - Work together with Y.js CRDT technology
+- **Google Drive Integration** - Cloud-native file storage and management
+- **Professional Formatting** - Context-sensitive toolbar with keyboard shortcuts
+- **Mobile-Optimized** - Responsive design for modern work patterns
+
+## Tech Stack
+
+- **React 19** + **TypeScript** - Modern UI development
+- **Vite** - Fast build tooling
+- **TipTap** - Powerful WYSIWYG editor framework
+- **shadcn/ui** - Beautiful UI components
+- **Tailwind CSS** - Utility-first styling
+
+## Documentation
+
+### For Users
+- [Text Formatting Guide](docs/user-guide/formatting.md) - How to format text with the toolbar
+
+### For Developers
+- [FormattingBubbleMenu Component](docs/components/FormattingBubbleMenu.md) - Technical documentation
+- [Google Drive Integration](docs/DRIVE-INTEGRATION-SUMMARY.md) - Drive API setup and usage
+- [OAuth Setup](docs/oauth-testing-checklist.md) - Authentication configuration
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server (runs on localhost:5173)
+npm run dev
+
+# Build for production
+npm run build
+
+# Run tests
+npm run test
+```
+
+## Development
+
+This template uses [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) with Babel for Fast Refresh.
 
 ## Expanding the ESLint configuration
 

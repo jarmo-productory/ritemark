@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
+import { FormattingBubbleMenu } from './components/FormattingBubbleMenu'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { AuthErrorDialog } from './components/AuthErrorDialog'
 import { useDriveSync } from './hooks/useDriveSync'
@@ -12,8 +13,7 @@ import type { Editor as TipTapEditor } from '@tiptap/react'
 
 function App() {
   // Authentication context
-  const authContext = useContext(AuthContext)
-  const isAuthenticated = authContext?.isAuthenticated ?? false
+  useContext(AuthContext) // Used by child components via context
 
   // Document state
   const [fileId, setFileId] = useState<string | null>(null)
@@ -113,11 +113,14 @@ function App() {
         onRenameDocument={handleRenameDocument}
       >
         {fileId || isNewDocument ? (
-          <Editor
-            value={content}
-            onChange={setContent}
-            onEditorReady={setEditor}
-          />
+          <>
+            <Editor
+              value={content}
+              onChange={setContent}
+              onEditorReady={setEditor}
+            />
+            <FormattingBubbleMenu editor={editor} />
+          </>
         ) : (
           <WelcomeScreen
             onNewDocument={handleNewDocument}

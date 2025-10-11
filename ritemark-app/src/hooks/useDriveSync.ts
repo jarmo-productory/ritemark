@@ -197,7 +197,8 @@ export function useDriveSync(
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && autoSaveManager.current) {
-        autoSaveManager.current.forceSave().catch((error) => {
+        autoSaveManager.current.forceSave().catch(() => {
+          // Silent fail - save will retry on next content change
         })
       }
     }
