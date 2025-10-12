@@ -219,6 +219,14 @@ grep -r "Johnny\|Add enhanced\|Beautiful\|AI generated" src/
 
 ### 📁 File Organization Rules
 
+**🚨 CRITICAL: DOCUMENTATION FOLDER LOCATION**
+- **ALL documentation MUST go in `/docs/` at repository root**
+- **NEVER create `/ritemark-app/docs/` or any app-specific docs folder**
+- **Sprint docs**: `/docs/sprints/sprint-XX.md`
+- **Component docs**: `/docs/components/`
+- **User guides**: `/docs/user-guide/`
+- **Research**: `/docs/research/`
+
 **NEVER save to root folder. Use these directories:**
 - `/src` - Source code files (React components, services, utils)
 - `/src/components` - React components
@@ -227,7 +235,7 @@ grep -r "Johnny\|Add enhanced\|Beautiful\|AI generated" src/
 - `/src/types` - TypeScript type definitions
 - `/tests` - Test files (Jest, React Testing Library)
 - `/public` - Static assets and manifest files
-- `/docs` - Documentation and markdown files
+- **`/docs`** - **ALL documentation and markdown files (at repo root, NOT in ritemark-app/)**
 - `/config` - Configuration files (OAuth, environment)
 - `/scripts` - Build and deployment scripts
 
