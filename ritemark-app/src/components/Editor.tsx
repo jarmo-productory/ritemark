@@ -10,6 +10,10 @@ import Link from '@tiptap/extension-link'
 import { createLowlight, common } from 'lowlight'
 import { marked } from 'marked'
 import TurndownService from 'turndown'
+import { tables } from 'turndown-plugin-gfm'
+import { tableExtensions } from '../extensions/tableExtensions'
+import { FormattingBubbleMenu } from './FormattingBubbleMenu'
+import { TableContextMenu } from './TableContextMenu'
 
 // Initialize Turndown for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -18,6 +22,26 @@ const turndownService = new TurndownService({
   bulletListMarker: '-',
   emDelimiter: '*',  // Use * for italic (matches TipTap BubbleMenu input)
   strongDelimiter: '**'  // Use ** for bold (matches TipTap BubbleMenu input)
+})
+
+// Enable GFM tables plugin for turndown
+turndownService.use(tables)
+
+// Override the tableCell rule to escape pipe characters in cell content
+// The turndown-plugin-gfm doesn't escape pipes by default, which breaks table structure
+// when cell content contains | characters (e.g., code examples, commands)
+turndownService.addRule('tableCellWithPipeEscape', {
+  filter: ['th', 'td'],
+  replacement: function (content, node) {
+    // Escape pipe characters to prevent breaking table structure
+    const escapedContent = content.replace(/\|/g, '\\|')
+
+    // Replicate the original cell formatting logic from turndown-plugin-gfm
+    // Table cells always have a parent (tr), so this is safe
+    const index = node.parentNode ? Array.prototype.indexOf.call(node.parentNode.childNodes, node) : 0
+    const prefix = index === 0 ? '| ' : ' '
+    return prefix + escapedContent + ' |'
+  }
 })
 
 // Keep Turndown's default escaping behavior to prevent content corruption
@@ -98,6 +122,7 @@ export function Editor({
           return url.startsWith('https://') || url.startsWith('http://')
         },
       }),
+      ...tableExtensions,
     ],
     content: value,
     onCreate: ({ editor }) => {
@@ -122,6 +147,49 @@ export function Editor({
         if (isMod && event.shiftKey && event.key === 'C') {
           event.preventDefault()
           return editor?.commands.toggleCodeBlock() || false
+        }
+
+        // Table insertion: Remove keyboard shortcut entirely
+        // Users will insert tables via toolbar button (Phase 2)
+        // No safe keyboard shortcut exists (Cmd+Shift+T = reopen tab, Cmd+Option+T conflicts with apps)
+
+        // Table row/column operations (only when inside a table)
+        if (editor?.isActive('table')) {
+          // Cmd+Shift+↑ - Add row before
+          if (isMod && event.shiftKey && event.key === 'ArrowUp') {
+            event.preventDefault()
+            return editor?.commands.addRowBefore() || false
+          }
+
+          // Cmd+Shift+↓ - Add row after
+          if (isMod && event.shiftKey && event.key === 'ArrowDown') {
+            event.preventDefault()
+            return editor?.commands.addRowAfter() || false
+          }
+
+          // Cmd+Shift+← - Add column before
+          if (isMod && event.shiftKey && event.key === 'ArrowLeft') {
+            event.preventDefault()
+            return editor?.commands.addColumnBefore() || false
+          }
+
+          // Cmd+Shift+→ - Add column after
+          if (isMod && event.shiftKey && event.key === 'ArrowRight') {
+            event.preventDefault()
+            return editor?.commands.addColumnAfter() || false
+          }
+
+          // Cmd+Backspace - Delete row
+          if (isMod && event.key === 'Backspace') {
+            event.preventDefault()
+            return editor?.commands.deleteRow() || false
+          }
+
+          // Cmd+Delete - Delete column
+          if (isMod && event.key === 'Delete') {
+            event.preventDefault()
+            return editor?.commands.deleteColumn() || false
+          }
         }
 
         // Ordered list shortcut: Mod+Shift+7
@@ -210,6 +278,14 @@ export function Editor({
   return (
     <div className={`wysiwyg-editor ${className}`}>
       <EditorContent editor={editor} />
+      {editor ? (
+        <>
+          <FormattingBubbleMenu editor={editor} />
+          <TableContextMenu editor={editor} />
+        </>
+      ) : (
+        <div style={{ display: 'none' }}>Editor not ready</div>
+      )}
       <style>{`
         .wysiwyg-editor .ProseMirror {
           outline: none !important;
@@ -379,6 +455,84 @@ export function Editor({
           float: left !important;
           height: 0 !important;
           pointer-events: none !important;
+        }
+
+        /* Table styling - Based on Sprint 11 research with user-requested colors */
+        /* Table container */
+        .wysiwyg-editor .ProseMirror table.tiptap-table-node {
+          border-collapse: collapse !important;
+          table-layout: fixed !important;
+          width: 100% !important;
+          margin: 1em 0 !important;
+          overflow: hidden !important;
+          border: 1px solid #d1d5db !important; /* User requested: 1px solid light grey */
+        }
+
+        /* Table cells */
+        .wysiwyg-editor .ProseMirror td.tiptap-table-cell,
+        .wysiwyg-editor .ProseMirror th.tiptap-table-header {
+          min-width: 1em !important;
+          border: 1px solid #d1d5db !important; /* User requested: 1px solid light grey */
+          padding: 0.5rem 0.75rem !important;
+          vertical-align: top !important;
+          box-sizing: border-box !important;
+          position: relative !important;
+        }
+
+        /* Header cells */
+        .wysiwyg-editor .ProseMirror th.tiptap-table-header {
+          font-weight: 600 !important;
+          text-align: left !important;
+          background-color: #f8fafc !important;
+          color: #111827 !important;
+        }
+
+        /* Row hover effect */
+        .wysiwyg-editor .ProseMirror tr.tiptap-table-row:hover td,
+        .wysiwyg-editor .ProseMirror tr.tiptap-table-row:hover th {
+          background-color: rgba(59, 130, 246, 0.05) !important;
+        }
+
+        /* Selected cell */
+        .wysiwyg-editor .ProseMirror .selectedCell:after {
+          z-index: 2 !important;
+          position: absolute !important;
+          content: "" !important;
+          left: 0 !important;
+          right: 0 !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          background: rgba(59, 130, 246, 0.1) !important;
+          pointer-events: none !important;
+        }
+
+        /* Column resize handle */
+        .wysiwyg-editor .ProseMirror table.tiptap-table-node .column-resize-handle {
+          position: absolute !important;
+          right: -2px !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          width: 4px !important;
+          background-color: #3b82f6 !important;
+          cursor: col-resize !important;
+          opacity: 0 !important;
+          transition: opacity 0.2s !important;
+        }
+
+        .wysiwyg-editor .ProseMirror table.tiptap-table-node:hover .column-resize-handle {
+          opacity: 0.5 !important;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+          .wysiwyg-editor .ProseMirror table.tiptap-table-node {
+            font-size: 14px !important;
+          }
+
+          .wysiwyg-editor .ProseMirror td.tiptap-table-cell,
+          .wysiwyg-editor .ProseMirror th.tiptap-table-header {
+            padding: 0.4rem 0.6rem !important;
+          }
         }
       `}</style>
     </div>

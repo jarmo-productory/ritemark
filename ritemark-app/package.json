@@ -39,7 +39,11 @@
     "@tiptap/extension-list-item": "^3.4.3",
     "@tiptap/extension-ordered-list": "^3.4.3",
     "@tiptap/extension-placeholder": "^3.4.3",
+    "@tiptap/extension-table": "^3.6.6",
+    "@tiptap/extension-table-cell": "^3.6.6",
+    "@tiptap/extension-table-header": "^3.6.6",
     "@tiptap/extension-table-of-contents": "^3.4.3",
+    "@tiptap/extension-table-row": "^3.6.6",
     "@tiptap/react": "^3.4.3",
     "@tiptap/starter-kit": "^3.4.3",
     "class-variance-authority": "^0.7.1",
@@ -51,7 +55,8 @@
     "react-dom": "^19.1.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "turndown": "^7.2.1"
+    "turndown": "^7.2.1",
+    "turndown-plugin-gfm": "^1.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

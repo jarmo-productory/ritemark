@@ -2,6 +2,7 @@ import { useState, useContext } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { FormattingBubbleMenu } from './components/FormattingBubbleMenu'
+import { TableContextMenu } from './components/TableContextMenu'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { AuthErrorDialog } from './components/AuthErrorDialog'
 import { useDriveSync } from './hooks/useDriveSync'
@@ -120,6 +121,7 @@ function App() {
               onEditorReady={setEditor}
             />
             <FormattingBubbleMenu editor={editor} />
+            <TableContextMenu editor={editor} />
           </>
         ) : (
           <WelcomeScreen

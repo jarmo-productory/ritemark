@@ -791,8 +791,8 @@ npm run dev           # Development server functionality
 
 ### 📝 **Documentation Created**
 
-1. **`/docs/oauth-single-popup-flow.md`** - Complete technical documentation
-2. **`/docs/PRODUCTION-OAUTH-ISSUE-REPORT.md`** - Production troubleshooting guide
+1. **`/docs/security/oauth/oauth-single-popup-flow.md`** - Complete technical documentation
+2. **`/docs/security/oauth/PRODUCTION-OAUTH-ISSUE-REPORT.md`** - Production troubleshooting guide
 3. **`/docs/security/oauth-production-error-audit-2025-10-05.md`** - Security audit
 4. **`/ritemark-app/public/privacy.html`** - Privacy Policy for OAuth publishing
 5. **`/ritemark-app/public/terms.html`** - Terms of Service for production use

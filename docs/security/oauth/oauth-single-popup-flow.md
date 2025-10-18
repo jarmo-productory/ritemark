@@ -350,7 +350,7 @@ No changes - same variables used:
 
 ## 📚 Related Documentation
 
-- [Design Philosophy](/docs/design-philosophy.md)
+- [Design Philosophy](/docs/strategy/design-philosophy.md)
 - [UX Analysis for Non-Technical Users](/docs/research/ux-analysis-non-technical-users.md)
 - [Google OAuth Setup](/docs/research/google-oauth-setup-2025.md)
 - [Sprint 7: OAuth Implementation](/docs/sprints/sprint-07-google-oauth-setup.md)
