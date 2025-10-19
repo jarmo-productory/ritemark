@@ -180,6 +180,67 @@ export function Editor({
       attributes: {
         class: 'prose prose-lg max-w-none focus:outline-none',
       },
+      handleDrop: (view, event, _slice, _moved) => {
+        // Handle image drag-and-drop
+        if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+          const file = event.dataTransfer.files[0]
+
+          // Check if it's an image
+          if (file.type.startsWith('image/')) {
+            event.preventDefault()
+
+            // Upload to Drive and insert at drop position
+            import('../services/drive/DriveImageUpload').then(({ uploadImageToDrive }) => {
+              uploadImageToDrive(file)
+                .then((url) => {
+                  const { schema } = view.state
+                  const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY })
+
+                  if (!coordinates) return
+
+                  const node = schema.nodes.image.create({ src: url, alt: file.name })
+                  const transaction = view.state.tr.insert(coordinates.pos, node)
+                  view.dispatch(transaction)
+                })
+                .catch((err) => {
+                  console.error('Image upload failed:', err)
+                  alert('Failed to upload image: ' + err.message)
+                })
+            })
+
+            return true
+          }
+        }
+        return false
+      },
+      handlePaste: (_view, event) => {
+        // Handle image paste from clipboard
+        if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
+          const file = event.clipboardData.files[0]
+
+          // Check if it's an image
+          if (file.type.startsWith('image/')) {
+            event.preventDefault()
+
+            // Upload to Drive and insert at cursor position
+            import('../services/drive/DriveImageUpload').then(({ uploadImageToDrive }) => {
+              uploadImageToDrive(file)
+                .then((url) => {
+                  if (editor) {
+                    editor.chain().focus().setImage({ src: url, alt: file.name }).run()
+                  }
+                })
+                .catch((err) => {
+                  console.error('Image upload failed:', err)
+                  alert('Failed to upload image: ' + err.message)
+                })
+            })
+
+            return true
+          }
+        }
+        return false
+      },
       handleKeyDown: (view, event): boolean => {
         // Handle keyboard shortcuts
         const isMod = event.metaKey || event.ctrlKey
