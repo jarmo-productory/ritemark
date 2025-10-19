@@ -29,6 +29,404 @@ This research document provides a comprehensive analysis for implementing image 
 
 ---
 
+## 🎯 Code Touchpoints Summary
+
+**PRIMARY INTEGRATION POINT: Slash Command Palette**
+
+The image insertion functionality will be accessible through the slash command menu (type `/image` in the editor), providing a consistent user experience alongside existing commands like `/table`, `/heading`, etc.
+
+### Key Files to Modify/Create:
+
+1. **`ritemark-app/src/extensions/SlashCommands.tsx`** (MODIFY)
+   - Add Image command to slash palette (lines 35-127)
+   - Import `Image` icon from lucide-react
+   - Implement image upload flow trigger
+
+2. **`ritemark-app/src/components/ImageUploader.tsx`** (CREATE)
+   - File picker dialog component
+   - Image preview before upload
+   - Validation (file size, format)
+   - Progress indicator
+
+3. **`ritemark-app/src/services/drive/DriveImageUpload.ts`** (CREATE)
+   - Google Drive upload service
+   - Client-side image compression
+   - Shareable link generation
+   - OAuth error handling
+
+4. **`ritemark-app/src/extensions/imageExtensions.ts`** (CREATE)
+   - TipTap Image extension configuration
+   - Resizing configuration
+   - Custom attributes (alt, caption, alignment)
+
+5. **`ritemark-app/src/components/ImageBubbleMenu.tsx`** (CREATE)
+   - Alt text editor dialog
+   - Image position controls (left/center/right)
+   - Replace/delete options
+
+### Integration Flow:
+
+```
+User types "/image" → Slash Command → ImageUploader → DriveImageUpload → Editor.setImage()
+```
+
+## 📝 Detailed Code Implementation
+
+### 1. Slash Command Integration (`SlashCommands.tsx`)
+
+**Location:** `ritemark-app/src/extensions/SlashCommands.tsx:35-127`
+
+**Import Addition (line 6):**
+```typescript
+import { Heading1, Heading2, Heading3, List, ListOrdered, Code, Table, Image } from 'lucide-react'
+```
+
+**New Command Entry (add after Table command, around line 127):**
+```typescript
+{
+  title: 'Image',
+  description: 'Upload and insert an image',
+  icon: Image,
+  command: ({ editor, range }: any) => {
+    // Delete the "/" trigger text
+    editor.chain().focus().deleteRange(range).run()
+
+    // Trigger file picker (will be handled by ImageUploader component)
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/png,image/jpeg,image/gif,image/webp'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        // TODO: Implement upload logic in Phase 3
+        // For now, use local URL
+        const url = URL.createObjectURL(file)
+        editor.chain().focus().setImage({ src: url }).run()
+      }
+    }
+    input.click()
+  },
+},
+```
+
+**Expected Result:** Typing `/image` in the editor will show the image option in the slash command menu.
+
+---
+
+### 2. Image Extension Configuration (`imageExtensions.ts`)
+
+**Location:** `ritemark-app/src/extensions/imageExtensions.ts` (NEW FILE)
+
+```typescript
+import Image from '@tiptap/extension-image'
+
+export const ImageExtension = Image.configure({
+  inline: true, // Allow inline images
+  allowBase64: true, // Support data URLs for offline
+  HTMLAttributes: {
+    class: 'tiptap-image',
+    loading: 'lazy', // Native lazy loading
+    decoding: 'async', // Non-blocking decode
+  },
+})
+```
+
+**Add to Editor.tsx extensions array:**
+```typescript
+import { ImageExtension } from './extensions/imageExtensions'
+
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    TableExtensions,
+    ImageExtension, // Add image support
+    SlashCommands,
+  ],
+})
+```
+
+---
+
+### 3. Image Uploader Component (`ImageUploader.tsx`)
+
+**Location:** `ritemark-app/src/components/ImageUploader.tsx` (NEW FILE)
+
+```typescript
+import React, { useState } from 'react'
+import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { Progress } from './ui/progress'
+import { AlertCircle } from 'lucide-react'
+
+interface ImageUploaderProps {
+  onUpload: (url: string, alt?: string) => void
+  onCancel: () => void
+}
+
+export const ImageUploader: React.FC<ImageUploaderProps> = ({ onUpload, onCancel }) => {
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string>('')
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState('')
+  const [altText, setAltText] = useState('')
+
+  const validateFile = (file: File): boolean => {
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File too large (max 10MB)')
+      return false
+    }
+
+    // Supported formats
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      setError('Unsupported format (use JPG, PNG, GIF, or WebP)')
+      return false
+    }
+
+    return true
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (!selectedFile) return
+
+    if (!validateFile(selectedFile)) return
+
+    setFile(selectedFile)
+    setPreview(URL.createObjectURL(selectedFile))
+    setError('')
+  }
+
+  const handleUpload = async () => {
+    if (!file) return
+
+    setUploading(true)
+    try {
+      // TODO: Replace with DriveImageUpload service in Phase 3
+      const url = preview // Use local URL for now
+      onUpload(url, altText)
+    } catch (err) {
+      setError('Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onCancel}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Upload Image</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {!file ? (
+            <div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="image-upload"
+              />
+              <label htmlFor="image-upload">
+                <Button asChild>
+                  <span>Choose File</span>
+                </Button>
+              </label>
+            </div>
+          ) : (
+            <>
+              {preview && (
+                <div className="border rounded-lg overflow-hidden">
+                  <img src={preview} alt="Preview" className="max-w-full h-auto" />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Alt Text (for accessibility)
+                </label>
+                <input
+                  type="text"
+                  value={altText}
+                  onChange={(e) => setAltText(e.target.value)}
+                  placeholder="Describe this image..."
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 text-destructive text-sm">
+                  <AlertCircle size={16} />
+                  {error}
+                </div>
+              )}
+
+              {uploading && (
+                <Progress value={progress} />
+              )}
+
+              <div className="flex gap-2">
+                <Button onClick={handleUpload} disabled={uploading}>
+                  {uploading ? 'Uploading...' : 'Insert Image'}
+                </Button>
+                <Button variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+---
+
+### 4. Google Drive Upload Service (`DriveImageUpload.ts`)
+
+**Location:** `ritemark-app/src/services/drive/DriveImageUpload.ts` (NEW FILE)
+
+```typescript
+import { driveClient } from './driveClient'
+
+/**
+ * Upload an image to Google Drive and return shareable URL
+ */
+export async function uploadImageToDrive(file: File): Promise<string> {
+  // 1. Validate file
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error('File too large (max 10MB)')
+  }
+
+  // 2. Compress image if needed (Phase 6)
+  const compressedFile = await compressImage(file)
+
+  // 3. Upload to Drive
+  const metadata = {
+    name: file.name,
+    mimeType: compressedFile.type,
+    parents: [await getImagesFolder()], // Get or create "RiteMark Images" folder
+  }
+
+  const formData = new FormData()
+  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+  formData.append('file', compressedFile)
+
+  const response = await driveClient.request(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+    {
+      method: 'POST',
+      body: formData,
+    }
+  )
+
+  const fileId = response.id
+
+  // 4. Set file permissions (shareable link)
+  await driveClient.request(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        role: 'reader',
+        type: 'anyone',
+      }),
+    }
+  )
+
+  // 5. Return public URL
+  return `https://drive.google.com/uc?id=${fileId}`
+}
+
+/**
+ * Get or create "RiteMark Images" folder in Drive
+ */
+async function getImagesFolder(): Promise<string> {
+  // Check if folder exists
+  const query = "name='RiteMark Images' and mimeType='application/vnd.google-apps.folder'"
+  const response = await driveClient.request(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`
+  )
+
+  if (response.files?.length > 0) {
+    return response.files[0].id
+  }
+
+  // Create folder
+  const createResponse = await driveClient.request(
+    'https://www.googleapis.com/drive/v3/files',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'RiteMark Images',
+        mimeType: 'application/vnd.google-apps.folder',
+      }),
+    }
+  )
+
+  return createResponse.id
+}
+
+/**
+ * Compress image (placeholder for Phase 6)
+ */
+async function compressImage(file: File): Promise<File> {
+  // TODO: Implement browser-image-compression in Phase 6
+  return file
+}
+```
+
+---
+
+### 5. Editor Integration Points
+
+**Files to check/modify:**
+
+1. **`ritemark-app/src/components/Editor.tsx`**
+   - Add ImageExtension to extensions array (around line 40)
+   - Add drag-and-drop handler for images (Phase 4)
+
+2. **`ritemark-app/src/App.tsx`**
+   - No changes needed (slash commands work automatically)
+
+3. **`ritemark-app/package.json`**
+   - Add dependency: `"@tiptap/extension-image": "^3.6.6"`
+
+4. **Existing Drive integration:**
+   - Reuse existing `driveClient` from `src/services/drive/driveClient.ts`
+   - Leverage existing OAuth flow (no new auth needed)
+
+---
+
+### 6. Testing Touchpoints
+
+**Test Files to Create:**
+
+1. **`ritemark-app/tests/components/ImageUploader.test.tsx`**
+   - File picker opens
+   - File validation (size, format)
+   - Preview renders
+   - Alt text input
+
+2. **`ritemark-app/tests/services/DriveImageUpload.test.tsx`**
+   - Upload success
+   - Upload failure (network error)
+   - OAuth token refresh
+   - Folder creation
+
+3. **`ritemark-app/tests/integration/ImageSlashCommand.test.tsx`**
+   - Typing `/image` shows command
+   - Selecting command triggers upload
+   - Image inserts into editor
+
+---
+
 ## 🎯 Feature Requirements (User Stories)
 
 ### User Story 1: Basic Image Upload

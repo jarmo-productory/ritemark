@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useEditor, EditorContent, type Editor as TipTapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -12,8 +12,9 @@ import { marked } from 'marked'
 import TurndownService from 'turndown'
 import { tables } from 'turndown-plugin-gfm'
 import { tableExtensions } from '../extensions/tableExtensions'
+import { SlashCommands } from '../extensions/SlashCommands'
 import { FormattingBubbleMenu } from './FormattingBubbleMenu'
-import { TableContextMenu } from './TableContextMenu'
+import { TableOverlayControls } from './TableOverlayControls'
 
 // Initialize Turndown for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -26,6 +27,16 @@ const turndownService = new TurndownService({
 
 // Enable GFM tables plugin for turndown
 turndownService.use(tables)
+
+// Add rule to remove <colgroup> elements that TipTap adds to tables
+// Turndown's table plugin doesn't handle colgroup properly, causing tables to be skipped
+turndownService.addRule('stripColgroup', {
+  filter: 'colgroup',
+  replacement: function () {
+    // Remove colgroup entirely - it's just styling metadata
+    return ''
+  }
+})
 
 // Override the tableCell rule to escape pipe characters in cell content
 // The turndown-plugin-gfm doesn't escape pipes by default, which breaks table structure
@@ -65,6 +76,28 @@ export function Editor({
   className = "",
   onEditorReady,
 }: EditorProps) {
+  const isInitialMount = useRef(true)
+  const lastExternalValue = useRef(value)
+  const lastOnChangeValue = useRef<string>('')
+
+  // Convert initial markdown to HTML
+  const initialContent = React.useMemo(() => {
+    if (!value || !value.trim()) return ''
+
+    const isHTML = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|strong|em|code)[\s>]/i.test(value.trim())
+
+    if (isHTML) {
+      return value
+    } else {
+      // Convert markdown to HTML
+      try {
+        return marked(value, { breaks: true, gfm: true }) as string
+      } catch (error) {
+        console.error('Markdown conversion error:', error)
+        return `<p>${value.replace(/\n/g, '</p><p>')}</p>`
+      }
+    }
+  }, []) // Empty deps - only run once on mount
 
   const editor: TipTapEditor | null = useEditor({
     extensions: [
@@ -123,8 +156,9 @@ export function Editor({
         },
       }),
       ...tableExtensions,
+      SlashCommands,
     ],
-    content: value,
+    content: initialContent,
     onCreate: ({ editor }) => {
       onEditorReady?.(editor)
     },
@@ -132,7 +166,14 @@ export function Editor({
       const html = editor.getHTML()
       // Convert HTML back to markdown for storage
       const markdown = turndownService.turndown(html)
-      onChange(markdown)
+
+      // Only call onChange if content actually changed
+      // This prevents unnecessary re-renders that close bubble menus
+      if (markdown !== lastOnChangeValue.current) {
+        lastOnChangeValue.current = markdown
+        onChange(markdown)
+      }
+
       onEditorReady?.(editor) // Ensure editor is always available
     },
     editorProps: {
@@ -245,11 +286,26 @@ export function Editor({
   }, [editor, onEditorReady])
 
   // Update editor content when value prop changes (e.g., when loading a file)
+  // Skip updates during active editing to prevent bubble menus from closing
   useEffect(() => {
-    // Convert current editor HTML back to markdown to compare with incoming value
-    const currentMarkdown = editor ? turndownService.turndown(editor.getHTML()) : ''
+    if (!editor) return
 
-    if (editor && value !== currentMarkdown) {
+    // Convert current editor HTML back to markdown to compare with incoming value
+    const currentMarkdown = turndownService.turndown(editor.getHTML())
+
+    // On initial mount, always process the value
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      lastExternalValue.current = value
+      lastOnChangeValue.current = value
+      // Don't return - let it process the initial content below
+    }
+
+    // Only update if value changed externally (not from editor's own onChange)
+    // This prevents the editor from updating during typing/formatting
+    const isExternalChange = value !== currentMarkdown && value !== lastOnChangeValue.current
+
+    if (isExternalChange || currentMarkdown === '') {
       // Check if value is HTML (starts with common HTML tags)
       // Only check for actual HTML block tags, not random < > characters
       const isHTML = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|strong|em|code)[\s>]/i.test(value.trim())
@@ -272,16 +328,19 @@ export function Editor({
         // Already HTML or empty
         editor.commands.setContent(value)
       }
+
+      lastExternalValue.current = value
     }
   }, [editor, value])
 
   return (
     <div className={`wysiwyg-editor ${className}`}>
       <EditorContent editor={editor} />
+
       {editor ? (
         <>
           <FormattingBubbleMenu editor={editor} />
-          <TableContextMenu editor={editor} />
+          <TableOverlayControls editor={editor} />
         </>
       ) : (
         <div style={{ display: 'none' }}>Editor not ready</div>

@@ -181,6 +181,31 @@ export class DriveClient {
   }
 
   /**
+   * Rename a file in Google Drive
+   * @param fileId - File ID to rename
+   * @param newName - New file name
+   * @returns Updated file metadata
+   */
+  async renameFile(fileId: string, newName: string): Promise<DriveFile> {
+    const sanitizedName = this.sanitizeFilename(newName);
+    const url = `${DRIVE_API_BASE}/files/${fileId}`;
+
+    return this.executeWithRetry(async () => {
+      const response = await this.makeRequest(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: sanitizedName,
+        }),
+      });
+
+      return response as DriveFile;
+    });
+  }
+
+  /**
    * Make authenticated request to Drive API
    * @param url - API endpoint URL
    * @param options - Fetch options

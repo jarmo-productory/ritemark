@@ -3,6 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Remove tippy.js default styling for slash command menu */
+.tippy-box[data-theme~='none'] {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.tippy-box[data-theme~='none'] .tippy-content {
+  padding: 0;
+}
+
 /* Invisible interface design - TOC scroll behavior */
 html {
   scroll-behavior: smooth;

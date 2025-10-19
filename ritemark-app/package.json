@@ -28,6 +28,7 @@
     ]
   },
   "dependencies": {
+    "@radix-ui/react-context-menu": "^2.2.16",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
@@ -46,6 +47,7 @@
     "@tiptap/extension-table-row": "^3.6.6",
     "@tiptap/react": "^3.4.3",
     "@tiptap/starter-kit": "^3.4.3",
+    "@tiptap/suggestion": "^3.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lowlight": "^3.3.0",
@@ -55,6 +57,7 @@
     "react-dom": "^19.1.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "tippy.js": "^6.3.7",
     "turndown": "^7.2.1",
     "turndown-plugin-gfm": "^1.0.2"
   },
