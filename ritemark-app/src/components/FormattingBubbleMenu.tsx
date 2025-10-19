@@ -171,7 +171,6 @@ export function FormattingBubbleMenu({ editor }: FormattingBubbleMenuProps) {
       {/* Main formatting toolbar - appears on text selection */}
       <BubbleMenu
         editor={editor}
-        tippyOptions={{ zIndex: 9999 }}
         shouldShow={({ editor, state }) => {
           const { selection } = state
           const { empty } = selection
