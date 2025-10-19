@@ -41,7 +41,6 @@ const TableWithHeader = Table.extend({
 
               // Convert all cells in first row to headers
               if (hasNonHeaderCell) {
-                console.log('[TableExtension] Converting first row to headers at pos', pos)
                 firstRow.forEach((cell, offset) => {
                   if (cell.type.name === 'tableCell') {
                     const cellPos = pos + 1 + offset + 1 // table + row + cell offset

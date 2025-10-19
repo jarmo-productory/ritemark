@@ -70,11 +70,9 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
 
         setTables(tableInfos)
         tablesRef.current = tableInfos  // Update ref with latest tables
-        console.log('[TableOverlay] Found', tableInfos.length, 'tables')
       } else {
         setTables([])
         tablesRef.current = []  // Clear ref when no tables
-        console.log('[TableOverlay] No tables in view')
       }
     }
 
@@ -182,7 +180,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      console.log('[TableOverlay] Add row above table', tableIndex, 'row', rowIndex)
 
                       // Find the cell element in the DOM
                       const cell = tableInfo.tableElement.querySelector(`.tiptap-table-row:nth-child(${rowIndex + 1}) .tiptap-table-cell, .tiptap-table-row:nth-child(${rowIndex + 1}) .tiptap-table-header`)
@@ -192,7 +189,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                         const cellElement = cell as HTMLElement
                         const pos = editor.view.posAtDOM(cellElement, 0)
 
-                        console.log('[TableOverlay] Setting selection to pos:', pos)
 
                         // Set cursor to this position and add row
                         editor.chain()
@@ -210,7 +206,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      console.log('[TableOverlay] Delete row from table', tableIndex, 'row', rowIndex)
 
                       const cell = tableInfo.tableElement.querySelector(`.tiptap-table-row:nth-child(${rowIndex + 1}) .tiptap-table-cell, .tiptap-table-row:nth-child(${rowIndex + 1}) .tiptap-table-header`)
 
@@ -218,7 +213,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                         const cellElement = cell as HTMLElement
                         const pos = editor.view.posAtDOM(cellElement, 0)
 
-                        console.log('[TableOverlay] Setting selection to pos:', pos)
 
                         editor.chain()
                           .focus()
@@ -264,7 +258,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      console.log('[TableOverlay] Add column left table', tableIndex, 'col', colIndex)
 
                       const cell = tableInfo.tableElement.querySelector(`.tiptap-table-row:first-child > :nth-child(${colIndex + 1})`)
 
@@ -272,7 +265,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                         const cellElement = cell as HTMLElement
                         const pos = editor.view.posAtDOM(cellElement, 0)
 
-                        console.log('[TableOverlay] Setting selection to pos:', pos)
 
                         editor.chain()
                           .focus()
@@ -289,7 +281,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      console.log('[TableOverlay] Delete column from table', tableIndex, 'col', colIndex)
 
                       const cell = tableInfo.tableElement.querySelector(`.tiptap-table-row:first-child > :nth-child(${colIndex + 1})`)
 
@@ -297,7 +288,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                         const cellElement = cell as HTMLElement
                         const pos = editor.view.posAtDOM(cellElement, 0)
 
-                        console.log('[TableOverlay] Setting selection to pos:', pos)
 
                         editor.chain()
                           .focus()
