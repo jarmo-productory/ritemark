@@ -181,7 +181,7 @@ export function FormattingBubbleMenu({ editor }: FormattingBubbleMenuProps) {
           return true
         }}
       >
-        <div className="flex items-center gap-1 bg-white border border-gray-300 rounded shadow-lg p-2">
+        <div className="flex items-center gap-1 bg-white border border-gray-300 rounded shadow-lg p-2 z-[9999]">
           {/* Bold Button - Keyboard: Ctrl+B / Cmd+B */}
           <button
             onMouseDown={(e) => e.preventDefault()} // Prevents editor from losing focus

@@ -8,6 +8,7 @@
   background-color: transparent;
   border: none;
   box-shadow: none;
+  z-index: 9999 !important;
 }
 
 .tippy-box[data-theme~='none'] .tippy-content {
