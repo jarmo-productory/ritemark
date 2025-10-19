@@ -15,6 +15,15 @@
   padding: 0;
 }
 
+/* BubbleMenu z-index - targets the absolute positioned wrapper */
+div[style*="position: absolute"] > div > .flex.items-center.gap-1.bg-white.border.border-gray-300 {
+  /* Content exists, now ensure parent wrapper has z-index */
+}
+
+div[style*="position: absolute"]:has(> div > .flex.items-center.gap-1.bg-white.border.border-gray-300) {
+  z-index: 9999 !important;
+}
+
 /* Invisible interface design - TOC scroll behavior */
 html {
   scroll-behavior: smooth;
