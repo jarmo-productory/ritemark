@@ -182,7 +182,7 @@ OVERALL:                   ⭐⭐⭐⭐  (3.6/5)
 `/docs/security/oauth-security-audit-2025-10-04.md`
 
 **Research Documentation:**
-- `/docs/oauth2-security-research.md`
+- `/docs/security/oauth/oauth2-security-research.md`
 - `/docs/research/google-oauth-setup-2025.md`
 - `/docs/sprints/sprint-07-google-oauth-setup.md`
 

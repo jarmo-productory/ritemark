@@ -39,3 +39,4 @@ Run all commands from `ritemark-app/` unless noted.
 ## Security & Configuration Tips
 - Do not commit secrets. Use environment variables (e.g., Netlify UI) for keys.
 - Special build: `npm run build:gas` targets Google Apps Script; ensure `@google/clasp` is configured if used.
+

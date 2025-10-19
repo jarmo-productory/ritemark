@@ -1,7 +1,6 @@
 import { useState, useContext } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
-import { FormattingBubbleMenu } from './components/FormattingBubbleMenu'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { AuthErrorDialog } from './components/AuthErrorDialog'
 import { useDriveSync } from './hooks/useDriveSync'
@@ -10,6 +9,7 @@ import { AuthContext } from './contexts/AuthContext'
 import { tokenManager } from './services/auth/tokenManager'
 import type { DriveFile } from './types/drive'
 import type { Editor as TipTapEditor } from '@tiptap/react'
+import 'tippy.js/dist/tippy.css'
 
 function App() {
   // Authentication context
@@ -44,17 +44,36 @@ function App() {
   }
 
   const handleRenameDocument = async (newTitle: string) => {
-    setTitle(newTitle)
-    
-    // If we have a fileId, we should also rename the file in Drive
+    // Validate and ensure .md extension
+    let validatedTitle = newTitle.trim()
+
+    if (!validatedTitle) {
+      alert('File name cannot be empty')
+      return
+    }
+
+    // Add .md extension if missing
+    if (!validatedTitle.endsWith('.md')) {
+      validatedTitle += '.md'
+    }
+
+    const oldTitle = title
+    setTitle(validatedTitle)
+
+    // If we have a fileId, rename the file in Drive
     if (fileId) {
       try {
-        // TODO: Implement Drive file rename API call
-        // For now, just update the local title
-        // Later we'll add the Drive API call to rename the actual file
+        const { DriveClient } = await import('./services/drive/driveClient')
+        const driveClient = new DriveClient()
+
+        await driveClient.renameFile(fileId, validatedTitle)
+
+        console.log(`[App] File renamed: ${validatedTitle}`)
       } catch (error) {
+        console.error('[App] Failed to rename file:', error)
         // Revert title on error
-        setTitle(title)
+        setTitle(oldTitle)
+        alert(`Failed to rename file: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
   }
@@ -113,14 +132,11 @@ function App() {
         onRenameDocument={handleRenameDocument}
       >
         {fileId || isNewDocument ? (
-          <>
-            <Editor
-              value={content}
-              onChange={setContent}
-              onEditorReady={setEditor}
-            />
-            <FormattingBubbleMenu editor={editor} />
-          </>
+          <Editor
+            value={content}
+            onChange={setContent}
+            onEditorReady={setEditor}
+          />
         ) : (
           <WelcomeScreen
             onNewDocument={handleNewDocument}

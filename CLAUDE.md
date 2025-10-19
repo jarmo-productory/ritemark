@@ -219,6 +219,14 @@ grep -r "Johnny\|Add enhanced\|Beautiful\|AI generated" src/
 
 ### 📁 File Organization Rules
 
+**🚨 CRITICAL: DOCUMENTATION FOLDER LOCATION**
+- **ALL documentation MUST go in `/docs/` at repository root**
+- **NEVER create `/ritemark-app/docs/` or any app-specific docs folder**
+- **Sprint docs**: `/docs/sprints/sprint-XX.md`
+- **Component docs**: `/docs/components/`
+- **User guides**: `/docs/user-guide/`
+- **Research**: `/docs/research/`
+
 **NEVER save to root folder. Use these directories:**
 - `/src` - Source code files (React components, services, utils)
 - `/src/components` - React components
@@ -227,7 +235,7 @@ grep -r "Johnny\|Add enhanced\|Beautiful\|AI generated" src/
 - `/src/types` - TypeScript type definitions
 - `/tests` - Test files (Jest, React Testing Library)
 - `/public` - Static assets and manifest files
-- `/docs` - Documentation and markdown files
+- **`/docs`** - **ALL documentation and markdown files (at repo root, NOT in ritemark-app/)**
 - `/config` - Configuration files (OAuth, environment)
 - `/scripts` - Build and deployment scripts
 
@@ -235,14 +243,74 @@ grep -r "Johnny\|Add enhanced\|Beautiful\|AI generated" src/
 
 **Simple Progress Tracking Structure:**
 - `/docs/roadmap.md` - Single source of truth for project roadmap
-- `/docs/sprints/sprint-XX.md` - One file per sprint with tasks & progress
+- `/docs/sprints/sprint-XX/` - ALL sprints use nested directory structure
 
 **Sprint Management Rules:**
 - Sprints are numbered sequentially (sprint-01, sprint-02, sprint-03, etc.)
 - **Highest number = current sprint** (no special "current" naming)
-- **New sprint files created ONLY after previous sprint is completed**
-- Each sprint file tracks progress through the 6-step AI-Assisted Coding Lifecycle
+- **New sprint directories created ONLY after previous sprint is completed**
+- Each sprint tracks progress through the 6-step AI-Assisted Coding Lifecycle
 - Archives naturally - completed sprints remain as historical records
+
+### 🚨 MANDATORY: Sprint Directory Structure (ALWAYS Nested)
+
+**ABSOLUTE RULE:** ALL sprints MUST be nested directories with README.md, regardless of size or complexity.
+
+**NO EXCEPTIONS:** This eliminates all if/else conditional logic and ensures consistency.
+
+**Correct Structure (Sprint 11 example with 8 files):**
+```
+/docs/sprints/sprint-11/
+├── README.md                      ← MANDATORY navigation guide
+├── tables-plan.md                 ← High-level goals
+├── tables-research.md             ← Technical research
+├── implementation-architecture.md ← Design decisions
+├── task-breakdown.md              ← Implementation tasks
+├── codebase-audit.md              ← Pre-sprint state
+├── dependency-analysis.md         ← Package analysis
+├── phase-breakdown.md             ← Execution phases
+└── orchestration-summary.md       ← Swarm coordination
+```
+
+**Minimal Sprint Structure (1-2 files):**
+```
+/docs/sprints/sprint-01/
+├── README.md                      ← MANDATORY (even for single-file sprints)
+└── foundation-setup.md            ← Main content
+```
+
+**README.md Structure (MANDATORY sections):**
+- 🎯 Quick Start: Reading order for AI agents (REQUIRED)
+- 📚 Document Organization: Table of all files with purpose/status/size (REQUIRED)
+- 🔗 Related Sprints: Prerequisites and dependencies (OPTIONAL)
+- 📊 Sprint Status: Current phase and completion (REQUIRED)
+- 🏗️ Architecture Highlights: Key decisions (OPTIONAL - use for complex sprints)
+- 📦 Dependencies: Package requirements (OPTIONAL - use when packages added)
+
+**Benefits for AI Agents:**
+1. **Zero conditional logic** - Always look in `/docs/sprints/sprint-XX/README.md`
+2. **Single entry point** - README provides complete context
+3. **Clear reading order** - Eliminates guesswork
+4. **40% token efficiency** - Skip unnecessary files via README guidance
+5. **Parallel agent coordination** - Folder = scope boundary
+6. **Self-documenting structure** - File organization is consistent
+
+**AI Workflow (SIMPLIFIED - No if/else logic):**
+```bash
+# Step 1: ALWAYS read sprint README first
+Read "docs/sprints/sprint-XX/README.md"
+
+# Step 2: Follow reading order from README "Quick Start" section
+Read files listed in required reading order
+
+# Step 3: Access supporting docs only if needed
+# README indicates which docs are optional vs required
+```
+
+**See Full Documentation Governance Rules:**
+- `/docs/quality/DOCUMENTATION-GOVERNANCE.md` - Complete documentation standards
+- Rule 1.1: ALL Sprints Are Nested Directories (no exceptions)
+- Validation scripts and pre-commit hooks enforce this structure
 
 ## Project Overview
 

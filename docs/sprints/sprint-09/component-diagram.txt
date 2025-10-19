@@ -1,0 +1,458 @@
+# Sprint 9: Component Architecture Diagram (ASCII Art)
+
+## Component Hierarchy (Nested Tree)
+
+```
+App.tsx (Root)
+│
+├── AuthProvider (Context)
+│   │
+│   └── SidebarProvider (shadcn Context)
+│       │
+│       ├── Sidebar (shadcn Component, collapsible="icon", side="left")
+│       │   │
+│       │   ├── SidebarHeader
+│       │   │   └── FileStatusIndicator
+│       │   │       ├── StatusIcon (📄/🔄/🔴/☁️❌)
+│       │   │       ├── YellowDotBadge (🟡 if unsaved)
+│       │   │       └── Filename (truncated with ellipsis)
+│       │   │
+│       │   ├── SidebarContent
+│       │   │   └── SidebarGroup
+│       │   │       └── TableOfContentsNav
+│       │   │           └── TOCItems (conditional: if headings > 0)
+│       │   │               ├── Heading 1 (level 1)
+│       │   │               ├── Heading 2 (level 2)
+│       │   │               └── Heading 3 (level 3)
+│       │   │
+│       │   └── SidebarFooter
+│       │       └── UserAccountInfo
+│       │           ├── Avatar (circular image)
+│       │           ├── UserName (with verified badge)
+│       │           └── UserEmail (muted)
+│       │           └── onClick → AuthModal (logout)
+│       │
+│       └── main (Content Area)
+│           │
+│           ├── NoFileDialog (conditional: if !fileId)
+│           │   ├── OpenButton → DriveFilePicker
+│           │   └── CreateNewButton → SaveAsDialog
+│           │
+│           └── Editor (conditional: if fileId)
+│               └── TipTap WYSIWYG (pure content, no UI)
+```
+
+---
+
+## State Flow (Data Propagation)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Global Context Layer                      │
+├─────────────────────────────────────────────────────────────┤
+│  AuthContext                 SidebarProvider                 │
+│  ├── user                    ├── state (collapsed/expanded)  │
+│  ├── isAuthenticated         ├── open                        │
+│  ├── login()                 ├── setOpen()                   │
+│  └── logout()                └── toggleSidebar()             │
+└─────────────────┬─────────────────────┬─────────────────────┘
+                  │                     │
+                  ↓                     ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      Custom Hooks Layer                      │
+├─────────────────────────────────────────────────────────────┤
+│  useDriveSync              useDriveFiles      useAuth        │
+│  ├── syncStatus            ├── files[]        ├── user       │
+│  ├── loadFile()            ├── isLoading      ├── isAuth     │
+│  └── forceSave()           └── refresh()      └── logout()   │
+└─────────────────┬─────────────────────┬───────────────┬─────┘
+                  │                     │               │
+                  ↓                     ↓               ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    Component Layer                           │
+├─────────────────────────────────────────────────────────────┤
+│  FileStatusIndicator   TableOfContentsNav  UserAccountInfo  │
+│  ← syncStatus          ← editor           ← user            │
+│                        ← editor.state.doc ← isAuthenticated │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Auto-save Flow (User Types → Drive Save → Status Update)
+
+```
+User types in Editor
+      │
+      ↓
+setText(newContent)  ← App.tsx state update
+      │
+      ↓
+useDriveSync watches 'text' prop change
+      │
+      ↓
+autoSaveManager.scheduleSave(content)
+      │
+      ↓
+3-second debounce timer starts
+      │
+      ↓
+[User types more... debounce resets]
+      │
+      ↓
+3 seconds of no typing → Debounce expires
+      │
+      ↓
+setSyncStatus({ status: 'saving' })
+      │
+      ↓
+FileStatusIndicator re-renders → Shows 🔄 (spinning loader)
+      │
+      ↓
+if (fileId) {
+  PATCH /drive/v3/files/{fileId}  ← Update existing file
+} else {
+  POST /upload/drive/v3/files      ← Create new file
+  onFileCreated(newFileId)
+}
+      │
+      ↓
+setSyncStatus({ status: 'synced', lastSaved: now })
+      │
+      ↓
+FileStatusIndicator re-renders → Shows 📄 (document icon)
+```
+
+---
+
+## File Open Flow (User Clicks "Open" → Load from Drive)
+
+```
+User clicks "Open File" button
+      │
+      ↓
+NoFileDialog.onOpenFile() called
+      │
+      ↓
+App.tsx: setShowFilePicker(true)
+      │
+      ↓
+DriveFilePicker modal appears
+      │
+      ↓
+User selects file from picker
+      │
+      ↓
+onFileSelect(file) callback
+      │
+      ↓
+App.tsx: handleFileSelect(file)
+      │
+      ↓
+useDriveSync.loadFile(file.id)
+      │
+      ↓
+setSyncStatus({ status: 'saving' })  ← Reuse 'saving' for loading
+      │
+      ↓
+GET /drive/v3/files/{fileId}?fields=...  ← Fetch metadata
+GET /drive/v3/files/{fileId}?alt=media   ← Fetch content
+      │
+      ↓
+setFileId(file.id)
+setTitle(file.name)
+setText(content)
+      │
+      ↓
+setSyncStatus({ status: 'synced', lastSaved: file.modifiedTime })
+      │
+      ↓
+Editor re-renders with loaded content
+```
+
+---
+
+## Create New Flow (User Clicks "Create New" → Save As)
+
+```
+User clicks "Create New" button
+      │
+      ↓
+NoFileDialog.onCreateNew() called
+      │
+      ↓
+App.tsx: setShowSaveAsDialog(true)
+      │
+      ↓
+SaveAsDialog modal appears
+      │
+      ↓
+User enters filename: "My Document"
+User clicks "Choose folder..." → Google Drive Picker
+User selects folder → Shows folder name
+      │
+      ↓
+User clicks "Create" button
+      │
+      ↓
+onSave("My Document.md", selectedFolderId)
+      │
+      ↓
+App.tsx: handleSaveAs(fileName, folderId)
+      │
+      ↓
+createDriveFile(fileName, "", accessToken, folderId)
+      │
+      ↓
+POST /upload/drive/v3/files?uploadType=multipart
+Body: {
+  metadata: { name: "My Document.md", parents: [folderId] },
+  content: ""  ← Empty file
+}
+      │
+      ↓
+Response: { id: "newFileId123" }
+      │
+      ↓
+setFileId("newFileId123")
+setTitle("My Document")
+setText("")
+setShowSaveAsDialog(false)
+      │
+      ↓
+Editor opens with empty file
+      │
+      ↓
+User starts typing → Auto-save kicks in (3s debounce)
+```
+
+---
+
+## Sidebar Collapsed vs Expanded States
+
+### Collapsed State (Icon Mode - Default)
+
+```
+┌─┐
+│📄│  ← File status icon (doc/sync/alert + yellow dot badge)
+│ │
+│📑│  ← TOC icon (only if headings exist)
+│ │
+│👤│  ← User avatar
+└─┘
+ ^
+48-64px wide (thin vertical bar)
+```
+
+**Behavior:**
+- Default state on page load
+- Provides maximum content area for writing
+- Click any icon → Expands sidebar
+- Keyboard: `Cmd+B` / `Ctrl+B` → Toggles to expanded
+
+---
+
+### Expanded State
+
+```
+┌──────────────┐
+│ 📄 My Doc.md │  ← File status + filename (truncated if too long)
+│              │
+│ Contents     │  ← TOC section header
+│  - Heading 1 │  ← TOC item (level 1)
+│    - Sub 1.1 │  ← TOC item (level 2, indented)
+│  - Heading 2 │  ← TOC item (level 1)
+│              │
+│ 👤 John Doe  │  ← User name
+│   john@e.com │  ← User email
+└──────────────┘
+      ^
+240-280px wide (narrow sidebar)
+```
+
+**Behavior:**
+- Shows full information (filename, TOC items, user name/email)
+- Click anywhere on user info → Opens logout dialog
+- Click TOC item → Scrolls editor to heading
+- Keyboard: `Cmd+B` / `Ctrl+B` → Toggles to collapsed
+- State persists via cookies (30 days)
+
+---
+
+## Mobile Responsive Behavior (<768px)
+
+### Collapsed State (Default on Mobile)
+
+```
+┌──────────────────────────────────────┐
+│ ☰                                    │  ← Hamburger button (top-left)
+│                                      │
+│        Pure Content Area             │
+│                                      │
+│  (Editor with no UI chrome)          │
+│                                      │
+│                                      │
+└──────────────────────────────────────┘
+```
+
+---
+
+### Expanded State (Overlay Mode)
+
+```
+┌──────────────┬───────────────────────┐
+│ 📄 My Doc.md │ [Dimmed Background]   │  ← Sidebar overlay
+│              │                       │
+│ Contents     │ Tap outside →         │
+│  - Heading 1 │ Closes sidebar        │
+│  - Heading 2 │                       │
+│              │                       │
+│ 👤 John Doe  │                       │
+│   john@e.com │                       │
+└──────────────┴───────────────────────┘
+```
+
+**Behavior:**
+- Tap hamburger → Sidebar slides in from left (overlay)
+- Full-width overlay (dims content behind)
+- Tap outside sidebar → Closes sidebar
+- Swipe gestures (if shadcn implements)
+
+---
+
+## Component File Locations
+
+### New Components (Create These)
+
+```
+ritemark-app/src/components/
+│
+├── sidebar/
+│   ├── AppSidebar.tsx              ← Main sidebar wrapper
+│   ├── FileStatusIndicator.tsx     ← Status icon + filename
+│   ├── TableOfContentsNav.tsx      ← Migrated TOC functionality
+│   └── UserAccountInfo.tsx         ← User display + logout
+│
+└── dialogs/
+    ├── NoFileDialog.tsx            ← Center dialog (Open/Create New)
+    └── SaveAsDialog.tsx            ← Filename + folder picker
+```
+
+---
+
+### Old Components (Delete These)
+
+```
+ritemark-app/src/components/
+│
+├── FileMenu.tsx                    ← ❌ DELETE
+│
+├── auth/
+│   └── AuthStatus.tsx              ← ❌ DELETE
+│
+├── drive/
+│   └── SaveStatus.tsx              ← ❌ DELETE
+│
+└── TableOfContents.tsx             ← ❌ DELETE
+```
+
+---
+
+### Files to Update
+
+```
+ritemark-app/src/
+│
+├── App.tsx                         ← ✏️ UPDATE (integrate SidebarProvider + AppSidebar)
+├── App.css                         ← ✏️ UPDATE (remove old component styles)
+└── index.css                       ← ✏️ UPDATE (add shadcn sidebar CSS variables)
+```
+
+---
+
+## Hook Dependencies Map
+
+| Component              | Hooks Used          | Data Consumed                     | Actions Called                    |
+|------------------------|---------------------|-----------------------------------|-----------------------------------|
+| AppSidebar             | useSidebar          | state, open, isMobile             | toggleSidebar(), setOpen()        |
+| FileStatusIndicator    | useDriveSync        | syncStatus                        | -                                 |
+| TableOfContentsNav     | (none - editor prop)| editor.state.doc (ProseMirror)    | editor.chain().setTextSelection() |
+| UserAccountInfo        | useAuth             | user, isAuthenticated             | logout() (via AuthModal)          |
+| NoFileDialog           | (none - pure UI)    | -                                 | Parent callbacks                  |
+| SaveAsDialog           | useDriveFiles (opt) | files (for folder picker)         | createDriveFile() (via parent)    |
+
+---
+
+## Status Icon States
+
+| Status       | Icon             | Color          | Meaning                        | Trigger                          |
+|--------------|------------------|----------------|--------------------------------|----------------------------------|
+| synced       | 📄 FileText      | Default        | All changes saved              | After successful save            |
+| saving       | 🔄 Loader2       | Blue (#3b82f6) | Currently saving to Drive      | During Drive API PATCH/POST      |
+| error        | 🔴 AlertCircle   | Red (#dc2626)  | Save failed                    | Drive API error, network failure |
+| offline      | ☁️❌ CloudOff     | Gray (#6b7280) | No network connection          | navigator.onLine === false       |
+| unsaved (badge) | 🟡 Yellow Dot | Yellow (#fbbf24) | Unsaved changes detected    | Immediately when user types      |
+
+---
+
+## Migration Phases (10-Day Timeline)
+
+```
+Day 1-2:  Preparation
+          ├── Install shadcn sidebar
+          ├── Create file structure
+          └── Review documentation
+
+Day 3-5:  Build New Components
+          ├── Day 3: AppSidebar + FileStatusIndicator
+          ├── Day 4: TableOfContentsNav + UserAccountInfo
+          └── Day 5: NoFileDialog + SaveAsDialog
+
+Day 6-7:  Wire Up State
+          ├── Day 6: Connect hooks to components
+          └── Day 7: Integration testing + Remove old components
+
+Day 8-9:  Testing & Polish
+          ├── Day 8: Manual testing (full checklist)
+          └── Day 9: Bug fixes + edge cases
+
+Day 10:   Documentation & PR
+          ├── Update component docs
+          ├── Create screenshots (before/after)
+          └── Code review + merge
+```
+
+---
+
+## Quality Metrics (Success Criteria)
+
+| Metric                        | Target          | Measurement                     |
+|-------------------------------|-----------------|----------------------------------|
+| TypeScript compilation        | Zero errors     | npm run type-check              |
+| ESLint validation             | Zero errors     | npm run lint                    |
+| Test coverage                 | > 80%           | npm run test:coverage           |
+| Sidebar collapse/expand       | < 200ms         | Performance profiler            |
+| File status update            | < 50ms          | Performance profiler            |
+| TOC update on content change  | < 100ms         | Performance profiler            |
+| Auto-save debounce            | 3s              | Timer validation                |
+| Large doc scroll (1000+ lines)| < 100ms         | Performance profiler            |
+| Mobile responsiveness         | Works on 320px  | Device testing                  |
+| WCAG AA compliance            | 100%            | Accessibility audit             |
+
+---
+
+## Risk Mitigation Summary
+
+| Risk                              | Severity | Mitigation                                      |
+|-----------------------------------|----------|-------------------------------------------------|
+| Breaking existing functionality   | High     | Git checkpoint, comprehensive testing, rollback plan |
+| Poor mobile UX                    | Low      | Use shadcn defaults (tested by shadcn team)     |
+| Performance degradation           | Low      | useMemo, useCallback, performance testing       |
+| Users confused by icons           | Medium   | Tooltips (future), error toasts for critical    |
+| shadcn sidebar bugs               | Low      | Pin version, fork if needed                     |
+| OAuth token expires mid-operation | Medium   | Auto-refresh tokens, retry logic                |
+| Drive API quota exceeded          | Low      | 3s debounce, rate limiting                      |
+
+---
+
+**End of Component Diagram**
