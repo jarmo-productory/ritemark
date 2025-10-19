@@ -2,13 +2,14 @@ import { Extension } from '@tiptap/core'
 import { ReactRenderer } from '@tiptap/react'
 import Suggestion from '@tiptap/suggestion'
 import tippy from 'tippy.js'
+import type { ComponentType } from 'react'
 import { CommandsList } from './CommandsList'
 import { Heading1, Heading2, Heading3, List, ListOrdered, Code, Table } from 'lucide-react'
 
 export interface Command {
   title: string
   description: string
-  icon: React.ComponentType<{ size?: number }>
+  icon: ComponentType<{ size?: number }>
   command: ({ editor, range }: any) => void
 }
 

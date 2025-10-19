@@ -15,6 +15,11 @@ export const CommandsList = forwardRef((props: CommandsListProps, ref) => {
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: any) => {
+      // Guard against empty items list
+      if (props.items.length === 0) {
+        return false
+      }
+
       if (event.key === 'ArrowUp') {
         setSelectedIndex((selectedIndex + props.items.length - 1) % props.items.length)
         return true

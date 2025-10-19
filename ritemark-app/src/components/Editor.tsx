@@ -80,8 +80,8 @@ export function Editor({
   const lastExternalValue = useRef(value)
   const lastOnChangeValue = useRef<string>('')
 
-  // Convert initial markdown to HTML
-  const initialContent = React.useMemo(() => {
+  // Convert initial markdown to HTML (only runs once on mount)
+  const [initialContent] = useState(() => {
     if (!value || !value.trim()) return ''
 
     const isHTML = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|strong|em|code)[\s>]/i.test(value.trim())
@@ -97,7 +97,7 @@ export function Editor({
         return `<p>${value.replace(/\n/g, '</p><p>')}</p>`
       }
     }
-  }, []) // Empty deps - only run once on mount
+  })
 
   const editor: TipTapEditor | null = useEditor({
     extensions: [
