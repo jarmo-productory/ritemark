@@ -132,7 +132,7 @@ export const SlashCommands = Extension.create({
           )
         },
         render: () => {
-          let component: ReactRenderer
+          let component: any
           let popup: any[] = []
 
           return {
@@ -172,7 +172,7 @@ export const SlashCommands = Extension.create({
                 return true
               }
 
-              return component.ref?.onKeyDown(props)
+              return component?.ref?.onKeyDown?.(props) || false
             },
             onExit() {
               if (popup[0]) {

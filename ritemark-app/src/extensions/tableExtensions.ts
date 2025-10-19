@@ -18,7 +18,7 @@ const TableWithHeader = Table.extend({
 
     const ensureHeaderRowPlugin = new Plugin({
       key: new PluginKey('ensureHeaderRow'),
-      appendTransaction: (transactions, oldState, newState) => {
+      appendTransaction: (transactions, _oldState, newState) => {
         const docChanged = transactions.some(tr => tr.docChanged)
         if (!docChanged) return null
 

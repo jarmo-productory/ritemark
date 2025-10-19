@@ -34,7 +34,7 @@ interface TableOverlayControlsProps {
 
 export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
   const [tables, setTables] = useState<TableInfo[]>([])
-  const [hoveredTable, setHoveredTable] = useState<number | null>(null)
+  const [_hoveredTable, setHoveredTable] = useState<number | null>(null)
   const [hoveredRow, setHoveredRow] = useState<{ tableIndex: number; rowIndex: number } | null>(null)
   const [hoveredCol, setHoveredCol] = useState<{ tableIndex: number; colIndex: number } | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
