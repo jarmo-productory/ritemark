@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
@@ -13,7 +13,8 @@ import 'tippy.js/dist/tippy.css'
 
 function App() {
   // Authentication context
-  useContext(AuthContext) // Used by child components via context
+  const authContext = useContext(AuthContext)
+  const isAuthenticated = authContext?.isAuthenticated ?? false
 
   // Document state
   const [fileId, setFileId] = useState<string | null>(null)
@@ -23,12 +24,28 @@ function App() {
 
   // Drive file picker modal state
   const [showFilePicker, setShowFilePicker] = useState(false)
-  
+
   // Authentication error dialog state
   const [showAuthError, setShowAuthError] = useState(false)
-  
+
   // Track if user wants to create a new document
   const [isNewDocument, setIsNewDocument] = useState(false)
+
+  // Track if WelcomeScreen should be shown (separate from isNewDocument)
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
+
+  // Clear document state when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // User logged out - clear document state and show WelcomeScreen
+      setFileId(null)
+      setTitle('Untitled Document')
+      setContent('')
+      setIsNewDocument(false)
+      setShowWelcomeScreen(true)
+      setShowFilePicker(false) // Close any open pickers
+    }
+  }, [isAuthenticated])
 
   // Drive sync hook
   const { syncStatus, loadFile, forceSave } = useDriveSync(fileId, title, content, {
@@ -41,6 +58,7 @@ function App() {
     setTitle('Untitled Document')
     setContent('')
     setIsNewDocument(true)
+    setShowWelcomeScreen(false) // Close WelcomeScreen when creating new document
   }
 
   const handleRenameDocument = async (newTitle: string) => {
@@ -79,15 +97,16 @@ function App() {
   }
 
   const handleOpenFromDrive = async () => {
-    
+
     // Check if we have a valid access token
     const accessToken = await tokenManager.getAccessToken()
-    
+
     if (!accessToken) {
       // Don't show file picker if no valid token
       return
     }
-    
+
+    setShowWelcomeScreen(false) // Close WelcomeScreen BEFORE opening file picker
     setShowFilePicker(true)
   }
 
@@ -101,10 +120,12 @@ function App() {
       setTitle(metadata.name)
       setContent(fileContent)
       setIsNewDocument(false) // Reset new document flag when loading existing file
+      setShowWelcomeScreen(false) // Ensure WelcomeScreen stays closed after file load
 
     } catch (error) {
       console.error('[App] Failed to load file:', error)
       alert(`Failed to open file: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setShowWelcomeScreen(true) // Show WelcomeScreen again if file load fails
     }
   }
 
@@ -137,18 +158,26 @@ function App() {
             onChange={setContent}
             onEditorReady={setEditor}
           />
-        ) : (
+        ) : showWelcomeScreen ? (
           <WelcomeScreen
             onNewDocument={handleNewDocument}
             onOpenFromDrive={handleOpenFromDrive}
+            // No onCancel prop - WelcomeScreen is modal when no document exists
+            // User must take action (New Document or Open from Drive)
           />
-        )}
+        ) : null}
       </AppShell>
 
       {showFilePicker && (
         <DriveFilePicker
           onFileSelect={handleFileSelect}
-          onClose={() => setShowFilePicker(false)}
+          onClose={() => {
+            setShowFilePicker(false)
+            // If no file was selected and no document is open, show WelcomeScreen again
+            if (!fileId && !isNewDocument) {
+              setShowWelcomeScreen(true)
+            }
+          }}
         />
       )}
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 import { usePicker } from '../../hooks/usePicker'
 import { DriveFileBrowser } from './DriveFileBrowser'
+import { Dialog, DialogContent } from '../ui/dialog'
 import type { DriveFilePickerProps } from '../../types/drive'
 
 /**
@@ -86,46 +88,14 @@ export const DriveFilePicker: React.FC<DriveFilePickerProps> = ({
   // Loading state while Picker API initializes (desktop only)
   if (isDesktop && !isPickerReady) {
     return (
-      <div className="picker-loading-overlay">
-        <div className="picker-loading-spinner" />
-        <p>Loading Google Picker...</p>
-
-        <style>{`
-          .picker-loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            color: white;
-          }
-
-          .picker-loading-spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-          }
-
-          @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </div>
+      <Dialog open={true}>
+        <DialogContent className="border-none bg-transparent shadow-none">
+          <div className="flex flex-col items-center gap-4 text-white">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-lg">Loading Google Picker...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     )
   }
 
