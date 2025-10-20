@@ -12,6 +12,7 @@ import { marked } from 'marked'
 import TurndownService from 'turndown'
 import { tables } from 'turndown-plugin-gfm'
 import { tableExtensions } from '../extensions/tableExtensions'
+import { ImageExtension } from '../extensions/imageExtensions'
 import { SlashCommands } from '../extensions/SlashCommands'
 import { FormattingBubbleMenu } from './FormattingBubbleMenu'
 import { TableOverlayControls } from './TableOverlayControls'
@@ -156,6 +157,7 @@ export function Editor({
         },
       }),
       ...tableExtensions,
+      ImageExtension,
       SlashCommands,
     ],
     content: initialContent,

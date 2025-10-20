@@ -15,6 +15,25 @@
   padding: 0;
 }
 
+/* Image styling - remove float from ResizableImageExtension */
+/* Target the parent wrapper div that has inline styles */
+.ProseMirror div[contenteditable="false"][draggable="true"] {
+  display: block !important;
+  float: none !important;
+  padding-right: 0 !important;
+  margin: 1rem 0 !important;
+}
+
+.ProseMirror img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.ProseMirror [data-type="resizableImage"] {
+  float: none !important;
+}
+
 /* BubbleMenu z-index - targets the absolute positioned wrapper */
 div[style*="position: absolute"] > div > .flex.items-center.gap-1.bg-white.border.border-gray-300 {
   /* Content exists, now ensure parent wrapper has z-index */
