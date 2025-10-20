@@ -52,16 +52,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onUpload, onCancel
     setUploading(true)
     setProgress(0)
 
-    try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 10, 90))
-      }, 200)
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => Math.min(prev + 10, 90))
+    }, 200)
 
+    try {
       // Upload to Google Drive
       const url = await uploadImageToDrive(file)
 
-      clearInterval(progressInterval)
       setProgress(100)
 
       // Call onUpload with the Drive URL and alt text
@@ -70,6 +69,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onUpload, onCancel
       setError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
       setProgress(0)
     } finally {
+      // Always clear interval to prevent memory leak
+      clearInterval(progressInterval)
       setUploading(false)
     }
   }

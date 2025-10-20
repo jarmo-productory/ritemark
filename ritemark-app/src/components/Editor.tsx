@@ -191,17 +191,20 @@ export function Editor({
           if (file.type.startsWith('image/')) {
             event.preventDefault()
 
-            // Upload to Drive and insert at drop position
+            // Capture drop position BEFORE async upload to avoid race conditions
+            const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY })
+            if (!coordinates) return false
+
+            const dropPos = coordinates.pos
+
+            // Upload to Drive and insert at captured position
             import('../services/drive/DriveImageUpload').then(({ uploadImageToDrive }) => {
               uploadImageToDrive(file)
                 .then((url) => {
                   const { schema } = view.state
-                  const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY })
-
-                  if (!coordinates) return
-
-                  const node = schema.nodes.image.create({ src: url, alt: file.name })
-                  const transaction = view.state.tr.insert(coordinates.pos, node)
+                  // Use imageResize node (registered by ResizableImageExtension)
+                  const node = schema.nodes.imageResize.create({ src: url, alt: file.name })
+                  const transaction = view.state.tr.insert(dropPos, node)
                   view.dispatch(transaction)
                 })
                 .catch((err) => {
