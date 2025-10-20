@@ -9,3 +9,4 @@
 
 export { AutoSaveManager } from './autoSaveManager';
 export type { AutoSaveOptions, SaveResult } from './autoSaveManager';
+export { uploadImageToDrive } from './DriveImageUpload';

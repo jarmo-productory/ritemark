@@ -4,7 +4,8 @@ import Suggestion from '@tiptap/suggestion'
 import tippy from 'tippy.js'
 import type { ComponentType } from 'react'
 import { CommandsList } from './CommandsList'
-import { Heading1, Heading2, Heading3, List, ListOrdered, Code, Table } from 'lucide-react'
+import { Heading1, Heading2, Heading3, List, ListOrdered, Code, Table, Image } from 'lucide-react'
+import { uploadImageToDrive } from '../services/drive'
 
 export interface Command {
   title: string
@@ -123,6 +124,31 @@ export const SlashCommands = Extension.create({
                   .deleteRange(range)
                   .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
                   .run()
+              },
+            },
+            {
+              title: 'Image',
+              description: 'Upload and insert an image',
+              icon: Image,
+              command: ({ editor, range }: any) => {
+                editor.chain().focus().deleteRange(range).run()
+
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = 'image/png,image/jpeg,image/gif,image/webp'
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0]
+                  if (file) {
+                    try {
+                      const driveUrl = await uploadImageToDrive(file)
+                      editor.chain().focus().setImage({ src: driveUrl }).run()
+                    } catch (error) {
+                      console.error('Image upload failed:', error)
+                      alert('Failed to upload image: ' + (error as Error).message)
+                    }
+                  }
+                }
+                input.click()
               },
             },
           ]

@@ -28,7 +28,7 @@ export async function uploadImageToDrive(file: File): Promise<string> {
     throw new Error(`File too large (max ${MAX_IMAGE_SIZE / 1024 / 1024}MB)`);
   }
 
-  // 2. Compress image (placeholder for Phase 6)
+  // 2. Compress image
   const compressedFile = await compressImage(file);
 
   // 3. Get or create images folder
@@ -86,8 +86,10 @@ export async function uploadImageToDrive(file: File): Promise<string> {
     }
   );
 
-  // 6. Return shareable URL
-  return `https://drive.google.com/uc?id=${fileId}`;
+  // 6. Return shareable URL optimized for embedding
+  // As of Jan 2024, Google Drive requires /thumbnail endpoint for embedding
+  // sz parameter: w{width} or w{width}-h{height}, max recommended: w2000
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
 }
 
 /**
