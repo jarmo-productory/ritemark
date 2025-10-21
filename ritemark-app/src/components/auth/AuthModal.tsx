@@ -1,7 +1,9 @@
 import React, { useCallback, useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import type { GoogleUser } from '../../types/auth'
-import { X, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog'
+import { Button } from '../ui/button'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -133,326 +135,93 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     onClose()
   }, [clearError, onClose])
 
-  if (!isOpen) return null
-
   return (
-    <div className="auth-modal-overlay">
-      <div className="auth-modal-container">
-        <button
-          onClick={handleClose}
-          className="auth-modal-close"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-[440px]">
+        {user ? (
+          // Authenticated state
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-center">Account</DialogTitle>
+            </DialogHeader>
 
-        <div className="auth-modal-content">
-          {user ? (
-            // Authenticated state
-            <div className="auth-modal-profile">
-              <h2 className="auth-modal-title">Account</h2>
-
+            <div className="flex flex-col items-center space-y-6 pt-2">
               {user.picture && (
                 <img
                   src={user.picture}
                   alt={user.name}
-                  className="auth-modal-avatar"
+                  className="w-20 h-20 rounded-full border-3 border-gray-200"
                 />
               )}
 
-              <div className="auth-modal-user-info">
-                <p className="auth-modal-name">{user.name}</p>
-                <p className="auth-modal-email">{user.email}</p>
+              <div className="text-center space-y-1">
+                <p className="text-lg font-semibold text-gray-900">{user.name}</p>
+                <p className="text-sm text-gray-600">{user.email}</p>
               </div>
 
-              <button
+              <Button
                 onClick={handleLogout}
-                className="auth-modal-logout-button"
+                variant="destructive"
+                className="w-full"
               >
                 Sign Out
-              </button>
+              </Button>
             </div>
-          ) : (
-            // Login state
-            <div className="auth-modal-login">
-              <h2 className="auth-modal-title">Sign in to RiteMark</h2>
-
-              <p className="auth-modal-description">
+          </>
+        ) : (
+          // Login state
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-center">Sign in to RiteMark</DialogTitle>
+              <DialogDescription className="text-center">
                 Connect your Google account to enable cloud collaboration and sync your documents across devices.
-              </p>
+              </DialogDescription>
+            </DialogHeader>
 
+            <div className="space-y-4 pt-2">
               {error && (
-                <div className="auth-modal-error">
+                <div className="flex items-center gap-2 p-3 bg-red-50 text-red-900 rounded-lg text-sm">
                   <AlertCircle size={16} />
                   <span>{error}</span>
                 </div>
               )}
 
               {localLoading ? (
-                <div className="auth-modal-loading">
-                  <div className="auth-modal-spinner" />
-                  <p>Authenticating...</p>
+                <div className="text-center py-8 space-y-4">
+                  <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto" />
+                  <p className="text-sm text-gray-600">Authenticating...</p>
                 </div>
               ) : (
-                <button
-                  onClick={handleSignIn}
-                  disabled={!tokenClient}
-                  className="auth-modal-signin-button"
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-                    <g fill="none" fillRule="evenodd">
-                      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-                      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-                      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-                    </g>
-                  </svg>
-                  Sign in with Google
-                </button>
+                <>
+                  <button
+                    onClick={handleSignIn}
+                    disabled={!tokenClient}
+                    className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    style={{ fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                      <g fill="none" fillRule="evenodd">
+                        <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                        <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                      </g>
+                    </svg>
+                    Sign in with Google
+                  </button>
+
+                  <p className="text-xs text-gray-500 text-center leading-relaxed">
+                    By signing in, you agree to our{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                      Privacy Policy
+                    </a>
+                  </p>
+                </>
               )}
-
-              <p className="auth-modal-privacy">
-                By signing in, you agree to our{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer">
-                  Privacy Policy
-                </a>
-              </p>
             </div>
-          )}
-        </div>
-
-        <style>{`
-          .auth-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            animation: fadeIn 0.2s ease;
-          }
-
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-
-          .auth-modal-container {
-            background: white;
-            border-radius: 12px;
-            max-width: 440px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            animation: slideUp 0.3s ease;
-          }
-
-          @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-
-          .auth-modal-close {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #6b7280;
-            padding: 8px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            z-index: 10;
-          }
-
-          .auth-modal-close:hover {
-            background: rgba(0, 0, 0, 0.05);
-            color: #374151;
-          }
-
-          .auth-modal-content {
-            padding: 48px 32px 32px;
-          }
-
-          .auth-modal-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #111827;
-            margin-bottom: 16px;
-            text-align: center;
-          }
-
-          .auth-modal-description {
-            color: #6b7280;
-            font-size: 15px;
-            line-height: 1.6;
-            text-align: center;
-            margin-bottom: 32px;
-          }
-
-          .auth-modal-error {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: #fef2f2;
-            color: #991b1b;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 24px;
-          }
-
-          .auth-modal-signin-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-            padding: 12px 24px;
-            background: white;
-            color: #3c4043;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: 'Google Sans', Roboto, Arial, sans-serif;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-bottom: 24px;
-          }
-
-          .auth-modal-signin-button:hover:not(:disabled) {
-            background: #f8f9fa;
-            border-color: #d2d3d4;
-            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15);
-          }
-
-          .auth-modal-signin-button:active:not(:disabled) {
-            background: #f1f3f4;
-            border-color: #c4c6c8;
-          }
-
-          .auth-modal-signin-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-
-          .auth-modal-signin-button svg {
-            flex-shrink: 0;
-          }
-
-          .auth-modal-loading {
-            text-align: center;
-            padding: 32px;
-          }
-
-          .auth-modal-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 16px;
-          }
-
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-
-          .auth-modal-loading p {
-            color: #6b7280;
-            font-size: 14px;
-          }
-
-          .auth-modal-privacy {
-            color: #9ca3af;
-            font-size: 13px;
-            text-align: center;
-            line-height: 1.5;
-          }
-
-          .auth-modal-privacy a {
-            color: #3b82f6;
-            text-decoration: none;
-          }
-
-          .auth-modal-privacy a:hover {
-            text-decoration: underline;
-          }
-
-          .auth-modal-profile {
-            text-align: center;
-          }
-
-          .auth-modal-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            border: 3px solid #e5e7eb;
-          }
-
-          .auth-modal-user-info {
-            margin-bottom: 32px;
-          }
-
-          .auth-modal-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #111827;
-            margin-bottom: 4px;
-          }
-
-          .auth-modal-email {
-            color: #6b7280;
-            font-size: 14px;
-          }
-
-          .auth-modal-logout-button {
-            width: 100%;
-            padding: 12px 24px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s ease;
-          }
-
-          .auth-modal-logout-button:hover {
-            background: #dc2626;
-          }
-
-          @media (max-width: 768px) {
-            .auth-modal-container {
-              max-width: 95%;
-              margin: 20px;
-            }
-
-            .auth-modal-content {
-              padding: 40px 24px 24px;
-            }
-
-            .auth-modal-title {
-              font-size: 20px;
-            }
-
-            .auth-modal-description {
-              font-size: 14px;
-            }
-          }
-        `}</style>
-      </div>
-    </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

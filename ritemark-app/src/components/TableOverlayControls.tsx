@@ -34,7 +34,6 @@ interface TableOverlayControlsProps {
 
 export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
   const [tables, setTables] = useState<TableInfo[]>([])
-  const [_hoveredTable, setHoveredTable] = useState<number | null>(null)
   const [hoveredRow, setHoveredRow] = useState<{ tableIndex: number; rowIndex: number } | null>(null)
   const [hoveredCol, setHoveredCol] = useState<{ tableIndex: number; colIndex: number } | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -90,7 +89,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
 
           if (rowIndex >= 0) {
             setHoveredRow({ tableIndex, rowIndex })
-            setHoveredTable(tableIndex)
           }
         })
       } else {
@@ -110,7 +108,6 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
 
             if (colIndex >= 0) {
               setHoveredCol({ tableIndex, colIndex })
-              setHoveredTable(tableIndex)
             }
           }
         })
@@ -164,11 +161,10 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                 top: `${rowRect.top}px`,
                 width: '32px',
                 height: `${rowRect.height}px`,
-                zIndex: 100,
+                zIndex: 10,
               }}
               onMouseEnter={() => {
                 setHoveredRow({ tableIndex, rowIndex })
-                setHoveredTable(tableIndex)
               }}
               onMouseLeave={() => {
                 // Don't clear immediately - let mousemove handler manage it
@@ -242,11 +238,10 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
                 top: `${colRect.top - 32}px`,
                 width: `${colRect.width}px`,
                 height: '28px',
-                zIndex: 100,
+                zIndex: 10,
               }}
               onMouseEnter={() => {
                 setHoveredCol({ tableIndex, colIndex })
-                setHoveredTable(tableIndex)
               }}
               onMouseLeave={() => {
                 // Don't clear immediately - let mousemove handler manage it
