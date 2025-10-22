@@ -10,3 +10,13 @@
 export { AutoSaveManager } from './autoSaveManager';
 export type { AutoSaveOptions, SaveResult } from './autoSaveManager';
 export { uploadImageToDrive } from './DriveImageUpload';
+export {
+  openShareDialog,
+  createSharePermission,
+  listSharePermissions,
+  removeSharePermission,
+  shareWithAnyone,
+  shareWithUser,
+  canShareFile,
+} from './sharing';
+export type { ShareOptions, SharePermission } from './sharing';
