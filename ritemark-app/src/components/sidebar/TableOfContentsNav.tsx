@@ -175,22 +175,13 @@ export function TableOfContentsNav({ editor }: TableOfContentsNavProps) {
       // Get the exact position of the heading using ProseMirror coordinates
       const coords = editor.view.coordsAtPos(heading.pos)
       const headingTop = coords.top + window.scrollY
-      const targetScrollPosition = Math.max(0, headingTop - 10) // Minimal 10px offset for precise top positioning
+      const targetScrollPosition = Math.max(0, headingTop - 64) // 64px offset for fixed header (h-16)
 
       // Manual scroll to ensure heading goes to top of page
       window.scrollTo({
         top: targetScrollPosition,
         behavior: 'smooth'
       })
-
-      // Set selection to the heading for editor focus
-      // Use a safe position inside the heading node (pos + 1 ensures we're inside the text)
-      const safePos = Math.min(heading.pos + 1, docSize - 1)
-      editor
-        .chain()
-        .focus()
-        .setTextSelection(safePos)
-        .run()
 
       // Update active heading immediately for UI feedback
       setActiveId(heading.id)
@@ -199,7 +190,6 @@ export function TableOfContentsNav({ editor }: TableOfContentsNavProps) {
       try {
         editor
           .chain()
-          .focus()
           .setTextSelection(heading.pos)
           .scrollIntoView()
           .run()
