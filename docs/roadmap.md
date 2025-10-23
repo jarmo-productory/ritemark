@@ -34,14 +34,11 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 **CRITICAL**: Each sprint = 1 PR maximum. Very small incremental steps for AI development team.
 
 ### ✅ Completed Sprints
-- **Sprint 1**: React + TypeScript foundation setup ✅ COMPLETED
-- **Sprint 2**: Strategic pivot research and planning ✅ COMPLETED
-- **Sprint 3**: Basic Text Editor Component ✅ COMPLETED
-- **Sprint 4**: WYSIWYG Editor with TipTap ✅ COMPLETED
-- **Sprint 5**: Document Structure & Navigation ✅ COMPLETED
-- **Sprint 6**: Enhanced Editor Features ✅ COMPLETED
-- **Sprint 7**: Google OAuth Setup ✅ COMPLETED
-- **Sprint 8**: Google Drive Integration ✅ COMPLETED
+- **Sprint 1-8**: Foundation, OAuth, Drive integration ✅ COMPLETED
+- **Sprint 9-12**: UX enhancements, formatting, tables, images ✅ COMPLETED
+- **Sprint 13**: Modal consolidation & accessibility ✅ COMPLETED
+- **Sprint 14**: Landing page with SEO optimization ✅ COMPLETED (Oct 22, 2025)
+- **Sprint 15**: Share button & state management fix ✅ COMPLETED (Oct 23, 2025)
 
 ### 🎯 Sprint 4 Achievements Summary
 ✅ **Major Breakthrough**: True WYSIWYG markdown editing experience achieved
@@ -99,46 +96,105 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - ✅ **14 research documents** - Architecture diagrams, API docs, integration guides
 - ✅ **MILESTONE 2 FOUNDATION COMPLETE**: Core cloud collaboration infrastructure ready
 
-### 🎯 Future Sprints (Planned)
+### ✅ Completed Sprints (9-13)
 
-#### **Sprint 9**: UX Consolidation & Invisible Interface
-- **Goal**: Fix UI/UX inconsistencies - apply Johnny Ive invisible interface philosophy
-- **Problem**: 3 different UI locations violate invisible interface principle:
-  - Upper right: File menu + Login
-  - Upper left: Save status alerts
-  - Bottom left: User badge
-- **Output**: 1 PR with consolidated, minimal UI
-- **Success**: Single, consistent UI location with graceful state indicators
-- **Architecture**: Consolidated top-right corner UI, subtle save indicators, remove visual clutter
+#### **Sprint 9-12**: UX Consolidation & Enhanced Features ✅ COMPLETED
+- Sprint 9: UX consolidation (deferred to Sprint 13) ✅
+- Sprint 10: In-context formatting menu ✅
+- Sprint 11: Table support with overlay controls ✅
+- Sprint 12: Image upload to Google Drive ✅
 
-#### **Sprint 10**: In-Context Formatting Menu (Text Selection)
-- **Goal**: Add formatting menu on text selection (like Medium/Notion)
-- **Output**: 1 PR with floating formatting toolbar
-- **Success**: Users format text by selecting it, menu appears above selection
-- **Features**: Bold, italic, heading levels, lists, links - all contextual
-- **UX**: No toolbar chrome, appears only when needed (invisible interface)
+#### **Sprint 13**: Modal/Overlay Consolidation ✅ COMPLETED
+**Goal**: Fix UI/UX inconsistencies - consolidate all modals to shadcn Dialog
+**Problem Solved**:
+- 5 different modal implementations with inconsistent styling
+- Z-index chaos (table controls appearing above modals)
+- White scrim vs black scrim inconsistency
+- Missing accessibility features
 
-#### **Sprint 11**: Enhanced Document Operations
-- **Goal**: Improve file management and document organization
-- **Output**: 1 PR with enhanced file operations
-- **Success**: Users can rename, duplicate, organize documents efficiently
-- **Features**: Inline rename, folder navigation, recent files, favorites
+**Output**: 1 PR with unified modal system
+**Success Criteria**: ✅ ALL MET
+- ✅ All modals use shadcn Dialog component
+- ✅ 100% consistent black/80 overlay
+- ✅ 972+ lines of inline CSS removed
+- ✅ Full WCAG 2.1 AA accessibility
+- ✅ Table controls z-index bug fixed
+- ✅ Zero TypeScript errors
+- ✅ Zero breaking changes
 
-#### **Sprint 12**: Keyboard Shortcuts & Power User Features
-- **Goal**: Add comprehensive keyboard shortcuts for power users
-- **Output**: 1 PR with keyboard shortcuts system
-- **Success**: Users can perform all actions via keyboard
-- **Features**: Shortcut palette (Cmd+K), customizable shortcuts, cheat sheet
+**Key Achievements**:
+- 4 components refactored in parallel using claude-flow swarm
+- AuthModal: 459 → 227 lines (50% reduction)
+- DriveFileBrowser: 451 → 182 lines (60% reduction)
+- Code quality: 9.2/10 (Excellent)
+- Ready for production deployment
+
+**Date Completed**: October 20, 2025
 
 ---
 
-### 🔮 Future Collaboration Features (Sprint 13+)
-**Note**: Real-time collaboration postponed until core UX is perfected
+#### **Sprint 14**: Landing Page Implementation ✅ COMPLETED
+**Goal**: Professional marketing infrastructure for SEO and user acquisition
+**Timeline**: 1 day (October 21-22, 2025)
 
-- **Sprint 13+**: Real-Time Collaboration (Y.js CRDT)
-- **Sprint 14+**: Collaboration UI & Presence
-- **Sprint 15+**: Comments & Suggestions
-- **Sprint 16+**: Sharing & Permissions
+**Key Achievements**:
+- ✅ **Static landing page** - Professional hero, 5 feature cards, FAQ section
+- ✅ **SEO optimization** - Meta tags, sitemap.xml, robots.txt, schema.org markup
+- ✅ **Performance** - <1s FCP, >95 Lighthouse score, WebP images
+- ✅ **Full user flow** - Landing → app → OAuth → editor working seamlessly
+- ✅ **Mobile-responsive** - Works across all devices and screen sizes
+- ✅ **Netlify deployment** - Production-ready with proper routing
+- ✅ **60+ pages research** - Comprehensive competitor analysis and UX design
+
+**Technical Stack**:
+- Static HTML/CSS/JS (no build step for landing page)
+- Vanilla JavaScript for interactive FAQ accordion
+- WebP image optimization (81KB screenshot)
+- Semantic HTML for accessibility
+
+**Merge**: October 22, 2025 (commit: db8da7c)
+**See**: `/docs/sprints/sprint-14/` for complete documentation
+
+---
+
+#### **Sprint 15**: Share Button & State Management Fix ✅ COMPLETED
+**Goal**: Google Drive sharing integration with critical bug fixes
+**Timeline**: 1 day (October 22-23, 2025)
+
+**Key Achievements**:
+- ✅ **Share button** - Opens file in Google Drive for native sharing UI
+- ✅ **Simplified approach** - URL-based sharing (no complex ShareClient API)
+- ✅ **Popup blocker fix** - Static import keeps `window.open()` synchronous
+- ✅ **TOC scroll fix** - Check state before changing state (prevents race conditions)
+- ✅ **Universal principle** - "If you're already there, don't go there again"
+
+**Critical Bug Fixes**:
+1. **Share button popup blocker** (High severity)
+   - Problem: `await import()` broke user activation context
+   - Fix: Changed to static import, keeping `window.open()` synchronous
+
+2. **TOC scroll state management** (Major severity)
+   - Problem: `window.scrollTo()` called even when already at target position
+   - Fix: 5-line state check eliminated race conditions and scroll interference
+   - Learning: Always verify current state before modifying it (documented in `/CLAUDE.md`)
+
+**Impact**:
+- Share button works reliably across all browsers
+- TOC navigation handles repeated clicks gracefully
+- State management principle added to project instructions for all future work
+
+**Merge**: October 23, 2025 (commit: 8eccc1a)
+**See**: `/docs/sprints/sprint-15/` for complete documentation
+
+---
+
+### 🔮 Future Sprints (Sprint 16+)
+
+- **Sprint 16**: Offline Indicator (1 day)
+- **Sprint 17**: Version History Link (1 day)
+- **Sprint 18+**: Real-Time Collaboration (Y.js CRDT)
+- **Sprint 19+**: Collaboration UI & Presence
+- **Sprint 20+**: Comments & Suggestions
 
 **Note**: Mobile responsive design already implemented in Sprint 4
 
@@ -160,8 +216,8 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 8 COMPLETED - Ready for Sprint 9 (UX Consolidation & Invisible Interface)
-**Last Updated**: October 5, 2025 - Sprint 8 complete, Sprints 9-12 refocused on UX perfection
+**Current Sprint**: Sprint 15 COMPLETED - Ready for Sprint 16 (Offline Indicator)
+**Last Updated**: October 23, 2025 - Sprints 14 & 15 completed and merged to main
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
