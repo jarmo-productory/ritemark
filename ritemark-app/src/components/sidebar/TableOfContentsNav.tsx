@@ -149,66 +149,45 @@ export function TableOfContentsNav({ editor }: TableOfContentsNavProps) {
     }
   }, [editor, headings])
 
-  // ProseMirror state-based scroll navigation
+  // Simple DOM-based scroll navigation
   const scrollToHeading = (heading: Heading, event?: React.MouseEvent) => {
     if (event) {
       event.preventDefault()
       event.stopPropagation()
     }
 
-    if (!editor) return
+    // Find all heading elements
+    const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
 
-    try {
-      // Validate position is within document bounds
-      const docSize = editor.state.doc.content.size
-      if (heading.pos < 0 || heading.pos > docSize) {
-        console.warn('Heading position out of bounds, refreshing headings')
-        return
-      }
+    // Find the matching heading by level and text
+    for (const element of Array.from(allHeadings)) {
+      const level = parseInt(element.tagName.substring(1))
+      const text = element.textContent?.trim() || ''
 
-      // Ensure editor is focused and has valid selection before getting coordinates
-      if (!editor.state.selection || !editor.view.state) {
-        console.warn('Editor not ready for position calculation')
-        return
-      }
+      if (level === heading.level && text === heading.textContent) {
+        const rect = element.getBoundingClientRect()
+        const elementTop = rect.top + window.scrollY
+        const targetScroll = Math.max(0, elementTop - 64) // 64px for fixed header
 
-      // Get the exact position of the heading using ProseMirror coordinates
-      const coords = editor.view.coordsAtPos(heading.pos)
-      const headingTop = coords.top + window.scrollY
-      const targetScrollPosition = Math.max(0, headingTop - 64) // 64px offset for fixed header (h-16)
+        // Check if already at target position (within 5px tolerance)
+        const currentScroll = window.scrollY
+        const scrollDiff = Math.abs(currentScroll - targetScroll)
 
-      // Manual scroll to ensure heading goes to top of page
-      window.scrollTo({
-        top: targetScrollPosition,
-        behavior: 'smooth'
-      })
+        if (scrollDiff < 5) {
+          // Already at target - just update active state
+          setActiveId(heading.id)
+          return
+        }
 
-      // Update active heading immediately for UI feedback
-      setActiveId(heading.id)
+        // Scroll to heading
+        window.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        })
 
-      // Focus editor AFTER scroll completes to prevent TipTap from auto-scrolling
-      // Delay allows smooth scroll animation to finish first
-      const safePos = Math.min(heading.pos + 1, docSize - 1)
-      setTimeout(() => {
-        editor.chain().focus().setTextSelection(safePos).run()
-      }, 100)
-    } catch {
-      // Fallback: try TipTap's built-in scroll if coordinate calculation fails
-      try {
-        // Let TipTap handle both scroll and focus in fallback path
-        editor
-          .chain()
-          .setTextSelection(heading.pos + 1)
-          .scrollIntoView()
-          .run()
+        // Update active heading immediately for UI feedback
         setActiveId(heading.id)
-
-        // Focus after scroll completes
-        setTimeout(() => {
-          editor.chain().focus().run()
-        }, 100)
-      } catch {
-        // Silently handle any position errors
+        return
       }
     }
   }

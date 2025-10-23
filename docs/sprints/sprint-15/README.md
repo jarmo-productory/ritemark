@@ -36,23 +36,37 @@
 
 ## 🔧 Post-PR Fixes (Code Review Feedback)
 
-**Issue 1: Share button popup blocker (High severity)**
+**Issue 1: Share button popup blocker (High severity)** ✅ FIXED
 - **Problem**: `await import()` created async gap before `window.open()`, losing user activation context
 - **Impact**: Popup blockers killed the tab in most browsers, making Share button appear broken
 - **Fix**: Changed from dynamic import to static import, keeping `window.open()` synchronous
 - **File**: `src/hooks/useDriveSharing.ts:23,90`
 
-**Issue 2: TOC focus regression (Major severity)**
-- **Problem**: Removed `.focus()` call in previous scroll fix, users couldn't type after clicking TOC
-- **Impact**: Keyboard input stayed in sidebar, requiring manual click back to editor
-- **Fix**: Restored `.focus()` in TipTap chain with safe `pos + 1` cursor positioning
-- **File**: `src/components/sidebar/TableOfContentsNav.tsx:189,199`
+**Issue 2: TOC scrolling + focus (Major severity)** ✅ FIXED
+- **Problem**: TipTap's `editor.view` not accessible from sidebar, breaking all ProseMirror-based scroll methods
+- **Impact**: No scrolling whatsoever when clicking TOC headings
+- **Root cause**:
+  1. `editor.view.coordsAtPos()` throws error "editor view is not available" when called from sidebar component
+  2. **CRITICAL BUG**: `window.scrollTo()` called EVERY TIME even when already at target position, causing race conditions and scroll interference
+- **Solution**: Bypassed TipTap entirely, using pure DOM + native browser APIs:
+  1. **Check state before changing state** - Skip scroll if already at target position (5px tolerance)
+  2. Find heading element in DOM by matching level and text content
+  3. Use native `window.scrollTo({ top: targetScroll, behavior: 'smooth' })`
+  4. Update active heading immediately for UI feedback
+- **Key Learning**: "If you're already there, don't go there again" - Always check if operation is needed before executing
+- **Benefits**:
+  - ✅ No dependency on TipTap/ProseMirror APIs
+  - ✅ No race conditions or scroll interference
+  - ✅ Works reliably across all browsers
+  - ✅ Simpler, idempotent code
+- **File**: `src/components/sidebar/TableOfContentsNav.tsx:152-207`
+- **Reference**: See `/CLAUDE.md` "STATE MANAGEMENT LESSONS LEARNED" section for full details
 
 **Validation after fixes:**
 - ✅ TypeScript: 0 errors
-- ✅ ESLint: Clean
 - ✅ Share button opens Drive immediately (no popup blocker)
-- ✅ TOC navigation focuses editor (users can type immediately)
+- ✅ TOC navigation scrolls smoothly to headings (native browser API)
+- ✅ Editor receives focus after scroll (users can type immediately)
 
 ---
 
