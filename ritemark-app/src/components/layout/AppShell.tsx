@@ -13,13 +13,18 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
 import { EditableTitle } from "@/components/EditableTitle"
+import { useDriveSharing } from "@/hooks/useDriveSharing"
+import { Share2, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import type { DriveSyncStatus } from "@/types/drive"
 import type { Editor as TipTapEditor } from '@tiptap/react'
 
 interface AppShellProps {
   children?: React.ReactNode
   documentTitle: string
+  fileId: string | null
   syncStatus: DriveSyncStatus
   editor?: TipTapEditor | null
   hasDocument?: boolean
@@ -28,7 +33,19 @@ interface AppShellProps {
   onRenameDocument?: (newTitle: string) => void
 }
 
-export function AppShell({ children, documentTitle, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument }: AppShellProps) {
+export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument }: AppShellProps) {
+  // Sprint 15: Share Button hook
+  const { handleShare, isSharing } = useDriveSharing(fileId, {
+    onSuccess: () => {
+      toast.success('Opening file in Drive')
+    },
+    onError: (error) => {
+      toast.error('Failed to open file in Drive', {
+        description: error.message
+      })
+    }
+  })
+
   return (
     <SidebarProvider
       style={{
@@ -45,35 +62,62 @@ export function AppShell({ children, documentTitle, syncStatus, editor, hasDocum
         onOpenFromDrive={onOpenFromDrive}
       />
       <SidebarInset>
-        <header className="sticky top-0 z-[5] flex h-16 shrink-0 items-center gap-2 px-4 bg-background border-b">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  RiteMark
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {hasDocument && onRenameDocument ? (
-                    <EditableTitle 
-                      title={documentTitle} 
-                      onRename={onRenameDocument}
-                      className="text-foreground"
-                    />
-                  ) : (
-                    documentTitle
-                  )}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+        <header className="sticky top-0 z-[5] flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-background border-b">
+          {/* Left side: Sidebar trigger + Breadcrumb */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="#">
+                    RiteMark
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>
+                    {hasDocument && onRenameDocument ? (
+                      <EditableTitle
+                        title={documentTitle}
+                        onRename={onRenameDocument}
+                        className="text-foreground"
+                      />
+                    ) : (
+                      documentTitle
+                    )}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+
+          {/* Right side: Share Button (Sprint 15) */}
+          <div className="flex items-center gap-2">
+            {/* Placeholder for offline status (Sprint 16) */}
+
+            {/* Sprint 15: Share Button */}
+            <Button
+              onClick={handleShare}
+              disabled={!fileId || isSharing}
+              variant="default"
+              size="sm"
+              className="gap-2"
+              aria-label={fileId ? "Share document with others" : "No document to share"}
+            >
+              {isSharing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Share</span>
+            </Button>
+
+            {/* Placeholder for kebab menu (Sprint 17) */}
+          </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           {children || (

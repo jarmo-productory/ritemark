@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO Meta Tags -->
+  <title>RiteMark - Markdown Editor for People Who Hate Markdown</title>
+  <meta name="description" content="Edit documents like Google Docs. Collaborate in real-time. Export clean markdown for AI tools, GitHub, and developer workflows. No syntax required.">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://ritemark.app">
+
+  <!-- Robots -->
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="RiteMark - Markdown Editor for People Who Hate Markdown">
+  <meta property="og:description" content="Edit like Google Docs, export markdown for AI tools and GitHub. No learning curve.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ritemark.app">
+  <meta property="og:image" content="https://ritemark.app/assets/landing/og-image.png">
+  <meta property="og:site_name" content="RiteMark">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RiteMark - Markdown Editor for People Who Hate Markdown">
+  <meta name="twitter:description" content="Edit like Google Docs, export markdown for AI tools and GitHub.">
+  <meta name="twitter:image" content="https://ritemark.app/assets/landing/og-image.png">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Inline Critical CSS (Above-the-Fold Performance) -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Johnny Ive Minimalist System - Matching Main App */
+      /* Based on shadcn default palette */
+
+      /* Core Colors */
+      --background: hsl(0, 0%, 100%);           /* Pure white */
+      --foreground: hsl(222.2, 84%, 4.9%);      /* Nearly black */
+
+      /* Primary (Dark accent) */
+      --primary: hsl(222.2, 47.4%, 11.2%);      /* Dark blue-black */
+      --primary-foreground: hsl(210, 40%, 98%); /* Off-white */
+
+      /* Secondary (Subtle) */
+      --secondary: hsl(210, 40%, 96%);          /* Very light gray */
+      --secondary-foreground: hsl(222.2, 47.4%, 11.2%);
+
+      /* Muted (Backgrounds) */
+      --muted: hsl(210, 40%, 96%);
+      --muted-foreground: hsl(215.4, 16.3%, 46.9%); /* Medium gray */
+
+      /* Borders & Inputs */
+      --border: hsl(214.3, 31.8%, 91.4%);       /* Light gray */
+      --input: hsl(214.3, 31.8%, 91.4%);
+      --ring: hsl(222.2, 84%, 4.9%);
+
+      /* Legacy color mappings for transition */
+      --gray-50: hsl(210, 40%, 98%);
+      --gray-100: hsl(210, 40%, 96%);
+      --gray-200: hsl(214.3, 31.8%, 91.4%);
+      --gray-500: hsl(215.4, 16.3%, 46.9%);
+      --gray-700: hsl(222.2, 47.4%, 11.2%);
+      --gray-900: hsl(222.2, 84%, 4.9%);
+
+      /* 8pt Spacing System */
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --space-16: 64px;
+      --space-24: 96px;
+
+      /* Typography - System fonts only (Johnny Ive aesthetic) */
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+      /* Border Radius */
+      --radius: 0.5rem;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--foreground);
+      line-height: 1.6;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Hero Section - Johnny Ive Minimalist */
+    .hero {
+      position: relative;
+      background: var(--background);
+      padding: var(--space-24) var(--space-6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-inner {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-12);
+      align-items: center;
+    }
+
+    @media (min-width: 768px) {
+      .hero-inner {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-16);
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw + 1rem, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--foreground);
+      margin-bottom: var(--space-4);
+    }
+
+    .hero p {
+      font-size: clamp(1.125rem, 1vw + 0.5rem, 1.25rem);
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--muted-foreground);
+      margin-bottom: var(--space-8);
+      max-width: 560px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-12);
+    }
+
+    /* Minimalist Button System - Johnny Ive */
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+      background: var(--foreground);
+      color: var(--primary-foreground);
+      padding: 14px 32px;
+      border-radius: var(--radius);
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        circle 120px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(147, 197, 253, 0.5),
+        transparent 70%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .btn-primary:hover::before {
+      opacity: 1;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.95;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      color: var(--foreground);
+      padding: 13px 32px;
+      border-radius: var(--radius);
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      font-size: 16px;
+      background: var(--background);
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--foreground);
+      background-color: var(--muted);
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .hero-visual {
+      position: relative;
+    }
+
+    .hero-visual img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Apple-Inspired Features Section */
+    .features {
+      background: hsl(210, 40%, 98%);
+      padding: var(--space-24) var(--space-6);
+    }
+
+    .features-header {
+      max-width: 1200px;
+      margin: 0 auto var(--space-12);
+      padding: 0 var(--space-6);
+      text-align: center;
+    }
+
+    .features-header h2 {
+      font-size: clamp(2rem, 4vw + 1rem, 3rem);
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+    }
+
+    .features-scroll-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: var(--space-6) var(--space-6) var(--space-8);
+      margin: 0 -var(--space-6);
+      scroll-behavior: smooth;
+    }
+
+    .features-scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .features-cards {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 var(--space-6);
+    }
+
+    .feature-card {
+      background: var(--background);
+      border-radius: 20px;
+      padding: var(--space-8);
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-height: 280px;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--foreground);
+    }
+
+    .feature-icon svg {
+      width: 32px;
+      height: 32px;
+      stroke-width: 1.5;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--foreground);
+      margin: 0;
+    }
+
+    .feature-card p {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--muted-foreground);
+      margin: 0;
+      flex-grow: 1;
+    }
+
+    .feature-action {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--foreground);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      align-self: flex-end;
+      margin-top: auto;
+    }
+
+    .feature-action svg {
+      width: 20px;
+      height: 20px;
+      color: var(--background);
+      stroke-width: 2;
+    }
+
+    .feature-action:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+
+    .feature-action:active {
+      transform: scale(0.95);
+    }
+
+    /* Feature Modal */
+    .feature-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+
+    .feature-modal.active {
+      display: flex;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .modal-content {
+      position: relative;
+      background: var(--background);
+      border-radius: 20px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 1;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      z-index: 2;
+    }
+
+    .modal-close:hover {
+      background: var(--border);
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+      color: var(--foreground);
+    }
+
+    .modal-body {
+      padding: var(--space-8);
+    }
+
+    .modal-body h3 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: var(--space-4);
+      color: var(--foreground);
+    }
+
+    .modal-body p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--muted-foreground);
+      margin-bottom: var(--space-4);
+    }
+
+    .modal-body ul {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-6) 0;
+    }
+
+    .modal-body li {
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-4);
+    }
+
+    .modal-body li:last-child {
+      border-bottom: none;
+    }
+
+    .modal-body li svg {
+      width: 20px;
+      height: 20px;
+      color: var(--foreground);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Mobile Navigation Menu */
+    .mobile-nav {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
+      transform: translateY(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 999;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      display: block;
+      visibility: hidden;
+    }
+
+    .mobile-nav.active {
+      transform: translateY(0);
+      visibility: visible;
+    }
+
+    .mobile-nav-link,
+    .mobile-nav-cta {
+      display: block;
+      padding: 18px var(--space-6);
+      color: var(--foreground);
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 0.2s ease;
+    }
+
+    .mobile-nav-link:active {
+      background-color: var(--muted);
+    }
+
+    .mobile-nav-link:last-of-type {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mobile-nav-cta {
+      background: var(--foreground);
+      color: var(--background);
+      text-align: center;
+      margin: var(--space-4);
+      border-radius: var(--radius);
+      border: none;
+      font-weight: 600;
+    }
+
+    .mobile-nav-cta:active {
+      opacity: 0.8;
+      background: var(--foreground);
+    }
+
+    @media (min-width: 1024px) {
+      .mobile-nav {
+        display: none;
+      }
+    }
+
+    /* Swipe Indicator (Mobile Only) */
+    .swipe-indicator {
+      display: none;
+      position: absolute;
+      right: 50%;
+      bottom: -60px;
+      transform: translateX(50%);
+      width: 56px;
+      height: 56px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: none;
+      animation: swipe-bounce 2s ease-in-out infinite;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: opacity 0.3s ease;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .swipe-indicator svg {
+      width: 28px;
+      height: 28px;
+      color: white;
+      stroke-width: 3;
+    }
+
+    .swipe-indicator.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes swipe-bounce {
+      0%, 100% {
+        transform: translateX(50%) translateY(0);
+        opacity: 0.9;
+      }
+      50% {
+        transform: translateX(50%) translateY(-8px);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .features-cards {
+        grid-template-columns: repeat(5, minmax(260px, 320px));
+      }
+    }
+
+    @media (max-width: 768px) {
+      /* Hide desktop header actions on mobile */
+      .header-actions {
+        display: none;
+      }
+
+      /* Show hamburger menu on mobile */
+      .mobile-menu-toggle {
+        display: flex;
+      }
+
+      .features {
+        padding: var(--space-16) 0;
+      }
+
+      .features-header {
+        margin-bottom: var(--space-8);
+        padding: 0 var(--space-6);
+      }
+
+      .features-scroll-container {
+        scroll-snap-type: x mandatory;
+        padding: var(--space-6) 0 var(--space-8);
+        position: relative;
+      }
+
+      .swipe-indicator {
+        display: flex !important;
+      }
+
+      .features-scroll-container {
+        padding-bottom: 80px;
+      }
+
+      .features-cards {
+        grid-template-columns: repeat(5, calc(85vw - 32px));
+        gap: 16px;
+        padding: 0 var(--space-6);
+      }
+
+      .feature-card {
+        min-height: 260px;
+        scroll-snap-align: start;
+      }
+
+      /* Show partial next card on mobile */
+      .features-cards::after {
+        content: '';
+        display: block;
+        width: var(--space-6);
+        grid-column: 6;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: var(--space-16) var(--space-6);
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+      }
+
+      .btn-primary, .btn-secondary {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+
+  <!-- External CSS (deferred for performance) -->
+  <link rel="stylesheet" href="/landing.css" media="print" onload="this.media='all'">
+
+  <!-- Schema.org Markup -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RiteMark",
+    "applicationCategory": "BusinessApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "operatingSystem": "Web, iOS, Android",
+    "description": "WYSIWYG markdown editor for people who hate markdown. Edit like Google Docs, export clean markdown for AI tools and GitHub."
+  }
+  </script>
+</head>
+<body>
+  <!-- Skip to main content (Accessibility) -->
+  <a href="#main-content" class="skip-to-main">Skip to main content</a>
+
+  <!-- Header Navbar -->
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <!-- Logo -->
+      <a href="/" class="logo" aria-label="RiteMark - Home">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="currentColor"/>
+          <text x="16" y="22" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="white" text-anchor="middle">RM</text>
+        </svg>
+        <span class="logo-text">RiteMark</span>
+      </a>
+
+      <!-- Navigation -->
+      <nav class="nav" role="navigation" aria-label="Main navigation">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="header-actions">
+        <a href="/app" class="btn-primary btn-header">Start Writing Free</a>
+      </div>
+
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <span class="hamburger"></span>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    <nav class="mobile-nav" id="mobile-nav" role="navigation" aria-label="Mobile navigation">
+      <a href="#features" class="mobile-nav-link">Features</a>
+      <a href="#how-it-works" class="mobile-nav-link">How It Works</a>
+      <a href="#faq" class="mobile-nav-link">FAQ</a>
+      <a href="/app" class="mobile-nav-cta">Start Writing Free</a>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="main-content">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <h1>Markdown Editor for People Who Hate Markdown</h1>
+        <p>Edit documents like Google Docs. Collaborate in real-time. Export clean markdown for AI tools, GitHub, and developer workflows.</p>
+        <div class="cta-buttons">
+          <a href="/app" class="btn-primary">Start Writing Free</a>
+          <a href="#demo" class="btn-secondary">See How It Works</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="/images/screenshots/app_screen.webp" alt="RiteMark WYSIWYG editor interface showing visual formatting toolbar and document editing" loading="eager" width="600" height="400">
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section (Apple-Inspired Card Design) -->
+  <section class="features" id="features">
+    <div class="features-header">
+      <h2>Why RiteMark is the best place to write markdown.</h2>
+    </div>
+
+    <div class="features-scroll-container" id="features-scroll-container">
+      <!-- Swipe indicator for mobile -->
+      <div class="swipe-indicator" id="swipe-indicator" aria-hidden="true">
+        <i data-lucide="chevron-right"></i>
+      </div>
+      <div class="features-cards">
+        <!-- Feature 1: WYSIWYG Editing -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="edit-3"></i>
+          </div>
+          <h3>Edit Like Google Docs</h3>
+          <p>Format text, add headings, create lists. No raw markdown syntax. No learning curve.</p>
+          <button class="feature-action" aria-label="Learn more about visual editing" data-feature="wysiwyg">
+            <i data-lucide="plus"></i>
+          </button>
+        </article>
+
+        <!-- Feature 2: Google Drive Integration -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="cloud"></i>
+          </div>
+          <h3>Auto-Save to Google Drive</h3>
+          <p>Access from any device. Your files stay in your Drive. We never see your content.</p>
+          <button class="feature-action" aria-label="Learn more about cloud storage" data-feature="drive">
+            <i data-lucide="plus"></i>
+          </button>
+        </article>
+
+        <!-- Feature 3: Markdown Export -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="download"></i>
+          </div>
+          <h3>Export Clean Markdown</h3>
+          <p>Perfect for ChatGPT, Claude, GitHub, and developer workflows. One-click export.</p>
+          <button class="feature-action" aria-label="Learn more about markdown export" data-feature="export">
+            <i data-lucide="plus"></i>
+          </button>
+        </article>
+
+        <!-- Feature 4: Real-Time Collaboration -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="users"></i>
+          </div>
+          <h3>Work Together</h3>
+          <p>See edits instantly. Comment and co-author. Like Google Docs for markdown.</p>
+          <button class="feature-action" aria-label="Learn more about collaboration" data-feature="collab">
+            <i data-lucide="plus"></i>
+          </button>
+        </article>
+
+        <!-- Feature 5: Mobile-First -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="smartphone"></i>
+          </div>
+          <h3>Write Anywhere</h3>
+          <p>Write on your phone. Edit on desktop. Seamless sync via Google Drive.</p>
+          <button class="feature-action" aria-label="Learn more about mobile support" data-feature="mobile">
+            <i data-lucide="plus"></i>
+          </button>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Detail Modal -->
+  <div class="feature-modal" id="feature-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Close modal">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic content inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo Video Section -->
+  <section id="how-it-works" class="demo">
+    <div class="container">
+      <h2 class="section-title">See RiteMark in Action</h2>
+      <div class="demo-placeholder">
+        <p class="demo-text">Demo video coming soon</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <div class="faq-container">
+        <!-- FAQ 1 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="help-circle"></i>
+              </div>
+              <span>What is RiteMark?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>RiteMark is a WYSIWYG markdown editor for people who hate markdown syntax. Edit documents like Google Docs, collaborate in real-time, and export clean markdown for AI tools, GitHub, and developer workflows. No learning curve required—just write visually.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 2 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="shield"></i>
+              </div>
+              <span>Is my data secure?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>Yes. RiteMark uses Google OAuth for authentication and stores your documents in your own Google Drive. We only access files you create or open with RiteMark—we never see your other Drive files. Your content stays private and encrypted.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 3 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="sparkles"></i>
+              </div>
+              <span>Is RiteMark free?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>Yes. RiteMark is free and open-source software. Your documents are stored in your Google Drive (15 GB free tier, or upgrade to Google One for more storage). No hidden fees, no premium tiers.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 4 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="code"></i>
+              </div>
+              <span>Do I need to know markdown?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>No! RiteMark is designed for non-technical users. You edit visually (like Google Docs), and RiteMark handles the markdown conversion behind the scenes. The only time you see markdown is when you export.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 5 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="git-compare"></i>
+              </div>
+              <span>How is RiteMark different from Notion or Google Docs?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p><strong>vs Notion:</strong> RiteMark exports clean markdown (Notion uses proprietary format). Your files stay in your Google Drive (Notion stores in their cloud).</p>
+            <p><strong>vs Google Docs:</strong> RiteMark outputs markdown (Google Docs exports .docx). RiteMark is optimized for AI tools, GitHub, and developer workflows—not for printing documents.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>RiteMark</h4>
+          <p>Write visually. Export markdown. No learning curve.</p>
+          <p style="margin-top: 1rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.5);">Built by <a href="https://www.productory.ai" target="_blank" rel="noopener noreferrer" style="color: rgba(255, 255, 255, 0.7); text-decoration: none;">Productory Services OÜ</a></p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="/app">Try Now</a></li>
+            <li><a href="https://github.com/jarmo-productory/ritemark" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="/privacy.html">Privacy Policy</a></li>
+            <li><a href="/terms.html">Terms of Service</a></li>
+            <li><a href="mailto:jarmo@productory.eu">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Community</h4>
+          <ul>
+            <li><a href="https://github.com/jarmo-productory/ritemark/issues" target="_blank" rel="noopener noreferrer">Report Issues</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Productory Services OÜ. Open-source software.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Minimal JavaScript (deferred) -->
+  <script src="/landing.js" defer></script>
+</body>
+</html>

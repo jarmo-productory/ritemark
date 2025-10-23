@@ -182,6 +182,47 @@ grep -r "Johnny\|Add enhanced\|Beautiful\|AI generated" src/
 
 **Remember: USER WILL CALL OUT MISSED CLEANUP** - Always do thorough cleanup before claiming work complete!
 
+### **🎯 STATE MANAGEMENT LESSONS LEARNED (Sprint 15 TOC Scrolling):**
+
+**CRITICAL PRINCIPLE: CHECK STATE BEFORE CHANGING STATE**
+
+**The Problem We Missed:**
+- TOC scroll function called `window.scrollTo()` EVERY TIME, even when already at target position
+- Caused: unnecessary browser operations, animation interference, race conditions, mysterious scroll jumps
+
+**The Fix (5 lines that changed everything):**
+```typescript
+// ALWAYS check if operation is needed before executing
+const scrollDiff = Math.abs(window.scrollY - targetScroll)
+if (scrollDiff < 5) {
+  console.log('⏭️  ALREADY AT TARGET - SKIPPING SCROLL')
+  return  // Don't execute unnecessary operations!
+}
+```
+
+**Why It Took So Long to Find:**
+1. ❌ Assumed operation was ALWAYS needed (wrong!)
+2. ❌ Focused on HOW to scroll, not WHETHER to scroll
+3. ❌ Chased symptoms (timing, focus, APIs) instead of questioning necessity
+4. ✅ User's question revealed it: "If same heading, nothing should happen - agree?"
+
+**Universal Lessons:**
+1. **Check Before Change** - Always verify current state before modifying it
+2. **Idempotency Matters** - Operations should handle "already done" gracefully
+3. **Browser APIs Aren't Free** - `window.scrollTo()`, `.focus()`, etc. have real costs
+4. **Timing Dependencies** - Smooth scroll takes 300-500ms, calling operations during animation causes interference
+5. **Simple > Complex** - DOM traversal + text matching worked better than ProseMirror APIs
+6. **User Intuition Drives Root Cause** - User hypotheses often reveal hidden assumptions
+
+**Application to Other Features:**
+- Modal dialogs: Check if already open before opening
+- Network requests: Check cache before fetching
+- State updates: Check if value changed before setState
+- Focus management: Check if already focused before calling .focus()
+- Any operation with side effects: Verify it's needed first
+
+**The Golden Rule:** "If you're already there, don't go there again."
+
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
 **ABSOLUTE RULES**:

@@ -145,6 +145,7 @@ function App() {
     <>
       <AppShell
         documentTitle={title}
+        fileId={fileId}
         syncStatus={syncStatus}
         editor={editor}
         hasDocument={!!fileId || isNewDocument}
