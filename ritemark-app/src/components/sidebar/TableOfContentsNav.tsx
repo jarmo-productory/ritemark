@@ -183,14 +183,21 @@ export function TableOfContentsNav({ editor }: TableOfContentsNavProps) {
         behavior: 'smooth'
       })
 
+      // Focus editor and set cursor position so user can immediately type
+      // Use pos + 1 to safely place cursor after the heading node
+      const safePos = Math.min(heading.pos + 1, docSize - 1)
+      editor.chain().focus().setTextSelection(safePos).run()
+
       // Update active heading immediately for UI feedback
       setActiveId(heading.id)
     } catch {
       // Fallback: try TipTap's built-in scroll if coordinate calculation fails
       try {
+        // Focus editor and scroll to heading position
         editor
           .chain()
-          .setTextSelection(heading.pos)
+          .focus()
+          .setTextSelection(heading.pos + 1)
           .scrollIntoView()
           .run()
         setActiveId(heading.id)

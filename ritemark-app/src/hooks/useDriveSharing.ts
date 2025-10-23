@@ -20,6 +20,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
+import { openShareDialog } from '../services/drive/sharing'
 
 /**
  * Options for useDriveSharing hook
@@ -43,7 +44,7 @@ export interface UseDriveSharingReturn {
   /**
    * Function to open share dialog
    */
-  handleShare: () => Promise<void>
+  handleShare: () => void
 
   /**
    * Loading state during share operation
@@ -75,7 +76,7 @@ export function useDriveSharing(
   /**
    * Handle share button click
    */
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     // Don't proceed if no file is open
     if (!fileId) {
       return
@@ -86,11 +87,8 @@ export function useDriveSharing(
     setIsSharing(true)
 
     try {
-      // Dynamically import sharing service to avoid circular dependencies
-      const { openShareDialog } = await import('../services/drive/sharing')
-
-      // Open file in Google Drive
-      await openShareDialog({
+      // Call window.open synchronously to preserve user activation
+      openShareDialog({
         fileId,
         onSuccess: () => {
           setIsSharing(false)

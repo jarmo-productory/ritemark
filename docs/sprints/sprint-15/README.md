@@ -34,6 +34,28 @@
 
 ---
 
+## 🔧 Post-PR Fixes (Code Review Feedback)
+
+**Issue 1: Share button popup blocker (High severity)**
+- **Problem**: `await import()` created async gap before `window.open()`, losing user activation context
+- **Impact**: Popup blockers killed the tab in most browsers, making Share button appear broken
+- **Fix**: Changed from dynamic import to static import, keeping `window.open()` synchronous
+- **File**: `src/hooks/useDriveSharing.ts:23,90`
+
+**Issue 2: TOC focus regression (Major severity)**
+- **Problem**: Removed `.focus()` call in previous scroll fix, users couldn't type after clicking TOC
+- **Impact**: Keyboard input stayed in sidebar, requiring manual click back to editor
+- **Fix**: Restored `.focus()` in TipTap chain with safe `pos + 1` cursor positioning
+- **File**: `src/components/sidebar/TableOfContentsNav.tsx:189,199`
+
+**Validation after fixes:**
+- ✅ TypeScript: 0 errors
+- ✅ ESLint: Clean
+- ✅ Share button opens Drive immediately (no popup blocker)
+- ✅ TOC navigation focuses editor (users can type immediately)
+
+---
+
 ## 🎯 Quick Start
 
 **Reading Order for AI Agents:**
