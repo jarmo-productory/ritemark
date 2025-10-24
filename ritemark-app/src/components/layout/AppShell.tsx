@@ -116,7 +116,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
           </div>
 
           {/* Right side: Status Indicator + Share Button */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Sprint 16: Offline Status Indicator */}
             <div className="flex items-center gap-1.5 text-sm" aria-live="polite">
               {isChecking ? (
