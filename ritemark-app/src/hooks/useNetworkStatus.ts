@@ -72,27 +72,30 @@ export interface UseNetworkStatusReturn {
 }
 
 /**
- * Verify connectivity by making actual Drive API request
+ * Verify connectivity by making actual internet request
  * More reliable than navigator.onLine (which only checks LAN connection)
+ * Uses Google's public connectivity check endpoint (doesn't require auth)
  */
 async function verifyDriveConnectivity(): Promise<boolean> {
   try {
-    // Use Drive API health check endpoint
-    // This verifies actual internet connectivity, not just LAN
+    // Use Google's connectivity check endpoint (no auth required)
+    // This is the same endpoint Chrome uses to check connectivity
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
 
     const response = await fetch(
-      'https://www.googleapis.com/drive/v3/about?fields=user',
+      'https://www.google.com/generate_204',
       {
         method: 'HEAD',
         cache: 'no-cache',
         signal: controller.signal,
+        mode: 'no-cors', // Don't need to read response, just verify connection
       }
     )
 
     clearTimeout(timeoutId)
-    return response.ok
+    // In no-cors mode, response.type will be 'opaque' if successful
+    return true
   } catch {
     // Network error or timeout
     return false
