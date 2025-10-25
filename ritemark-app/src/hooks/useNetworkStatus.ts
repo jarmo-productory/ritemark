@@ -38,12 +38,6 @@ export interface UseNetworkStatusOptions {
    * Callback when connection is lost
    */
   onDisconnect?: () => void
-
-  /**
-   * How long to show "checking" state after reconnection (ms)
-   * @default 2000
-   */
-  checkingDuration?: number
 }
 
 /**
@@ -136,10 +130,8 @@ export function useNetworkStatus(
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
 
   // Refs for cleanup and state tracking
-  const checkingTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
   const retryTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
   const previousOnlineStatus = useRef(navigator.onLine)
-  const retryAttempt = useRef(0)
   const isVerifying = useRef(false)
 
   /**
@@ -162,7 +154,6 @@ export function useNetworkStatus(
           setIsOnline(true)
           setIsChecking(false)
           setLastChecked(new Date())
-          retryAttempt.current = 0
 
           // Capture previous offline state BEFORE updating ref
           const wasOfflineBefore = previousOnlineStatus.current === false
@@ -221,16 +212,12 @@ export function useNetworkStatus(
     setIsChecking(true)
     setLastChecked(new Date())
 
-    // Clear any existing timeouts
-    if (checkingTimeout.current) {
-      clearTimeout(checkingTimeout.current)
-    }
+    // Clear any existing retry timeouts
     if (retryTimeout.current) {
       clearTimeout(retryTimeout.current)
     }
 
     // Start verification with exponential backoff
-    retryAttempt.current = 0
     verifyOnlineStatus(0)
   }, [isChecking, verifyOnlineStatus])
 
@@ -244,10 +231,7 @@ export function useNetworkStatus(
       return
     }
 
-    // Clear any checking state
-    if (checkingTimeout.current) {
-      clearTimeout(checkingTimeout.current)
-    }
+    // Clear any retry timeouts
     if (retryTimeout.current) {
       clearTimeout(retryTimeout.current)
     }
@@ -256,7 +240,6 @@ export function useNetworkStatus(
     setIsChecking(false)
     setLastChecked(new Date())
     previousOnlineStatus.current = false
-    retryAttempt.current = 0
 
     // Callbacks
     try {
@@ -296,15 +279,9 @@ export function useNetworkStatus(
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
 
-      if (checkingTimeout.current) {
-        clearTimeout(checkingTimeout.current)
-      }
       if (retryTimeout.current) {
         clearTimeout(retryTimeout.current)
       }
-
-      // Reset checking state on unmount
-      setIsChecking(false)
     }
   }, [handleOnline, handleOffline])
 

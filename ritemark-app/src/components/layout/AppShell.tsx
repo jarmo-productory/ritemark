@@ -118,7 +118,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
           {/* Right side: Status Indicator + Share Button */}
           <div className="flex items-center gap-3">
             {/* Sprint 16: Offline Status Indicator */}
-            <div className="flex items-center gap-1.5 text-sm" aria-live="polite">
+            <div className="flex items-center gap-1.5 text-sm" role="status" aria-live="polite" aria-atomic="true">
               {isChecking ? (
                 <>
                   <Loader2 className="h-4 w-4 text-orange-600 animate-spin" aria-hidden="true" />
@@ -145,11 +145,17 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             {/* Sprint 15: Share Button */}
             <Button
               onClick={handleShare}
-              disabled={!fileId || isSharing}
+              disabled={!fileId || isSharing || !isOnline}
               variant="default"
               size="sm"
               className="gap-2"
-              aria-label={fileId ? "Share document with others" : "No document to share"}
+              aria-label={
+                !fileId
+                  ? "No document to share"
+                  : !isOnline
+                  ? "Cannot share while offline"
+                  : "Share document with others"
+              }
             >
               {isSharing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
