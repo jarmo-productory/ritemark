@@ -83,7 +83,7 @@ async function verifyDriveConnectivity(): Promise<boolean> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
 
-    const response = await fetch(
+    await fetch(
       'https://www.google.com/generate_204',
       {
         method: 'HEAD',
@@ -94,7 +94,7 @@ async function verifyDriveConnectivity(): Promise<boolean> {
     )
 
     clearTimeout(timeoutId)
-    // In no-cors mode, response.type will be 'opaque' if successful
+    // In no-cors mode, if fetch succeeds (doesn't throw), we're online
     return true
   } catch {
     // Network error or timeout
