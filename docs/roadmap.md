@@ -39,6 +39,7 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - **Sprint 13**: Modal consolidation & accessibility ✅ COMPLETED
 - **Sprint 14**: Landing page with SEO optimization ✅ COMPLETED (Oct 22, 2025)
 - **Sprint 15**: Share button & state management fix ✅ COMPLETED (Oct 23, 2025)
+- **Sprint 16**: Offline status indicator ✅ COMPLETED (Oct 25, 2025)
 
 ### 🎯 Sprint 4 Achievements Summary
 ✅ **Major Breakthrough**: True WYSIWYG markdown editing experience achieved
@@ -188,9 +189,35 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 ---
 
-### 🔮 Future Sprints (Sprint 16+)
+#### **Sprint 16**: Offline Status Indicator ✅ COMPLETED
+**Goal**: Real-time network connectivity feedback for users
+**Timeline**: 1 day (October 24-25, 2025)
 
-- **Sprint 16**: Offline Indicator (1 day)
+**Key Achievements**:
+- ✅ **Network status detection** - Real-time online/offline detection with Google connectivity check
+- ✅ **Visual indicator** - Color-coded status in header (green/red/orange/blue)
+- ✅ **Accessibility** - `role="status"` and `aria-live="polite"` for screen readers
+- ✅ **UX polish** - Share button disabled when offline with helpful tooltip
+- ✅ **Production-ready** - Zero TypeScript errors, successful build
+
+**Technical Implementation**:
+- `useNetworkStatus` hook with exponential backoff retry (1s → 2s → 4s → 8s → 16s)
+- Idempotent state management (Sprint 15 lesson applied)
+- Mobile-responsive design with `hidden sm:inline` text
+- Toast notifications for state transitions
+
+**Codex Review**:
+- Addressed legitimate dead code issues (removed unused refs/options)
+- Rejected false alarm (NodeJS.Timeout works perfectly)
+- Added UX improvements (offline Share button disable + accessibility)
+
+**Merge**: October 25, 2025 (commit: 346001e)
+**See**: `/docs/sprints/sprint-16/` for complete documentation
+
+---
+
+### 🔮 Future Sprints (Sprint 17+)
+
 - **Sprint 17**: Version History Link (1 day)
 - **Sprint 18+**: Real-Time Collaboration (Y.js CRDT)
 - **Sprint 19+**: Collaboration UI & Presence
@@ -216,8 +243,8 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 15 COMPLETED - Ready for Sprint 16 (Offline Indicator)
-**Last Updated**: October 23, 2025 - Sprints 14 & 15 completed and merged to main
+**Current Sprint**: Sprint 16 COMPLETED - Ready for Sprint 17 (Version History Link)
+**Last Updated**: October 25, 2025 - Sprint 16 completed and merged to main
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
