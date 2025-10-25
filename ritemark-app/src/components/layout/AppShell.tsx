@@ -1,3 +1,4 @@
+import * as React from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -16,7 +17,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { EditableTitle } from "@/components/EditableTitle"
 import { useDriveSharing } from "@/hooks/useDriveSharing"
-import { Share2, Loader2 } from "lucide-react"
+import { useNetworkStatus } from "@/hooks/useNetworkStatus"
+import { Share2, Loader2, Cloud, CloudOff } from "lucide-react"
 import { toast } from "sonner"
 import type { DriveSyncStatus } from "@/types/drive"
 import type { Editor as TipTapEditor } from '@tiptap/react'
@@ -34,6 +36,24 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument }: AppShellProps) {
+  // Sprint 16: Network Status hook
+  const { isOnline, isChecking } = useNetworkStatus()
+  const [prevIsOnline, setPrevIsOnline] = React.useState(isOnline)
+
+  // Sprint 16: Toast notifications on network status change
+  React.useEffect(() => {
+    if (!isOnline && prevIsOnline) {
+      toast.warning("Working offline", {
+        description: "Changes will sync when you're back online"
+      })
+    } else if (isOnline && !prevIsOnline) {
+      toast.success("Back online", {
+        description: "Syncing changes..."
+      })
+    }
+    setPrevIsOnline(isOnline)
+  }, [isOnline, prevIsOnline])
+
   // Sprint 15: Share Button hook
   const { handleShare, isSharing } = useDriveSharing(fileId, {
     onSuccess: () => {
@@ -95,18 +115,47 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             </Breadcrumb>
           </div>
 
-          {/* Right side: Share Button (Sprint 15) */}
-          <div className="flex items-center gap-2">
-            {/* Placeholder for offline status (Sprint 16) */}
+          {/* Right side: Status Indicator + Share Button */}
+          <div className="flex items-center gap-3">
+            {/* Sprint 16: Offline Status Indicator */}
+            <div className="flex items-center gap-1.5 text-sm" role="status" aria-live="polite" aria-atomic="true">
+              {isChecking ? (
+                <>
+                  <Loader2 className="h-4 w-4 text-orange-600 animate-spin" aria-hidden="true" />
+                  <span className="hidden sm:inline text-orange-600">Reconnecting...</span>
+                </>
+              ) : !isOnline ? (
+                <>
+                  <CloudOff className="h-4 w-4 text-red-600" aria-hidden="true" />
+                  <span className="hidden sm:inline text-red-600">Offline</span>
+                </>
+              ) : syncStatus.status === 'saving' ? (
+                <>
+                  <Cloud className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                  <span className="hidden sm:inline text-blue-600">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="h-4 w-4 text-green-600" aria-hidden="true" />
+                  <span className="hidden sm:inline text-green-600">Saved</span>
+                </>
+              )}
+            </div>
 
             {/* Sprint 15: Share Button */}
             <Button
               onClick={handleShare}
-              disabled={!fileId || isSharing}
+              disabled={!fileId || isSharing || !isOnline}
               variant="default"
               size="sm"
               className="gap-2"
-              aria-label={fileId ? "Share document with others" : "No document to share"}
+              aria-label={
+                !fileId
+                  ? "No document to share"
+                  : !isOnline
+                  ? "Cannot share while offline"
+                  : "Share document with others"
+              }
             >
               {isSharing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
