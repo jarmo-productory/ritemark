@@ -11,14 +11,15 @@
   from = "/"
   to = "/landing.html"
   status = 200
+  force = true
 
 [[redirects]]
-  from = "/app/*"
+  from = "/app"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/*"
+  from = "/app/*"
   to = "/index.html"
   status = 200
 
