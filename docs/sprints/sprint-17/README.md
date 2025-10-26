@@ -1,9 +1,46 @@
-# Sprint 17: Version History Viewer
+# Sprint 17: Version History Feature
 
-**Theme**: In-App Version History with Drive API Integration
-**Timeline**: 2-3 days
-**PR Name**: `feat/sprint-17-version-history`
-**Status**: 🔄 IN PROGRESS - Revised Plan
+**Theme**: Complete Google Drive Revision History with Restore Capability
+**Timeline**: 2 days (October 25-26, 2025)
+**PR**: #9 - feat/sprint-17-version-history
+**Status**: ✅ COMPLETED & MERGED TO MAIN (October 26, 2025)
+
+---
+
+## 🎉 Sprint Completion Summary
+
+**What Was Delivered:**
+
+✅ **Core Features:**
+- Version History Modal displaying Google Drive revision history
+- Restore Previous Versions with confirmation dialog
+- Revision metadata display (modified time, file size)
+- Progress toasts for user feedback
+- Keyboard shortcut (⌘⇧H)
+
+✅ **Critical Bug Fixes:**
+- Fixed restore button callback chain (DocumentMenu → VersionHistoryModal)
+- Fixed context loss after restore (replaced `window.location.reload()`)
+- Fixed version sort order (newest first)
+- Fixed table HTML export (GFM markdown format)
+
+✅ **Auth Flow Improvements:**
+- Token expiration detection (5-minute periodic checks)
+- Unified AuthModal for all auth scenarios
+- Removed native browser confirm popups
+- Imperative auth dialog triggering from API errors
+
+**Technical Stats:**
+- 22 files changed: 2,787 additions, 366 deletions
+- 2 commits (main feature + auth unification)
+- Zero TypeScript errors
+- All quality gates passed
+
+**Merge Details:**
+- Branch: `feat/sprint-17-version-history`
+- PR: #9
+- Merged to main: October 26, 2025 (commit: 8772a2e)
+- Co-authored-by: Codex (auth unification improvements)
 
 ---
 

@@ -40,6 +40,7 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - **Sprint 14**: Landing page with SEO optimization ✅ COMPLETED (Oct 22, 2025)
 - **Sprint 15**: Share button & state management fix ✅ COMPLETED (Oct 23, 2025)
 - **Sprint 16**: Offline status indicator ✅ COMPLETED (Oct 25, 2025)
+- **Sprint 17**: Version history & restore functionality ✅ COMPLETED (Oct 26, 2025)
 
 ### 🎯 Sprint 4 Achievements Summary
 ✅ **Major Breakthrough**: True WYSIWYG markdown editing experience achieved
@@ -216,19 +217,39 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 ---
 
-#### **Sprint 17**: Version History Link ✅ COMPLETED
-**Goal**: Add version history access from DocumentMenu kebab
-**Timeline**: 1 day (October 25, 2025)
+#### **Sprint 17**: Version History Feature ✅ COMPLETED
+**Goal**: Complete Google Drive revision history with restore capability
+**Timeline**: 2 days (October 25-26, 2025)
 
-**Key Achievements**:
-- ✅ **DocumentMenu component** - Kebab menu (⋮) for document-level actions
-- ✅ **Version History modal** - Access Google Drive revision history
+**Core Features**:
+- ✅ **Version History Modal** - Display Google Drive revision history with metadata
+- ✅ **Restore Previous Versions** - Restore any revision with confirmation dialog
+- ✅ **Revision Preview** - View file metadata (modified time, file size)
 - ✅ **Keyboard shortcut** - ⌘⇧H to open version history
-- ✅ **Mobile-responsive** - Works across all devices
-- ✅ **Foundation for Sprint 18** - Menu ready for additional export features
+- ✅ **Progress Feedback** - Toast notifications for user feedback
 
-**Merge**: October 25, 2025
-**See**: `/ritemark-app/src/components/layout/DocumentMenu.tsx`
+**Bug Fixes**:
+- ✅ **Restore button callback chain** - Fixed DocumentMenu → VersionHistoryModal prop passing
+- ✅ **Context preservation** - Replaced `window.location.reload()` with proper state update
+- ✅ **Version sort order** - Newest versions appear first (descending by modifiedTime)
+- ✅ **Table HTML export** - Fixed TipTap table conversion to GFM markdown format
+
+**Auth Flow Improvements**:
+- ✅ **Token expiration detection** - 5-minute periodic validation checks
+- ✅ **Unified AuthModal** - Single auth dialog for all scenarios (no more native popups)
+- ✅ **Imperative auth triggering** - API errors can trigger re-authentication
+- ✅ **Removed AuthErrorDialog** - Consolidated to single auth component
+
+**Technical Implementation**:
+- Google Drive Revisions API v3 integration
+- React callback propagation (App → AppShell → DocumentMenu → VersionHistoryModal)
+- DOM preprocessing for table HTML before Turndown conversion
+- TypeScript 100% compliant with zero errors
+- 22 files changed: 2,787 additions, 366 deletions
+
+**Merge**: October 26, 2025 (commit: 8772a2e)
+**PR**: #9 - Sprint 17: Version History Feature
+**See**: `/docs/sprints/sprint-17/` for complete documentation
 
 ---
 
@@ -286,7 +307,8 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
 **Current Sprint**: Sprint 18 🎯 READY TO START - Export Features (Copy to Clipboard & Word Export)
-**Last Updated**: October 26, 2025 - Sprint 18 documentation complete, ready for implementation
+**Last Completed**: Sprint 17 ✅ Version History Feature (October 26, 2025)
+**Last Updated**: October 26, 2025 - Sprint 17 merged to main, Sprint 18 ready to start
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
