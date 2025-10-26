@@ -50,6 +50,11 @@ export interface UseTokenValidatorReturn {
    * Reset the auth dialog flag (after user dismisses or authenticates)
    */
   dismissAuthDialog: () => void
+
+  /**
+   * Imperatively show the auth dialog (e.g., on 401 from API)
+   */
+  triggerAuthDialog: () => void
 }
 
 /**
@@ -92,6 +97,13 @@ export function useTokenValidator(): UseTokenValidatorReturn {
   }, [])
 
   /**
+   * Imperatively open the auth dialog
+   */
+  const triggerAuthDialog = useCallback(() => {
+    setShouldShowAuthDialog(true)
+  }, [])
+
+  /**
    * Set up periodic token validation
    */
   useEffect(() => {
@@ -123,5 +135,6 @@ export function useTokenValidator(): UseTokenValidatorReturn {
     shouldShowAuthDialog,
     validateToken,
     dismissAuthDialog,
+    triggerAuthDialog,
   }
 }
