@@ -34,9 +34,10 @@ interface AppShellProps {
   onNewDocument?: () => void
   onOpenFromDrive?: () => void
   onRenameDocument?: (newTitle: string) => void
+  onReloadFile?: () => Promise<void>
 }
 
-export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument }: AppShellProps) {
+export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument, onReloadFile }: AppShellProps) {
   // Sprint 16: Network Status hook
   const { isOnline, isChecking } = useNetworkStatus()
   const [prevIsOnline, setPrevIsOnline] = React.useState(isOnline)
@@ -167,7 +168,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             </Button>
 
             {/* Sprint 17: Document Menu (Kebab menu) */}
-            <DocumentMenu fileId={fileId} disabled={!isOnline} />
+            <DocumentMenu fileId={fileId} disabled={!isOnline} onReloadFile={onReloadFile} />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

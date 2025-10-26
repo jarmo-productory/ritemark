@@ -3,7 +3,9 @@ import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { AuthErrorDialog } from './components/AuthErrorDialog'
+import { AuthModal } from './components/auth/AuthModal'
 import { useDriveSync } from './hooks/useDriveSync'
+import { useTokenValidator } from './hooks/useTokenValidator'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
 import { AuthContext } from './contexts/AuthContext'
 import { tokenManager } from './services/auth/tokenManager'
@@ -30,6 +32,9 @@ function App() {
 
   // Track if user wants to create a new document
   const [isNewDocument, setIsNewDocument] = useState(false)
+
+  // Sprint 18: Token expiration validator (Quick Fix)
+  const { shouldShowAuthDialog, dismissAuthDialog } = useTokenValidator()
 
   // Track if WelcomeScreen should be shown (separate from isNewDocument)
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
@@ -141,6 +146,27 @@ function App() {
     // For now, just close the dialog - user can click sign in in sidebar
   }
 
+  const handleReloadFile = async () => {
+    if (!fileId) {
+      console.warn('[App] Cannot reload file: no fileId')
+      return
+    }
+
+    try {
+      // Reload file content from Drive
+      const { metadata, content: fileContent } = await loadFile(fileId)
+
+      // Update app state with reloaded content
+      setTitle(metadata.name)
+      setContent(fileContent)
+
+      console.log('[App] File reloaded successfully')
+    } catch (error) {
+      console.error('[App] Failed to reload file:', error)
+      alert(`Failed to reload file: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   return (
     <>
       <AppShell
@@ -152,6 +178,7 @@ function App() {
         onNewDocument={handleNewDocument}
         onOpenFromDrive={handleOpenFromDrive}
         onRenameDocument={handleRenameDocument}
+        onReloadFile={handleReloadFile}
       >
         {fileId || isNewDocument ? (
           <Editor
@@ -186,6 +213,12 @@ function App() {
         isOpen={showAuthError}
         onRetry={handleAuthErrorRetry}
         onSignIn={handleAuthErrorSignIn}
+      />
+
+      {/* Sprint 18: Token Expiration Handler - Show sign-in dialog when token expires */}
+      <AuthModal
+        isOpen={shouldShowAuthDialog}
+        onClose={dismissAuthDialog}
       />
     </>
   )
