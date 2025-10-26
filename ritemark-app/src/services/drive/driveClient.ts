@@ -230,22 +230,11 @@ export class DriveClient {
       },
     });
 
-    // Handle 401 - Token expired, prompt for re-authentication
+    // Handle 401 - Token expired (defer UI to central auth modal)
     if (response.status === 401) {
-      const userWantsReAuth = confirm(
-        'Your session expired. Click OK to sign in again and continue saving your work.'
-      );
-
-      if (userWantsReAuth) {
-        const returnUrl = encodeURIComponent(
-          window.location.pathname + window.location.search
-        );
-        window.location.href = `/?reauth=true&return=${returnUrl}`;
-      }
-
       throw this.createError(
         DRIVE_ERRORS.TOKEN_EXPIRED,
-        'Access token expired. User declined re-authentication.',
+        'Access token expired. Please sign in again.',
         401,
         false
       );

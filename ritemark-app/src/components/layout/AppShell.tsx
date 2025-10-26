@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { EditableTitle } from "@/components/EditableTitle"
+import { DocumentMenu } from "@/components/layout/DocumentMenu"
 import { useDriveSharing } from "@/hooks/useDriveSharing"
 import { useNetworkStatus } from "@/hooks/useNetworkStatus"
 import { Share2, Loader2, Cloud, CloudOff } from "lucide-react"
@@ -33,9 +34,10 @@ interface AppShellProps {
   onNewDocument?: () => void
   onOpenFromDrive?: () => void
   onRenameDocument?: (newTitle: string) => void
+  onReloadFile?: () => Promise<void>
 }
 
-export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument }: AppShellProps) {
+export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument, onReloadFile }: AppShellProps) {
   // Sprint 16: Network Status hook
   const { isOnline, isChecking } = useNetworkStatus()
   const [prevIsOnline, setPrevIsOnline] = React.useState(isOnline)
@@ -165,7 +167,8 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
               <span className="hidden sm:inline">Share</span>
             </Button>
 
-            {/* Placeholder for kebab menu (Sprint 17) */}
+            {/* Sprint 17: Document Menu (Kebab menu) */}
+            <DocumentMenu fileId={fileId} disabled={!isOnline} onReloadFile={onReloadFile} />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

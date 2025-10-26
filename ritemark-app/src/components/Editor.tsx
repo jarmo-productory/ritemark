@@ -29,15 +29,38 @@ const turndownService = new TurndownService({
 // Enable GFM tables plugin for turndown
 turndownService.use(tables)
 
-// Add rule to remove <colgroup> elements that TipTap adds to tables
-// Turndown's table plugin doesn't handle colgroup properly, causing tables to be skipped
-turndownService.addRule('stripColgroup', {
-  filter: 'colgroup',
-  replacement: function () {
-    // Remove colgroup entirely - it's just styling metadata
-    return ''
-  }
-})
+/**
+ * Preprocess HTML to make TipTap tables compatible with turndown-plugin-gfm
+ *
+ * TipTap generates tables with:
+ * 1. <colgroup> elements that break GFM table parser
+ * 2. <p> tags inside cells that add unwanted line breaks
+ *
+ * This function cleans the HTML in the DOM before Turndown processes it
+ */
+function preprocessTableHTML(html: string): string {
+  // Create a temporary DOM element to parse and manipulate HTML
+  const temp = document.createElement('div')
+  temp.innerHTML = html
+
+  // Remove all <colgroup> elements from tables
+  temp.querySelectorAll('colgroup').forEach(colgroup => colgroup.remove())
+
+  // Unwrap <p> tags inside table cells (keep content, remove wrapper)
+  temp.querySelectorAll('td > p, th > p').forEach(p => {
+    const parent = p.parentElement
+    if (parent) {
+      // Move all child nodes of <p> to parent
+      while (p.firstChild) {
+        parent.insertBefore(p.firstChild, p)
+      }
+      // Remove the now-empty <p> tag
+      p.remove()
+    }
+  })
+
+  return temp.innerHTML
+}
 
 // Override the tableCell rule to escape pipe characters in cell content
 // The turndown-plugin-gfm doesn't escape pipes by default, which breaks table structure
@@ -166,8 +189,10 @@ export function Editor({
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
+      // Preprocess HTML to fix TipTap table formatting for GFM conversion
+      const cleanedHTML = preprocessTableHTML(html)
       // Convert HTML back to markdown for storage
-      const markdown = turndownService.turndown(html)
+      const markdown = turndownService.turndown(cleanedHTML)
 
       // Only call onChange if content actually changed
       // This prevents unnecessary re-renders that close bubble menus

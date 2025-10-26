@@ -216,12 +216,54 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 ---
 
-### 🔮 Future Sprints (Sprint 17+)
+#### **Sprint 17**: Version History Link ✅ COMPLETED
+**Goal**: Add version history access from DocumentMenu kebab
+**Timeline**: 1 day (October 25, 2025)
 
-- **Sprint 17**: Version History Link (1 day)
-- **Sprint 18+**: Real-Time Collaboration (Y.js CRDT)
-- **Sprint 19+**: Collaboration UI & Presence
-- **Sprint 20+**: Comments & Suggestions
+**Key Achievements**:
+- ✅ **DocumentMenu component** - Kebab menu (⋮) for document-level actions
+- ✅ **Version History modal** - Access Google Drive revision history
+- ✅ **Keyboard shortcut** - ⌘⇧H to open version history
+- ✅ **Mobile-responsive** - Works across all devices
+- ✅ **Foundation for Sprint 18** - Menu ready for additional export features
+
+**Merge**: October 25, 2025
+**See**: `/ritemark-app/src/components/layout/DocumentMenu.tsx`
+
+---
+
+#### **Sprint 18**: Export Features 🎯 READY TO START
+**Goal**: Copy to Clipboard & Word Export from DocumentMenu
+**Timeline**: 1 day (October 26, 2025)
+**Status**: 📋 Documentation Complete - Ready for Implementation
+
+**Features**:
+1. ✅ **Copy to Clipboard** - Dual-format (HTML + markdown) for universal paste
+2. ✅ **Export as Word** - Download .docx with lazy-loaded library
+
+**Key Architecture**:
+- **Integration Point**: Existing DocumentMenu kebab (Sprint 17)
+- **Clipboard API**: W3C dual-format (text/html + text/plain)
+- **Word Export**: @mohtasham/md-to-docx with lazy loading (~500 KB)
+- **Bundle Impact**: 0 KB initial load, 500 KB only on first Word export
+- **UX**: Keyboard shortcut ⌘⇧C for copy, loading states for Word export
+
+**Documentation Complete**:
+- ✅ `/docs/sprints/sprint-18/README.md` - Sprint overview and navigation
+- ✅ `/docs/sprints/sprint-18/implementation-plan.md` - Step-by-step tasks with code snippets
+- ✅ `/docs/sprints/sprint-18/technical-architecture.md` - Component diagrams and data flows
+- ✅ `/docs/sprints/sprint-18/lazy-loading-strategy.md` - Bundle optimization details
+
+**Target Completion**: October 26, 2025 (same day)
+**Estimated Time**: 4-6 hours (Copy 2h, Word 3h, Testing 1h)
+
+---
+
+### 🔮 Future Sprints (Sprint 19+)
+
+- **Sprint 19+**: Real-Time Collaboration (Y.js CRDT)
+- **Sprint 20+**: Collaboration UI & Presence
+- **Sprint 21+**: Comments & Suggestions
 
 **Note**: Mobile responsive design already implemented in Sprint 4
 
@@ -243,8 +285,8 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 16 COMPLETED - Ready for Sprint 17 (Version History Link)
-**Last Updated**: October 25, 2025 - Sprint 16 completed and merged to main
+**Current Sprint**: Sprint 18 🎯 READY TO START - Export Features (Copy to Clipboard & Word Export)
+**Last Updated**: October 26, 2025 - Sprint 18 documentation complete, ready for implementation
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 

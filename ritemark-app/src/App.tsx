@@ -2,8 +2,10 @@ import { useState, useContext, useEffect } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
-import { AuthErrorDialog } from './components/AuthErrorDialog'
+// Removed custom AuthErrorDialog in favor of unified AuthModal
+import { AuthModal } from './components/auth/AuthModal'
 import { useDriveSync } from './hooks/useDriveSync'
+import { useTokenValidator } from './hooks/useTokenValidator'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
 import { AuthContext } from './contexts/AuthContext'
 import { tokenManager } from './services/auth/tokenManager'
@@ -25,11 +27,13 @@ function App() {
   // Drive file picker modal state
   const [showFilePicker, setShowFilePicker] = useState(false)
 
-  // Authentication error dialog state
-  const [showAuthError, setShowAuthError] = useState(false)
+  // Authentication error dialog removed; use AuthModal via useTokenValidator
 
   // Track if user wants to create a new document
   const [isNewDocument, setIsNewDocument] = useState(false)
+
+  // Sprint 18: Token expiration validator (Quick Fix)
+  const { shouldShowAuthDialog, dismissAuthDialog, triggerAuthDialog } = useTokenValidator()
 
   // Track if WelcomeScreen should be shown (separate from isNewDocument)
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
@@ -50,7 +54,8 @@ function App() {
   // Drive sync hook
   const { syncStatus, loadFile, forceSave } = useDriveSync(fileId, title, content, {
     onFileCreated: (newFileId) => setFileId(newFileId),
-    onAuthError: () => setShowAuthError(true),
+    // On auth errors (e.g., 401), open the unified AuthModal
+    onAuthError: () => triggerAuthDialog(),
   })
 
   const handleNewDocument = () => {
@@ -102,7 +107,8 @@ function App() {
     const accessToken = await tokenManager.getAccessToken()
 
     if (!accessToken) {
-      // Don't show file picker if no valid token
+      // No valid token; open auth modal instead of showing picker
+      triggerAuthDialog()
       return
     }
 
@@ -129,16 +135,27 @@ function App() {
     }
   }
 
-  const handleAuthErrorRetry = () => {
-    setShowAuthError(false)
-    // Retry the last save operation
-    forceSave()
-  }
+  // AuthErrorDialog removed; retries handled by user after re-authentication
 
-  const handleAuthErrorSignIn = () => {
-    setShowAuthError(false)
-    // Trigger sign-in flow (this will be handled by the sidebar)
-    // For now, just close the dialog - user can click sign in in sidebar
+  const handleReloadFile = async () => {
+    if (!fileId) {
+      console.warn('[App] Cannot reload file: no fileId')
+      return
+    }
+
+    try {
+      // Reload file content from Drive
+      const { metadata, content: fileContent } = await loadFile(fileId)
+
+      // Update app state with reloaded content
+      setTitle(metadata.name)
+      setContent(fileContent)
+
+      console.log('[App] File reloaded successfully')
+    } catch (error) {
+      console.error('[App] Failed to reload file:', error)
+      alert(`Failed to reload file: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   return (
@@ -152,6 +169,7 @@ function App() {
         onNewDocument={handleNewDocument}
         onOpenFromDrive={handleOpenFromDrive}
         onRenameDocument={handleRenameDocument}
+        onReloadFile={handleReloadFile}
       >
         {fileId || isNewDocument ? (
           <Editor
@@ -182,10 +200,10 @@ function App() {
         />
       )}
 
-      <AuthErrorDialog
-        isOpen={showAuthError}
-        onRetry={handleAuthErrorRetry}
-        onSignIn={handleAuthErrorSignIn}
+      {/* Token Expiration Handler - Show sign-in dialog when token expires or 401 occurs */}
+      <AuthModal
+        isOpen={shouldShowAuthDialog}
+        onClose={dismissAuthDialog}
       />
     </>
   )
