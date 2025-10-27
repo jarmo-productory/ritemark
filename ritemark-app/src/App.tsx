@@ -2,8 +2,6 @@ import { useState, useContext, useEffect } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
-// Removed custom AuthErrorDialog in favor of unified AuthModal
-import { AuthModal } from './components/auth/AuthModal'
 import { useDriveSync } from './hooks/useDriveSync'
 import { useTokenValidator } from './hooks/useTokenValidator'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
@@ -50,6 +48,20 @@ function App() {
       setShowFilePicker(false) // Close any open pickers
     }
   }, [isAuthenticated])
+
+  // When token expires, show WelcomeScreen instead of AuthModal
+  useEffect(() => {
+    if (shouldShowAuthDialog) {
+      // Token expired - navigate to WelcomeScreen
+      setFileId(null)
+      setTitle('Untitled Document')
+      setContent('')
+      setIsNewDocument(false)
+      setShowWelcomeScreen(true)
+      setShowFilePicker(false)
+      dismissAuthDialog() // Reset the flag
+    }
+  }, [shouldShowAuthDialog, dismissAuthDialog])
 
   // Drive sync hook
   const { syncStatus, loadFile } = useDriveSync(fileId, title, content, {
@@ -201,12 +213,6 @@ function App() {
           }}
         />
       )}
-
-      {/* Token Expiration Handler - Show sign-in dialog when token expires or 401 occurs */}
-      <AuthModal
-        isOpen={shouldShowAuthDialog}
-        onClose={dismissAuthDialog}
-      />
     </>
   )
 }
