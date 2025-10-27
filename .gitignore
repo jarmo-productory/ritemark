@@ -3,6 +3,11 @@
 # Local Netlify folder
 .netlify
 
+# AI Assistant Configuration Files (never commit)
+CLAUDE.md
+AGENTS.md
+.cursor/
+
 # Claude Flow and AI assistant generated files
 .claude/
 .claude-flow/
@@ -22,3 +27,8 @@ claude-flow
 hive-mind-prompt-*.txt
 claude-flow.bat
 claude-flow.ps1
+
+# Internal documentation (not for public consumption)
+# Only docs/user-guide/ should be public
+docs/*
+!docs/user-guide/
