@@ -200,8 +200,6 @@ export function Editor({
         lastOnChangeValue.current = markdown
         onChange(markdown)
       }
-
-      onEditorReady?.(editor) // Ensure editor is always available
     },
     editorProps: {
       attributes: {
@@ -374,7 +372,7 @@ export function Editor({
     if (editor) {
       onEditorReady?.(editor)
     }
-  }, [editor, onEditorReady])
+  }, [editor]) // Don't include onEditorReady to avoid re-calling when callback changes
 
   // Update editor content when value prop changes (e.g., when loading a file)
   // Skip updates during active editing to prevent bubble menus from closing

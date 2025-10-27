@@ -1,9 +1,7 @@
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect, useCallback } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
-// Removed custom AuthErrorDialog in favor of unified AuthModal
-import { AuthModal } from './components/auth/AuthModal'
 import { useDriveSync } from './hooks/useDriveSync'
 import { useTokenValidator } from './hooks/useTokenValidator'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
@@ -23,6 +21,11 @@ function App() {
   const [title, setTitle] = useState('Untitled Document')
   const [content, setContent] = useState('')
   const [editor, setEditor] = useState<TipTapEditor | null>(null)
+
+  // Stable callback for onEditorReady
+  const handleEditorReady = useCallback((editorInstance: TipTapEditor) => {
+    setEditor(editorInstance)
+  }, [])
 
   // Drive file picker modal state
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -51,8 +54,22 @@ function App() {
     }
   }, [isAuthenticated])
 
+  // When token expires, show WelcomeScreen instead of AuthModal
+  useEffect(() => {
+    if (shouldShowAuthDialog) {
+      // Token expired - navigate to WelcomeScreen
+      setFileId(null)
+      setTitle('Untitled Document')
+      setContent('')
+      setIsNewDocument(false)
+      setShowWelcomeScreen(true)
+      setShowFilePicker(false)
+      dismissAuthDialog() // Reset the flag
+    }
+  }, [shouldShowAuthDialog, dismissAuthDialog])
+
   // Drive sync hook
-  const { syncStatus, loadFile, forceSave } = useDriveSync(fileId, title, content, {
+  const { syncStatus, loadFile } = useDriveSync(fileId, title, content, {
     onFileCreated: (newFileId) => setFileId(newFileId),
     // On auth errors (e.g., 401), open the unified AuthModal
     onAuthError: () => triggerAuthDialog(),
@@ -166,6 +183,8 @@ function App() {
         syncStatus={syncStatus}
         editor={editor}
         hasDocument={!!fileId || isNewDocument}
+        content={content}
+        authorName={authContext?.user?.name}
         onNewDocument={handleNewDocument}
         onOpenFromDrive={handleOpenFromDrive}
         onRenameDocument={handleRenameDocument}
@@ -175,7 +194,7 @@ function App() {
           <Editor
             value={content}
             onChange={setContent}
-            onEditorReady={setEditor}
+            onEditorReady={handleEditorReady}
           />
         ) : showWelcomeScreen ? (
           <WelcomeScreen
@@ -199,12 +218,6 @@ function App() {
           }}
         />
       )}
-
-      {/* Token Expiration Handler - Show sign-in dialog when token expires or 401 occurs */}
-      <AuthModal
-        isOpen={shouldShowAuthDialog}
-        onClose={dismissAuthDialog}
-      />
     </>
   )
 }
