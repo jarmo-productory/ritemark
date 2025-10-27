@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect, useCallback } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
@@ -21,6 +21,11 @@ function App() {
   const [title, setTitle] = useState('Untitled Document')
   const [content, setContent] = useState('')
   const [editor, setEditor] = useState<TipTapEditor | null>(null)
+
+  // Stable callback for onEditorReady
+  const handleEditorReady = useCallback((editorInstance: TipTapEditor) => {
+    setEditor(editorInstance)
+  }, [])
 
   // Drive file picker modal state
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -189,7 +194,7 @@ function App() {
           <Editor
             value={content}
             onChange={setContent}
-            onEditorReady={setEditor}
+            onEditorReady={handleEditorReady}
           />
         ) : showWelcomeScreen ? (
           <WelcomeScreen

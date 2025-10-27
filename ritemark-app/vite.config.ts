@@ -5,6 +5,16 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  define: {
+    __PLATFORM__: JSON.stringify(mode === 'gas' ? 'gas' : 'web')
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -24,8 +34,5 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'bundle.[ext]'
       }
     } : {}
-  },
-  define: {
-    __PLATFORM__: JSON.stringify(mode === 'gas' ? 'gas' : 'web')
   }
 }))

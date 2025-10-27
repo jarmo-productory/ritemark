@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { restoreRevision } from "@/services/drive/revisions"
 import { copyFormattedContent } from "@/utils/clipboard"
 import { exportToWord } from "@/services/export/wordExport"
+import { downloadMarkdown } from "@/utils/download"
 import type { Editor as TipTapEditor } from '@tiptap/react'
 
 interface DocumentMenuProps {
@@ -104,7 +105,15 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
       // Show loading toast
       const loadingToast = toast.loading('Preparing Word document...')
 
-      const result = await exportToWord(content, {
+      // Get JSON content from TipTap editor
+      if (!editor) {
+        toast.dismiss(loadingToast)
+        toast.error('Editor not ready')
+        return
+      }
+
+      const jsonContent = editor.getJSON()
+      const result = await exportToWord(jsonContent, {
         documentTitle: documentTitle,
         author: authorName,
         createdAt: new Date().toISOString()
@@ -127,7 +136,25 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
         description: error instanceof Error ? error.message : 'Unknown error'
       })
     }
-  }, [content, documentTitle, authorName])
+  }, [editor, content, documentTitle, authorName])
+
+  const handleDownloadMarkdown = React.useCallback(() => {
+    if (!content) {
+      toast.error('No content to download')
+      return
+    }
+
+    try {
+      downloadMarkdown(content, documentTitle)
+      toast.success('Markdown downloaded!', {
+        description: `${documentTitle}.md`
+      })
+    } catch (error) {
+      toast.error('Download failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }, [content, documentTitle])
 
   // Handle restore operation
   const handleRestore = React.useCallback(async (revisionId: string) => {
@@ -240,10 +267,18 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
 
           <DropdownMenuItem
             onClick={handleExportWord}
-            disabled={!content}
+            disabled={!content || !editor}
           >
             <FileDown className="mr-2 h-4 w-4" />
             Export as Word
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={handleDownloadMarkdown}
+            disabled={!content}
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            Download as Markdown
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
