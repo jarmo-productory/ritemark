@@ -1914,11 +1914,86 @@ index 0000000..ca73d41
 +        rightToLeft: style?.direction === "RTL",
 +    });
 +}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js b/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js
+index 34f184e..a12a78d 100644
+--- a/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js
+@@ -35,6 +35,7 @@ export function processBlockquote(text, style) {
+                 color: "000000",
+                 size: style.blockquoteSize || 24, // Use custom blockquote size if provided
+                 rightToLeft: style.direction === "RTL",
++                font: "Calibri",
+             }),
+         ],
+         indent: {
 diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js.bak b/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js.bak
 new file mode 100644
 index 0000000..34f184e
 --- /dev/null
 +++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js.bak
+@@ -0,0 +1,57 @@
++import { Paragraph, TextRun, AlignmentType, BorderStyle } from "docx";
++/**
++ * Processes a blockquote and returns appropriate paragraph formatting
++ * @param text - The blockquote text
++ * @param style - The style configuration
++ * @returns The processed paragraph
++ */
++export function processBlockquote(text, style) {
++    // Determine alignment for blockquote - only if explicitly set
++    let alignment = undefined;
++    if (style.blockquoteAlignment) {
++        switch (style.blockquoteAlignment) {
++            case "LEFT":
++                alignment = AlignmentType.LEFT;
++                break;
++            case "CENTER":
++                alignment = AlignmentType.CENTER;
++                break;
++            case "RIGHT":
++                alignment = AlignmentType.RIGHT;
++                break;
++            case "JUSTIFIED":
++                alignment = AlignmentType.JUSTIFIED;
++                break;
++            default:
++                // Don't set alignment if not explicitly defined
++                alignment = undefined;
++        }
++    }
++    return new Paragraph({
++        children: [
++            new TextRun({
++                text: text,
++                italics: true,
++                color: "000000",
++                size: style.blockquoteSize || 24, // Use custom blockquote size if provided
++                rightToLeft: style.direction === "RTL",
++            }),
++        ],
++        indent: {
++            left: 720, // 0.5 inch indent
++        },
++        spacing: {
++            before: style.paragraphSpacing,
++            after: style.paragraphSpacing,
++        },
++        border: {
++            left: {
++                style: BorderStyle.SINGLE,
++                size: 3,
++                color: "AAAAAA",
++            },
++        },
++        alignment: alignment,
++        bidirectional: style.direction === "RTL",
++    });
++}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js.bak2 b/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js.bak2
+new file mode 100644
+index 0000000..34f184e
+--- /dev/null
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/blockquoteRenderer.js.bak2
 @@ -0,0 +1,57 @@
 +import { Paragraph, TextRun, AlignmentType, BorderStyle } from "docx";
 +/**
@@ -2062,11 +2137,51 @@ index 0000000..f10c62b
 +        },
 +    });
 +}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js b/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js
+index a0d3276..2584bfc 100644
+--- a/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js
+@@ -12,6 +12,7 @@ export function processComment(text, style) {
+                 text: "Comment: " + text,
+                 italics: true,
+                 color: "666666",
++                font: "Calibri",
+             }),
+         ],
+         spacing: {
 diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js.bak b/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js.bak
 new file mode 100644
 index 0000000..a0d3276
 --- /dev/null
 +++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js.bak
+@@ -0,0 +1,22 @@
++import { Paragraph, TextRun } from "docx";
++/**
++ * Processes a comment and returns appropriate paragraph formatting
++ * @param text - The comment text
++ * @param style - The style configuration
++ * @returns The processed paragraph
++ */
++export function processComment(text, style) {
++    return new Paragraph({
++        children: [
++            new TextRun({
++                text: "Comment: " + text,
++                italics: true,
++                color: "666666",
++            }),
++        ],
++        spacing: {
++            before: style.paragraphSpacing,
++            after: style.paragraphSpacing,
++        },
++    });
++}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js.bak2 b/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js.bak2
+new file mode 100644
+index 0000000..a0d3276
+--- /dev/null
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/commentRenderer.js.bak2
 @@ -0,0 +1,22 @@
 +import { Paragraph, TextRun } from "docx";
 +/**
@@ -2180,6 +2295,18 @@ index 0000000..9a004f6
 +    });
 +    return { paragraph, bookmarkId };
 +}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js b/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js
+index ddd4f57..7de040f 100644
+--- a/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js
+@@ -60,6 +60,7 @@ export async function processImage(altText, imageUrl, style) {
+                         text: `[Image could not be displayed: ${altText}]`,
+                         italics: true,
+                         color: "FF0000",
++                        font: "Calibri",
+                     }),
+                 ],
+                 alignment: AlignmentType.CENTER,
 diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js.bak b/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js.bak
 new file mode 100644
 index 0000000..ddd4f57
@@ -2255,6 +2382,99 @@ index 0000000..ddd4f57
 +        ];
 +    }
 +}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js.bak2 b/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js.bak2
+new file mode 100644
+index 0000000..ddd4f57
+--- /dev/null
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/imageRenderer.js.bak2
+@@ -0,0 +1,69 @@
++import { Paragraph, TextRun, AlignmentType, ImageRun } from "docx";
++/**
++ * Processes an image and returns appropriate paragraph
++ * @param altText - The alt text
++ * @param imageUrl - The image URL
++ * @param style - The style configuration
++ * @returns The processed paragraph
++ */
++export async function processImage(altText, imageUrl, style) {
++    try {
++        const response = await fetch(imageUrl);
++        if (!response.ok) {
++            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
++        }
++        const arrayBuffer = await response.arrayBuffer();
++        // Use Buffer in Node environments, Uint8Array in browsers
++        const data = typeof Buffer !== "undefined"
++            ? Buffer.from(arrayBuffer)
++            : new Uint8Array(arrayBuffer);
++        // Infer image type from content-type header or URL extension
++        const contentType = response.headers.get("content-type") || "";
++        let imageType = "png";
++        if (/jpeg|jpg/i.test(contentType) || /\.(jpe?g)(\?|$)/i.test(imageUrl)) {
++            imageType = "jpg";
++        }
++        else if (/png/i.test(contentType) || /\.(png)(\?|$)/i.test(imageUrl)) {
++            imageType = "png";
++        }
++        else if (/gif/i.test(contentType) || /\.(gif)(\?|$)/i.test(imageUrl)) {
++            imageType = "gif";
++        }
++        // Create a paragraph with just the image, no hyperlink
++        return [
++            new Paragraph({
++                children: [
++                    new ImageRun({
++                        data,
++                        transformation: {
++                            width: 200,
++                            height: 200,
++                        },
++                        type: imageType,
++                    }),
++                ],
++                alignment: AlignmentType.CENTER,
++                spacing: {
++                    before: style.paragraphSpacing,
++                    after: style.paragraphSpacing,
++                },
++            }),
++        ];
++    }
++    catch (error) {
++        console.error("Error in processImage:", error);
++        console.error("Error stack:", error instanceof Error ? error.stack : "No stack available");
++        return [
++            new Paragraph({
++                children: [
++                    new TextRun({
++                        text: `[Image could not be displayed: ${altText}]`,
++                        italics: true,
++                        color: "FF0000",
++                    }),
++                ],
++                alignment: AlignmentType.CENTER,
++            }),
++        ];
++    }
++}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js b/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js
+index afb4c55..154858c 100644
+--- a/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js
+@@ -15,11 +15,13 @@ export function processListItem(config, style) {
+         children.push(new TextRun({
+             text: "\n",
+             size: style.listItemSize || 24,
++            font: "Calibri",
+         }), new TextRun({
+             text: config.boldText,
+             bold: true,
+             color: "000000",
+             size: style.listItemSize || 24,
++            font: "Calibri",
+         }));
+     }
+     // Use different formatting for numbered vs bullet lists
 diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js.bak b/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js.bak
 new file mode 100644
 index 0000000..afb4c55
@@ -2317,11 +2537,194 @@ index 0000000..afb4c55
 +        });
 +    }
 +}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js.bak2 b/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js.bak2
+new file mode 100644
+index 0000000..afb4c55
+--- /dev/null
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/listRenderer.js.bak2
+@@ -0,0 +1,56 @@
++import { Paragraph, TextRun } from "docx";
++import { processFormattedText } from "../parsers/textParser.js";
++/**
++ * Processes a list item and returns appropriate paragraph formatting
++ * @param config - The list item configuration
++ * @param style - The style configuration
++ * @returns The processed paragraph
++ */
++export function processListItem(config, style) {
++    let textContent = config.text;
++    // Process the main text with formatting
++    const children = processFormattedText(textContent, style);
++    // If there's bold text on the next line, add it with a line break
++    if (config.boldText) {
++        children.push(new TextRun({
++            text: "\n",
++            size: style.listItemSize || 24,
++        }), new TextRun({
++            text: config.boldText,
++            bold: true,
++            color: "000000",
++            size: style.listItemSize || 24,
++        }));
++    }
++    // Use different formatting for numbered vs bullet lists
++    if (config.isNumbered) {
++        // Use numbering for numbered lists with unique reference per sequence
++        const numberingReference = `numbered-list-${config.sequenceId || 1}`;
++        return new Paragraph({
++            children,
++            numbering: {
++                reference: numberingReference,
++                level: 0,
++            },
++            spacing: {
++                before: style.paragraphSpacing / 2,
++                after: style.paragraphSpacing / 2,
++            },
++            bidirectional: style.direction === "RTL",
++        });
++    }
++    else {
++        // Use bullet formatting for bullet lists
++        return new Paragraph({
++            children,
++            bullet: {
++                level: 0,
++            },
++            spacing: {
++                before: style.paragraphSpacing / 2,
++                after: style.paragraphSpacing / 2,
++            },
++            bidirectional: style.direction === "RTL",
++        });
++    }
++}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js b/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js
+index 276ce51..e1a12e0 100644
+--- a/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js
+@@ -59,6 +59,7 @@ export function processTable(tableData, documentType) {
+                                     text: header,
+                                     bold: true,
+                                     color: "000000",
++                                    font: "Calibri",
+                                 }),
+                             ],
+                         }),
+@@ -76,6 +77,7 @@ export function processTable(tableData, documentType) {
+                                 new TextRun({
+                                     text: cell,
+                                     color: "000000",
++                                    font: "Calibri",
+                                     rightToLeft: false,
+                                 }),
+                             ],
 diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js.bak b/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js.bak
 new file mode 100644
 index 0000000..276ce51
 --- /dev/null
 +++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js.bak
+@@ -0,0 +1,95 @@
++import { Table, TableRow, TableCell, Paragraph, TextRun, AlignmentType, TableLayoutType, WidthType } from "docx";
++/**
++ * Collects tables from markdown lines
++ * @param lines - The markdown lines
++ * @returns An array of table data
++ */
++export function collectTables(lines) {
++    const tables = [];
++    for (let i = 0; i < lines.length; i++) {
++        const line = lines[i];
++        if (line.trim().startsWith("|")) {
++            // Check for separator row with proper regex
++            if (i + 1 < lines.length &&
++                /^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(lines[i + 1])) {
++                // Preserve empty cells by slicing off leading/trailing pipe and splitting
++                const headers = line
++                    .trim()
++                    .replace(/^\|/, "")
++                    .replace(/\|$/, "")
++                    .split("|")
++                    .map((h) => h.trim());
++                const rows = [];
++                let j = i + 2;
++                while (j < lines.length && lines[j].trim().startsWith("|")) {
++                    const row = lines[j]
++                        .trim()
++                        .replace(/^\|/, "")
++                        .replace(/\|$/, "")
++                        .split("|")
++                        .map((cell) => cell.trim());
++                    rows.push(row);
++                    j++;
++                }
++                tables.push({ headers, rows });
++            }
++        }
++    }
++    return tables;
++}
++/**
++ * Processes a table and returns table formatting
++ * @param tableData - The table data
++ * @param documentType - The document type
++ * @returns The processed table
++ */
++export function processTable(tableData, documentType) {
++    return new Table({
++        width: { size: 100, type: WidthType.PERCENTAGE },
++        rows: [
++            new TableRow({
++                tableHeader: true,
++                children: tableData.headers.map((header) => new TableCell({
++                    children: [
++                        new Paragraph({
++                            alignment: AlignmentType.CENTER,
++                            style: "Strong",
++                            children: [
++                                new TextRun({
++                                    text: header,
++                                    bold: true,
++                                    color: "000000",
++                                }),
++                            ],
++                        }),
++                    ],
++                    shading: {
++                        fill: documentType === "report" ? "DDDDDD" : "F2F2F2",
++                    },
++                })),
++            }),
++            ...tableData.rows.map((row) => new TableRow({
++                children: row.map((cell) => new TableCell({
++                    children: [
++                        new Paragraph({
++                            children: [
++                                new TextRun({
++                                    text: cell,
++                                    color: "000000",
++                                    rightToLeft: false,
++                                }),
++                            ],
++                        }),
++                    ],
++                })),
++            })),
++        ],
++        layout: TableLayoutType.FIXED,
++        margins: {
++            top: 100,
++            bottom: 100,
++            left: 100,
++            right: 100,
++        },
++    });
++}
+diff --git a/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js.bak2 b/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js.bak2
+new file mode 100644
+index 0000000..276ce51
+--- /dev/null
++++ b/node_modules/@mohtasham/md-to-docx/dist/renderers/tableRenderer.js.bak2
 @@ -0,0 +1,95 @@
 +import { Table, TableRow, TableCell, Paragraph, TextRun, AlignmentType, TableLayoutType, WidthType } from "docx";
 +/**
