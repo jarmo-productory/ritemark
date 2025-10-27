@@ -44,8 +44,18 @@ export async function exportToWord(
       }
     }
 
-    // Create document
+    // Create document with Calibri as default font
     const doc = new Document({
+      styles: {
+        default: {
+          document: {
+            run: {
+              font: 'Calibri',
+              size: 22, // 11pt (size is in half-points)
+            },
+          },
+        },
+      },
       numbering: {
         // Provide numbering configuration for ordered and bullet lists
         config: [
