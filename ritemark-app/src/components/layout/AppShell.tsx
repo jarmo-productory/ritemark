@@ -31,13 +31,15 @@ interface AppShellProps {
   syncStatus: DriveSyncStatus
   editor?: TipTapEditor | null
   hasDocument?: boolean
+  content?: string
+  authorName?: string
   onNewDocument?: () => void
   onOpenFromDrive?: () => void
   onRenameDocument?: (newTitle: string) => void
   onReloadFile?: () => Promise<void>
 }
 
-export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive, onRenameDocument, onReloadFile }: AppShellProps) {
+export function AppShell({ children, documentTitle, fileId, syncStatus, editor, hasDocument, content, authorName, onNewDocument, onOpenFromDrive, onRenameDocument, onReloadFile }: AppShellProps) {
   // Sprint 16: Network Status hook
   const { isOnline, isChecking } = useNetworkStatus()
   const [prevIsOnline, setPrevIsOnline] = React.useState(isOnline)
@@ -168,7 +170,15 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             </Button>
 
             {/* Sprint 17: Document Menu (Kebab menu) */}
-            <DocumentMenu fileId={fileId} disabled={!isOnline} onReloadFile={onReloadFile} />
+            <DocumentMenu
+              fileId={fileId}
+              disabled={!isOnline}
+              onReloadFile={onReloadFile}
+              content={content || ''}
+              editor={editor || null}
+              documentTitle={documentTitle}
+              authorName={authorName}
+            />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

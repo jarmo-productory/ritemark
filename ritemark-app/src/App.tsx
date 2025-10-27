@@ -52,7 +52,7 @@ function App() {
   }, [isAuthenticated])
 
   // Drive sync hook
-  const { syncStatus, loadFile, forceSave } = useDriveSync(fileId, title, content, {
+  const { syncStatus, loadFile } = useDriveSync(fileId, title, content, {
     onFileCreated: (newFileId) => setFileId(newFileId),
     // On auth errors (e.g., 401), open the unified AuthModal
     onAuthError: () => triggerAuthDialog(),
@@ -166,6 +166,8 @@ function App() {
         syncStatus={syncStatus}
         editor={editor}
         hasDocument={!!fileId || isNewDocument}
+        content={content}
+        authorName={authContext?.user?.name}
         onNewDocument={handleNewDocument}
         onOpenFromDrive={handleOpenFromDrive}
         onRenameDocument={handleRenameDocument}

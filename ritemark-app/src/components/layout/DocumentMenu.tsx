@@ -7,33 +7,41 @@
  */
 
 import * as React from "react"
-import { History, MoreVertical } from "lucide-react"
+import { History, MoreVertical, Copy, FileDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { VersionHistoryModal } from "@/components/version-history/VersionHistoryModal"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
 import { restoreRevision } from "@/services/drive/revisions"
+import { copyFormattedContent } from "@/utils/clipboard"
+import { exportToWord } from "@/services/export/wordExport"
+import type { Editor as TipTapEditor } from '@tiptap/react'
 
 interface DocumentMenuProps {
   fileId: string | null
   disabled?: boolean
   onReloadFile?: () => Promise<void>
+  content: string
+  editor: TipTapEditor | null
+  documentTitle: string
+  authorName?: string
 }
 
-export function DocumentMenu({ fileId, disabled = false, onReloadFile }: DocumentMenuProps) {
+export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, editor, documentTitle, authorName }: DocumentMenuProps) {
   const [isModalOpen, setIsModalOpen] = React.useState(false)
   const [accessToken, setAccessToken] = React.useState<string | null>(null)
   const { getAccessToken } = useAuth()
 
   // Fetch access token when modal opens
   React.useEffect(() => {
-    if (isModalOpen) {
+    if (isModalOpen && getAccessToken) {
       getAccessToken().then(token => {
         setAccessToken(token)
         if (!token) {
@@ -53,6 +61,73 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile }: Documen
 
     setIsModalOpen(true)
   }, [fileId])
+
+  const handleCopyToClipboard = React.useCallback(async () => {
+    if (!editor) {
+      toast.error('Editor not ready')
+      return
+    }
+
+    try {
+      // Get HTML from TipTap editor
+      const html = editor.getHTML()
+
+      // Use existing markdown (already converted by TurndownService)
+      const markdown = content
+
+      // Copy both formats to clipboard
+      const result = await copyFormattedContent(html, markdown)
+
+      if (result.success) {
+        toast.success('Copied to clipboard!', {
+          description: `"${documentTitle}" ready to paste`
+        })
+      } else {
+        toast.error('Failed to copy', {
+          description: result.error
+        })
+      }
+    } catch (error) {
+      toast.error('Copy failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }, [editor, content, documentTitle])
+
+  const handleExportWord = React.useCallback(async () => {
+    if (!content) {
+      toast.error('No content to export')
+      return
+    }
+
+    try {
+      // Show loading toast
+      const loadingToast = toast.loading('Preparing Word document...')
+
+      const result = await exportToWord(content, {
+        documentTitle: documentTitle,
+        author: authorName,
+        createdAt: new Date().toISOString()
+      })
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast)
+
+      if (result.success) {
+        toast.success('Exported to Word!', {
+          description: `${documentTitle}.docx downloaded`
+        })
+      } else {
+        toast.error('Export failed', {
+          description: result.error
+        })
+      }
+    } catch (error) {
+      toast.error('Export failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }, [content, documentTitle, authorName])
 
   // Handle restore operation
   const handleRestore = React.useCallback(async (revisionId: string) => {
@@ -99,7 +174,7 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile }: Documen
     }
   }, [fileId, accessToken])
 
-  // Keyboard shortcut: Cmd/Ctrl+Shift+H
+  // Keyboard shortcut: Cmd/Ctrl+Shift+H for Version History
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'h') {
@@ -111,6 +186,19 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile }: Documen
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleVersionHistory])
+
+  // Keyboard shortcut: Cmd/Ctrl+Shift+C for Copy to Clipboard
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+        e.preventDefault()
+        handleCopyToClipboard()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleCopyToClipboard])
 
   return (
     <>
@@ -137,7 +225,26 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile }: Documen
             </span>
           </DropdownMenuItem>
 
-          {/* Future menu items can be added here */}
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            onClick={handleCopyToClipboard}
+            disabled={!editor}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Copy to Clipboard
+            <span className="ml-auto text-xs tracking-widest opacity-60">
+              ⌘⇧C
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={handleExportWord}
+            disabled={!content}
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            Export as Word
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
