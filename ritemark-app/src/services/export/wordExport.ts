@@ -33,7 +33,7 @@ export async function exportToWord(
       style: {
         titleSize: 24,
         headingSpacing: 240,
-        paragraphSpacing: 240,
+        paragraphSpacing: 120, // Reduced from 240 for tighter document spacing
         lineSpacing: 1.15,
         paragraphSize: 12,
         paragraphAlignment: 'LEFT'
