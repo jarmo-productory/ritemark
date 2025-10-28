@@ -7,7 +7,7 @@
  */
 
 import * as React from "react"
-import { History, MoreVertical, Copy, FileDown } from "lucide-react"
+import { History, MoreVertical, Copy, FileDown, Share2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -33,9 +33,11 @@ interface DocumentMenuProps {
   editor: TipTapEditor | null
   documentTitle: string
   authorName?: string
+  onShare?: () => void
+  isSharing?: boolean
 }
 
-export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, editor, documentTitle, authorName }: DocumentMenuProps) {
+export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, editor, documentTitle, authorName, onShare, isSharing = false }: DocumentMenuProps) {
   const [isModalOpen, setIsModalOpen] = React.useState(false)
   const [accessToken, setAccessToken] = React.useState<string | null>(null)
   const { getAccessToken } = useAuth()
@@ -280,16 +282,32 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
             <FileDown className="mr-2 h-4 w-4" />
             Download as Markdown
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            onClick={onShare}
+            disabled={!fileId || isSharing || disabled}
+          >
+            {isSharing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Share2 className="mr-2 h-4 w-4" />
+            )}
+            Open in Drive
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <VersionHistoryModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        fileId={fileId}
-        accessToken={accessToken}
-        onRestore={handleRestore}
-      />
+      {fileId && accessToken && (
+        <VersionHistoryModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          fileId={fileId}
+          accessToken={accessToken}
+          onRestore={handleRestore}
+        />
+      )}
     </>
   )
 }

@@ -14,12 +14,11 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
 import { EditableTitle } from "@/components/EditableTitle"
 import { DocumentMenu } from "@/components/layout/DocumentMenu"
 import { useDriveSharing } from "@/hooks/useDriveSharing"
 import { useNetworkStatus } from "@/hooks/useNetworkStatus"
-import { Share2, Loader2, Cloud, CloudOff } from "lucide-react"
+import { Loader2, Cloud, CloudOff } from "lucide-react"
 import { toast } from "sonner"
 import type { DriveSyncStatus } from "@/types/drive"
 import type { Editor as TipTapEditor } from '@tiptap/react'
@@ -119,7 +118,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             </Breadcrumb>
           </div>
 
-          {/* Right side: Status Indicator + Share Button */}
+          {/* Right side: Status Indicator + Document Menu */}
           <div className="flex items-center gap-3">
             {/* Sprint 16: Offline Status Indicator */}
             <div className="flex items-center gap-1.5 text-sm" role="status" aria-live="polite" aria-atomic="true">
@@ -146,29 +145,6 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
               )}
             </div>
 
-            {/* Sprint 15: Share Button */}
-            <Button
-              onClick={handleShare}
-              disabled={!fileId || isSharing || !isOnline}
-              variant="default"
-              size="sm"
-              className="gap-2"
-              aria-label={
-                !fileId
-                  ? "No document to share"
-                  : !isOnline
-                  ? "Cannot share while offline"
-                  : "Share document with others"
-              }
-            >
-              {isSharing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Share2 className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Share</span>
-            </Button>
-
             {/* Sprint 17: Document Menu (Kebab menu) */}
             <DocumentMenu
               fileId={fileId}
@@ -178,6 +154,8 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
               editor={editor || null}
               documentTitle={documentTitle}
               authorName={authorName}
+              onShare={handleShare}
+              isSharing={isSharing}
             />
           </div>
         </header>
