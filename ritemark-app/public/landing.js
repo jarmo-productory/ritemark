@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalOverlay = document.getElementById('modal-overlay');
   const modalBody = document.getElementById('modal-body');
   const modalClose = document.querySelector('.modal-close');
-  const featureButtons = document.querySelectorAll('.feature-action');
+  const featureCards = document.querySelectorAll('.feature-card[role="button"]');
 
   // Feature details content
   const featureDetails = {
@@ -200,12 +200,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
 
-  // Event listeners
-  featureButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
+  // Event listeners for clickable feature cards
+  featureCards.forEach(card => {
+    // Click handler
+    card.addEventListener('click', (e) => {
       e.preventDefault();
-      const featureKey = button.getAttribute('data-feature');
+      const featureKey = card.getAttribute('data-feature');
       openModal(featureKey);
+    });
+
+    // Keyboard support (Enter and Space)
+    card.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const featureKey = card.getAttribute('data-feature');
+        openModal(featureKey);
+      }
     });
   });
 

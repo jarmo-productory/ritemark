@@ -19,17 +19,20 @@
   <meta property="og:description" content="Edit like Google Docs, export markdown for AI tools and GitHub. No learning curve.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ritemark.app">
-  <meta property="og:image" content="https://ritemark.app/assets/landing/og-image.png">
+  <meta property="og:image" content="https://ritemark.app/images/screenshots/app_screen.webp">
   <meta property="og:site_name" content="RiteMark">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="RiteMark - Markdown Editor for People Who Hate Markdown">
   <meta name="twitter:description" content="Edit like Google Docs, export markdown for AI tools and GitHub.">
-  <meta name="twitter:image" content="https://ritemark.app/assets/landing/og-image.png">
+  <meta name="twitter:image" content="https://ritemark.app/images/screenshots/app_screen.webp">
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
 
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
   <!-- Inline Critical CSS (Above-the-Fold Performance) -->
   <style>
@@ -297,13 +300,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--foreground);
+      background: var(--foreground);
+      border-radius: 12px;
+      flex-shrink: 0;
+      position: relative;
     }
 
     .feature-icon svg {
-      width: 32px;
-      height: 32px;
-      stroke-width: 1.5;
+      width: 24px;
+      height: 24px;
+      stroke-width: 2;
+      color: var(--background);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     .feature-card h3 {
@@ -351,6 +362,262 @@
 
     .feature-action:active {
       transform: scale(0.95);
+    }
+
+    /* Changelog Section */
+    .changelog {
+      background: var(--background);
+      padding: var(--space-24) var(--space-6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .changelog-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .changelog-header {
+      text-align: center;
+      margin-bottom: var(--space-12);
+    }
+
+    .changelog-header h2 {
+      font-size: clamp(2rem, 4vw + 1rem, 3rem);
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      margin-bottom: var(--space-4);
+    }
+
+    .changelog-header p {
+      font-size: 18px;
+      color: var(--muted-foreground);
+      font-weight: 400;
+    }
+
+    .changelog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .changelog-item {
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: var(--space-6);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: var(--space-6);
+      align-items: start;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+    }
+
+    .changelog-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: var(--foreground);
+    }
+
+    .changelog-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-width: 80px;
+    }
+
+    .changelog-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .changelog-item:hover .changelog-icon {
+      transform: scale(1.05);
+    }
+
+    .feature-icon {
+      background: linear-gradient(135deg, hsl(222.2, 84%, 4.9%) 0%, hsl(222.2, 47.4%, 11.2%) 100%);
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--background);
+      stroke-width: 2;
+    }
+
+    .improvement-icon {
+      background: linear-gradient(135deg, hsl(215.4, 16.3%, 46.9%) 0%, hsl(222.2, 47.4%, 11.2%) 100%);
+    }
+
+    .improvement-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--background);
+      stroke-width: 2;
+    }
+
+    .bugfix-icon {
+      background: linear-gradient(135deg, hsl(210, 40%, 96%) 0%, hsl(214.3, 31.8%, 91.4%) 100%);
+      border: 1px solid var(--border);
+    }
+
+    .bugfix-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--foreground);
+      stroke-width: 2;
+    }
+
+    .changelog-date {
+      font-size: 13px;
+      color: var(--muted-foreground);
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .changelog-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .changelog-content h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--foreground);
+      line-height: 1.3;
+      margin: 0;
+    }
+
+    .changelog-content p {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--muted-foreground);
+      margin: 0;
+    }
+
+    .changelog-badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      align-self: start;
+      transition: transform 0.2s ease;
+    }
+
+    .changelog-item:hover .changelog-badge {
+      transform: scale(1.02);
+    }
+
+    .feature-badge {
+      background: linear-gradient(135deg, hsl(222.2, 84%, 4.9%) 0%, hsl(222.2, 47.4%, 11.2%) 100%);
+      color: var(--background);
+    }
+
+    .improvement-badge {
+      background: var(--muted);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+
+    .bugfix-badge {
+      background: var(--secondary);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+
+    .changelog-footer {
+      margin-top: var(--space-12);
+      text-align: center;
+    }
+
+    .changelog-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: gap 0.2s ease;
+    }
+
+    .changelog-cta:hover {
+      gap: 12px;
+    }
+
+    .changelog-cta svg {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s ease;
+    }
+
+    .changelog-cta:hover svg {
+      transform: translateX(2px);
+    }
+
+    @media (max-width: 768px) {
+      .changelog {
+        padding: var(--space-16) var(--space-6);
+      }
+
+      .changelog-item {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+      }
+
+      .changelog-meta {
+        flex-direction: row;
+        justify-content: flex-start;
+        width: 100%;
+        min-width: unset;
+      }
+
+      .changelog-badge {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: end;
+      }
+
+      .changelog-item {
+        grid-template-areas:
+          "meta badge"
+          "content content";
+      }
+
+      .changelog-meta {
+        grid-area: meta;
+      }
+
+      .changelog-badge {
+        grid-area: badge;
+      }
+
+      .changelog-content {
+        grid-area: content;
+      }
+
+      .changelog-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .changelog-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .changelog-date {
+        font-size: 12px;
+      }
     }
 
     /* Feature Modal */
@@ -688,8 +955,9 @@
       <!-- Navigation -->
       <nav class="nav" role="navigation" aria-label="Main navigation">
         <a href="#features" class="nav-link">Features</a>
-        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#how-it-works" class="nav-link">What's New</a>
         <a href="#faq" class="nav-link">FAQ</a>
+        <a href="#security" class="nav-link">Security</a>
       </nav>
 
       <!-- Actions -->
@@ -706,11 +974,15 @@
     <!-- Mobile Navigation Menu -->
     <nav class="mobile-nav" id="mobile-nav" role="navigation" aria-label="Mobile navigation">
       <a href="#features" class="mobile-nav-link">Features</a>
-      <a href="#how-it-works" class="mobile-nav-link">How It Works</a>
+      <a href="#how-it-works" class="mobile-nav-link">What's New</a>
       <a href="#faq" class="mobile-nav-link">FAQ</a>
+      <a href="#security" class="mobile-nav-link">Security</a>
       <a href="/app" class="mobile-nav-cta">Start Writing Free</a>
     </nav>
   </header>
+
+  <!-- Main Content Wrapper -->
+  <main role="main">
 
   <!-- Hero Section -->
   <section class="hero" id="main-content">
@@ -720,11 +992,17 @@
         <p>Edit documents like Google Docs. Collaborate in real-time. Export clean markdown for AI tools, GitHub, and developer workflows.</p>
         <div class="cta-buttons">
           <a href="/app" class="btn-primary">Start Writing Free</a>
-          <a href="#demo" class="btn-secondary">See How It Works</a>
         </div>
       </div>
       <div class="hero-visual">
-        <img src="/images/screenshots/app_screen.webp" alt="RiteMark WYSIWYG editor interface showing visual formatting toolbar and document editing" loading="eager" width="600" height="400">
+        <img
+          src="/images/screenshots/app_screen.webp"
+          srcset="/images/screenshots/app_screen.webp 600w"
+          sizes="(max-width: 768px) 90vw, 600px"
+          alt="RiteMark WYSIWYG editor interface showing visual formatting toolbar and document editing"
+          loading="eager"
+          width="600"
+          height="400">
       </div>
     </div>
   </section>
@@ -742,63 +1020,51 @@
       </div>
       <div class="features-cards">
         <!-- Feature 1: WYSIWYG Editing -->
-        <article class="feature-card">
+        <article class="feature-card" role="button" tabindex="0" data-feature="wysiwyg">
           <div class="feature-icon">
             <i data-lucide="edit-3"></i>
           </div>
           <h3>Edit Like Google Docs</h3>
           <p>Format text, add headings, create lists. No raw markdown syntax. No learning curve.</p>
-          <button class="feature-action" aria-label="Learn more about visual editing" data-feature="wysiwyg">
+          <div class="feature-action" aria-label="Learn more about visual editing">
             <i data-lucide="plus"></i>
-          </button>
+          </div>
         </article>
 
         <!-- Feature 2: Google Drive Integration -->
-        <article class="feature-card">
+        <article class="feature-card" role="button" tabindex="0" data-feature="drive">
           <div class="feature-icon">
             <i data-lucide="cloud"></i>
           </div>
           <h3>Auto-Save to Google Drive</h3>
           <p>Access from any device. Your files stay in your Drive. We never see your content.</p>
-          <button class="feature-action" aria-label="Learn more about cloud storage" data-feature="drive">
+          <div class="feature-action" aria-label="Learn more about cloud storage">
             <i data-lucide="plus"></i>
-          </button>
+          </div>
         </article>
 
         <!-- Feature 3: Markdown Export -->
-        <article class="feature-card">
+        <article class="feature-card" role="button" tabindex="0" data-feature="export">
           <div class="feature-icon">
             <i data-lucide="download"></i>
           </div>
           <h3>Export Clean Markdown</h3>
           <p>Perfect for ChatGPT, Claude, GitHub, and developer workflows. One-click export.</p>
-          <button class="feature-action" aria-label="Learn more about markdown export" data-feature="export">
+          <div class="feature-action" aria-label="Learn more about markdown export">
             <i data-lucide="plus"></i>
-          </button>
-        </article>
-
-        <!-- Feature 4: Real-Time Collaboration -->
-        <article class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="users"></i>
           </div>
-          <h3>Work Together</h3>
-          <p>See edits instantly. Comment and co-author. Like Google Docs for markdown.</p>
-          <button class="feature-action" aria-label="Learn more about collaboration" data-feature="collab">
-            <i data-lucide="plus"></i>
-          </button>
         </article>
 
-        <!-- Feature 5: Mobile-First -->
-        <article class="feature-card">
+        <!-- Feature 4: Mobile-First -->
+        <article class="feature-card" role="button" tabindex="0" data-feature="mobile">
           <div class="feature-icon">
             <i data-lucide="smartphone"></i>
           </div>
           <h3>Write Anywhere</h3>
           <p>Write on your phone. Edit on desktop. Seamless sync via Google Drive.</p>
-          <button class="feature-action" aria-label="Learn more about mobile support" data-feature="mobile">
+          <div class="feature-action" aria-label="Learn more about mobile support">
             <i data-lucide="plus"></i>
-          </button>
+          </div>
         </article>
       </div>
     </div>
@@ -817,12 +1083,81 @@
     </div>
   </div>
 
-  <!-- Demo Video Section -->
-  <section id="how-it-works" class="demo">
-    <div class="container">
-      <h2 class="section-title">See RiteMark in Action</h2>
-      <div class="demo-placeholder">
-        <p class="demo-text">Demo video coming soon</p>
+  <!-- Changelog Section -->
+  <section id="how-it-works" class="changelog">
+    <div class="changelog-inner">
+      <div class="changelog-header">
+        <h2>What's New</h2>
+        <p>Recent updates and improvements to RiteMark</p>
+      </div>
+
+      <div class="changelog-list">
+        <!-- Update 1: Export Features -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="sparkles"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-10-27">Oct 27, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Export & Share Features</h3>
+            <p>Copy to clipboard, export to Word (.docx), and download as markdown. Share your work in any format with one-click exporting.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 2: Version History -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="clock"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-10-26">Oct 26, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Version History</h3>
+            <p>Time travel for your documents. View all past versions, preview changes side-by-side, and restore any version with one click.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 3: Google Drive Integration -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="cloud"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-09-01">Sep 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Google Drive Integration</h3>
+            <p>Cloud-first editing with automatic sync to Google Drive. Every change saves instantly, accessible from any device with secure authentication.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 4: Launch -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="sparkles"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-08-01">Aug 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>RiteMark Launch</h3>
+            <p>WYSIWYG markdown editor that lets you write without seeing markdown. Real-time formatting, clean interface, and mobile-friendly design.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+      </div>
+
+      <div class="changelog-footer">
+        <a href="https://github.com/jarmo-productory/ritemark/blob/main/docs/user-guide/changelog.md" target="_blank" rel="noopener noreferrer" class="btn-secondary changelog-cta">
+          <span>View All Updates</span>
+          <i data-lucide="external-link"></i>
+        </a>
       </div>
     </div>
   </section>
@@ -916,6 +1251,180 @@
     </div>
   </section>
 
+  <!-- Security & Privacy Section -->
+  <section class="security" id="security">
+    <div class="container">
+      <div class="security-header">
+        <h2 class="section-title">Security & Privacy First</h2>
+        <p class="section-subtitle">Your data stays yours. Complete transparency on how we protect your privacy.</p>
+      </div>
+
+      <div class="security-grid">
+        <!-- Security Card 1: Google OAuth2 -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3>Google OAuth2 Authentication</h3>
+          <p>No passwords to manage. Sign in securely with your Google account using industry-standard OAuth2 protocol.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>No password storage on our servers</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Secure token-based authentication</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Automatic session expiration</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 2: Zero Data Collection -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="eye-off"></i>
+          </div>
+          <h3>Zero Data Collection</h3>
+          <p>We don't collect, store, or analyze your documents. Your content exists only in your Google Drive.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>No server-side document storage</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No analytics or tracking scripts</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No third-party data sharing</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 3: Minimal Permissions -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="lock"></i>
+          </div>
+          <h3>Minimal Google Drive Permissions</h3>
+          <p>We only request access to files you create or open with RiteMark. We cannot see your other Drive files.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Per-file access (drive.file scope)</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No full Drive access requested</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Revoke access anytime from Google</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 4: Open Source -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="github"></i>
+          </div>
+          <h3>100% Open Source</h3>
+          <p>Full source code transparency. Anyone can audit our security practices and verify our privacy claims.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Inspect all source code on GitHub</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Community security audits</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Self-hosting option available</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 5: GDPR Ready -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="globe"></i>
+          </div>
+          <h3>GDPR-Ready by Design</h3>
+          <p>Built with European privacy standards in mind. Your data sovereignty is guaranteed.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Data stays in your Google Drive</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Right to deletion (revoke OAuth)</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No cross-border data transfers</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 6: Only Google Drive API -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="cloud"></i>
+          </div>
+          <h3>Only Google Drive API</h3>
+          <p>We use exclusively Google's official Drive API. No third-party cloud services or data processors.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Google-grade encryption at rest</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>TLS encryption in transit</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Google's infrastructure security</span>
+            </li>
+          </ul>
+        </article>
+      </div>
+
+      <!-- Trust Badges -->
+      <div class="security-badges">
+        <div class="security-badge-item">
+          <i data-lucide="shield-check"></i>
+          <span>OAuth2 Certified</span>
+        </div>
+        <div class="security-badge-item">
+          <i data-lucide="globe"></i>
+          <span>GDPR Compliant</span>
+        </div>
+        <div class="security-badge-item">
+          <i data-lucide="github"></i>
+          <span>Open Source</span>
+        </div>
+      </div>
+
+      <!-- Security Contact -->
+      <div class="security-footer">
+        <p>Security questions? Email us at <a href="mailto:jarmo@productory.eu">jarmo@productory.eu</a></p>
+      </div>
+    </div>
+  </section>
+
+  </main>
+  <!-- End Main Content Wrapper -->
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
@@ -956,5 +1465,24 @@
 
   <!-- Minimal JavaScript (deferred) -->
   <script src="/landing.js" defer></script>
+
+  <!-- Initialize Lucide Icons Immediately -->
+  <script>
+    // Initialize icons as soon as DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initIcons);
+    } else {
+      initIcons();
+    }
+
+    function initIcons() {
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      } else {
+        // Retry after a short delay if lucide hasn't loaded yet
+        setTimeout(initIcons, 100);
+      }
+    }
+  </script>
 </body>
 </html>
