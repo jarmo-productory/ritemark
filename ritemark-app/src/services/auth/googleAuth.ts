@@ -14,7 +14,7 @@ import type {
 } from '../../types/auth';
 import { OAUTH_SCOPES, AUTH_ERRORS } from '../../types/auth';
 import { PKCEGenerator } from './pkceGenerator';
-import { TokenManager } from './tokenManager';
+import { TokenManagerEncrypted } from './TokenManagerEncrypted';
 
 const OAUTH_STATE_KEY = 'ritemark_oauth_state';
 
@@ -23,7 +23,7 @@ export class GoogleAuth {
   private redirectUri: string;
   private scopes: string[];
   private pkceGenerator: PKCEGenerator;
-  private tokenManager: TokenManager;
+  private tokenManager: TokenManagerEncrypted;
 
   constructor(config: OAuthConfig) {
     // Validate required config (unless mock mode)
@@ -35,7 +35,44 @@ export class GoogleAuth {
     this.redirectUri = config.redirectUri;
     this.scopes = config.scopes || [...OAUTH_SCOPES];
     this.pkceGenerator = new PKCEGenerator();
-    this.tokenManager = new TokenManager();
+    this.tokenManager = new TokenManagerEncrypted();
+
+    // Initialize: Check for stored refresh token and attempt to restore session
+    this.initializeWithStoredTokens().catch((error) => {
+      console.warn('Failed to initialize with stored tokens:', error);
+    });
+  }
+
+  /**
+   * Initialize authentication with stored refresh token (if available)
+   * Attempts to restore session on app load
+   * Token persistence across browser restarts
+   */
+  private async initializeWithStoredTokens(): Promise<void> {
+    const refreshToken = await this.tokenManager.getRefreshToken();
+
+    if (!refreshToken) {
+      console.log('📭 No stored refresh token found');
+      return;
+    }
+
+    console.log('🔄 Found stored refresh token, attempting to restore session...');
+
+    // Check if tokens are expired
+    if (!this.tokenManager.isTokenExpired()) {
+      console.log('✅ Existing tokens still valid');
+      return;
+    }
+
+    // Token expired, try to refresh
+    const result = await this.tokenManager.refreshAccessToken();
+
+    if (result.success) {
+      console.log('✅ Session restored with stored refresh token');
+    } else {
+      console.warn('❌ Failed to restore session, user must re-authenticate');
+      this.tokenManager.clearTokens();
+    }
   }
 
   /**
@@ -134,6 +171,11 @@ export class GoogleAuth {
       // Retrieve user profile
       const user = await this.getUserProfile(tokens.accessToken || tokens.access_token || '');
 
+      // Store user identity (user.sub) for cross-device sync
+      const { userIdentityManager } = await import('./tokenManager');
+      userIdentityManager.storeUserInfo(user.id, user.email);
+      console.log('[GoogleAuth] User identity stored:', user.id);
+
       // Store tokens securely
       await this.tokenManager.storeTokens(tokens);
 
@@ -183,9 +225,15 @@ export class GoogleAuth {
 
   /**
    * Check if user is currently authenticated
+   * Check scope version and force re-auth if outdated
    * @returns True if valid tokens exist, false otherwise
    */
   isAuthenticated(): boolean {
+    // Check scope version first (Force re-auth if scopes changed)
+    if (this.tokenManager.checkAndClearOutdatedTokens()) {
+      return false; // Tokens cleared, user must re-authenticate
+    }
+
     const tokens = sessionStorage.getItem('ritemark_oauth_tokens');
     return !!tokens;
   }
@@ -234,10 +282,12 @@ export class GoogleAuth {
 
   /**
    * Retrieve user profile from Google API
+   * Extract stable user.sub for cross-device identity
    */
   private async getUserProfile(accessToken: string): Promise<GoogleUser> {
     try {
-      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      // Use v1 endpoint to get user.sub (stable user ID)
+      const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -249,8 +299,9 @@ export class GoogleAuth {
 
       const data = await response.json();
 
+      // Use data.sub (stable across devices) instead of data.id
       return {
-        id: data.id,
+        id: data.sub,        // ✅ FIXED: Stable user ID for Sprint 20 & 21
         email: data.email,
         name: data.name,
         picture: data.picture,

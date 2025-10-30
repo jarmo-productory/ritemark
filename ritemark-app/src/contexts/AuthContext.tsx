@@ -11,6 +11,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<GoogleUser | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null) // User.sub for rate limiting
 
   const isAuthenticated = !!user
 
@@ -34,9 +35,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           sessionStorage.removeItem('ritemark_oauth_tokens')
           sessionStorage.removeItem('ritemark_refresh_token')
           setUser(null)
+          setUserId(null)
         } else {
           console.log('[AuthContext] Valid token found, restoring session')
           setUser(userData)
+
+          // Restore user.sub from localStorage
+          import('../services/auth/tokenManager').then(({ userIdentityManager }) => {
+            const userInfo = userIdentityManager.getUserInfo()
+            if (userInfo) {
+              setUserId(userInfo.userId)
+              console.log('[AuthContext] User ID restored:', userInfo.userId)
+            }
+          })
         }
       } catch (err) {
         console.error('Failed to restore user session:', err)
@@ -44,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         sessionStorage.removeItem('ritemark_oauth_tokens')
         sessionStorage.removeItem('ritemark_refresh_token')
         setUser(null)
+        setUserId(null)
       }
     }
   }, [])
@@ -67,9 +79,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true)
     try {
       setUser(null)
+      setUserId(null) // Clear userId state
       setError(null)
       sessionStorage.removeItem('ritemark_user')
       sessionStorage.removeItem('ritemark_oauth_tokens') // Use correct key
+
+      // Clear user identity on logout
+      const { userIdentityManager } = await import('../services/auth/tokenManager')
+      userIdentityManager.clearUserInfo()
     } finally {
       setIsLoading(false) // Always clear loading state
     }
@@ -101,6 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
+    userId, // Expose userId for rate limiting and sync
     isAuthenticated,
     isLoading,
     error,

@@ -32,14 +32,20 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
           callback: async (tokenResponse: { access_token?: string; error?: string; error_description?: string; expires_in?: number; scope?: string; token_type?: string }) => {
             if (tokenResponse.access_token) {
               try {
-                // Fetch user info from Google API
-                const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                // Use v1 endpoint to get user.sub (stable user ID)
+                const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
                   headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
                 })
+
+                if (!userInfoResponse.ok) {
+                  throw new Error('Failed to fetch user info')
+                }
+
                 const userInfo = await userInfoResponse.json()
 
+                // Use user.sub (stable across devices) instead of user.id
                 const userData: GoogleUser = {
-                  id: userInfo.id,
+                  id: userInfo.sub || userInfo.id,
                   email: userInfo.email,
                   name: userInfo.name,
                   picture: userInfo.picture,
@@ -50,19 +56,31 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
                 // Store user data in sessionStorage
                 sessionStorage.setItem('ritemark_user', JSON.stringify(userData))
 
-                // Store OAuth tokens in sessionStorage
-                sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
+                // Store user.sub for rate limiting and cross-device sync
+                const { userIdentityManager } = await import('../services/auth/tokenManager')
+                userIdentityManager.storeUserInfo(userInfo.sub, userInfo.email)
+
+                // Store tokens using encrypted TokenManager
+                const { tokenManagerEncrypted } = await import('../services/auth/TokenManagerEncrypted')
+
+                const tokens = {
                   access_token: tokenResponse.access_token,
                   accessToken: tokenResponse.access_token,
                   expires_in: tokenResponse.expires_in,
                   scope: tokenResponse.scope,
-                  token_type: tokenResponse.token_type,
-                  tokenType: 'Bearer',
+                  token_type: (tokenResponse.token_type || 'Bearer') as 'Bearer',
+                  tokenType: 'Bearer' as const,
                   expiresAt: Date.now() + ((tokenResponse.expires_in || 3600) * 1000),
-                }))
+                }
+
+                await tokenManagerEncrypted.storeTokens(tokens)
+
+                // Also store in sessionStorage for backward compatibility
+                sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify(tokens))
 
                 setAccessTokenReceived(true)
-              } catch {
+              } catch (err) {
+                console.error('Authentication failed:', err)
                 alert('Authentication failed. Please try again.')
               }
             } else {
@@ -83,7 +101,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
     initTokenClient()
   }, [])
 
-  // Reload page after authentication complete (same as AuthModal)
+  // Reload page after authentication complete
   useEffect(() => {
     if (accessTokenReceived) {
       window.location.reload()

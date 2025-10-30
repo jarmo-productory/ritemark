@@ -3,7 +3,7 @@ import { render, waitFor } from '@testing-library/react'
 import { Editor } from '../components/Editor'
 import { type Editor as TipTapEditor } from '@tiptap/react'
 
-describe('Table Insertion - Phase 1 Infrastructure', () => {
+describe('Table Insertion - Infrastructure', () => {
   let editor: TipTapEditor | null = null
 
   beforeEach(() => {

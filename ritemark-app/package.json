@@ -55,6 +55,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "docx": "^9.5.1",
+    "idb": "^8.0.3",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.544.0",
     "marked": "^16.3.0",

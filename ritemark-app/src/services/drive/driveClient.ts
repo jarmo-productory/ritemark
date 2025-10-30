@@ -10,7 +10,7 @@
  * - XSS prevention through filename sanitization
  */
 
-import { tokenManager } from '../auth/tokenManager';
+import { tokenManagerEncrypted } from '../auth/TokenManagerEncrypted';
 import type {
   DriveFile,
   DriveError,
@@ -212,7 +212,7 @@ export class DriveClient {
    * @returns Parsed JSON response
    */
   private async makeRequest(url: string, options: RequestInit): Promise<unknown> {
-    const accessToken = await tokenManager.getAccessToken();
+    const accessToken = await tokenManagerEncrypted.getAccessToken();
     if (!accessToken) {
       throw this.createError(
         DRIVE_ERRORS.TOKEN_EXPIRED,
@@ -230,11 +230,22 @@ export class DriveClient {
       },
     });
 
-    // Handle 401 - Token expired (defer UI to central auth modal)
+    // Handle 401 - Token expired (attempt refresh, then defer UI to central auth modal)
     if (response.status === 401) {
+      // Attempt token refresh before failing
+      console.log('🔄 Access token expired, attempting refresh...');
+      const refreshResult = await tokenManagerEncrypted.refreshAccessToken();
+
+      if (refreshResult.success) {
+        console.log('✅ Token refreshed successfully, retrying request');
+        // Retry the request with new token
+        return this.makeRequest(url, options);
+      }
+
+      // Refresh failed, throw error to trigger re-authentication
       throw this.createError(
         DRIVE_ERRORS.TOKEN_EXPIRED,
-        'Access token expired. Please sign in again.',
+        'Access token expired and refresh failed. Please sign in again.',
         401,
         false
       );
