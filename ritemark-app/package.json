@@ -28,6 +28,7 @@
     ]
   },
   "dependencies": {
+    "@netlify/blobs": "^10.3.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-context-menu": "^2.2.16",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -72,10 +73,12 @@
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@google/clasp": "^3.0.6-alpha",
+    "@netlify/functions": "^5.0.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/google-apps-script": "^2.0.1",
+    "@types/node": "^24.9.2",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@types/turndown": "^5.0.5",

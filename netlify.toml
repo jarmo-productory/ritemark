@@ -2,10 +2,21 @@
   base = "ritemark-app"
   publish = "dist"
   command = "npm ci && npm run build"
+  functions = "../netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
   HUSKY = "0"
+
+# Netlify Functions configuration (Sprint 20)
+[functions]
+  node_bundler = "esbuild"
+
+# API endpoint redirects (Sprint 20 - Backend Token Refresh)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
 
 [[redirects]]
   from = "/"
