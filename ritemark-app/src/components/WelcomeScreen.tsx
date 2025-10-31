@@ -17,9 +17,107 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   const user = authContext?.user
   const [tokenClient, setTokenClient] = useState<{ requestAccessToken: () => void } | null>(null)
   const [accessTokenReceived, setAccessTokenReceived] = useState(false)
+  const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null)
 
 
-  // Initialize Google OAuth token client (same logic as AuthModal)
+  // Check backend health on mount (Sprint 20 - Phase 0)
+  useEffect(() => {
+    const checkHealth = async () => {
+      const { checkBackendHealth } = await import('../utils/backendHealth')
+      const available = await checkBackendHealth()
+      setBackendAvailable(available)
+      console.log('[WelcomeScreen] Backend health check:', available ? 'available' : 'unavailable')
+    }
+    checkHealth()
+  }, [])
+
+  // Handle OAuth callback from backend (Sprint 20 - Phase 0)
+  useEffect(() => {
+    const handleBackendCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search)
+      const accessToken = urlParams.get('access_token')
+      const userId = urlParams.get('user_id')
+      const error = urlParams.get('error')
+
+      // Check if this is a backend OAuth callback
+      if (!accessToken && !error) {
+        return
+      }
+
+      if (error) {
+        console.error('[WelcomeScreen] OAuth error from backend:', error)
+        alert(`Authentication failed: ${urlParams.get('error_description') || error}`)
+        // Clean up URL
+        window.history.replaceState({}, '', window.location.pathname)
+        return
+      }
+
+      if (accessToken && userId) {
+        console.log('[WelcomeScreen] Backend OAuth callback received')
+
+        try {
+          // Store tokens using TokenManagerEncrypted
+          const { tokenManagerEncrypted } = await import('../services/auth/TokenManagerEncrypted')
+          const { userIdentityManager } = await import('../services/auth/tokenManager')
+
+          const tokens = {
+            access_token: accessToken,
+            accessToken: accessToken,
+            expires_in: parseInt(urlParams.get('expires_in') || '3600'),
+            token_type: 'Bearer' as const,
+            tokenType: 'Bearer' as const,
+            expiresAt: Date.now() + (parseInt(urlParams.get('expires_in') || '3600') * 1000),
+          }
+
+          await tokenManagerEncrypted.storeTokens(tokens)
+
+          // Also store in sessionStorage for backward compatibility
+          sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify(tokens))
+
+          // Get user info from OpenID Connect
+          const userInfoResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          })
+
+          if (userInfoResponse.ok) {
+            const userInfo = await userInfoResponse.json()
+            const userData: GoogleUser = {
+              id: userInfo.sub,
+              email: userInfo.email,
+              name: userInfo.name,
+              picture: userInfo.picture,
+              verified_email: userInfo.email_verified || false,
+              emailVerified: userInfo.email_verified || false,
+            }
+
+            // Store user data
+            sessionStorage.setItem('ritemark_user', JSON.stringify(userData))
+            userIdentityManager.storeUserInfo(userData.id, userData.email)
+
+            console.log('[WelcomeScreen] Backend OAuth complete, reloading...')
+
+            // Clean up URL before reload
+            window.history.replaceState({}, '', window.location.pathname)
+
+            // Reload to initialize authenticated state
+            window.location.reload()
+          } else {
+            throw new Error('Failed to fetch user info')
+          }
+        } catch (err) {
+          console.error('[WelcomeScreen] Backend OAuth callback failed:', err)
+          alert('Authentication failed. Please try again.')
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+
+        return
+      }
+    }
+
+    handleBackendCallback()
+  }, [])
+
+  // Initialize Google OAuth token client (browser-only fallback, Sprint 19)
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!clientId) return
@@ -109,11 +207,40 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   }, [accessTokenReceived])
 
   const handleSignIn = () => {
-    if (!tokenClient) {
-      alert('Authentication not ready. Please refresh the page.')
-      return
+    // Sprint 20 Phase 0: Check backend availability
+    if (backendAvailable === true) {
+      // Backend available: Use Authorization Code Flow via Netlify Function
+      console.log('[WelcomeScreen] Using backend OAuth flow')
+
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+      if (!clientId) {
+        alert('Google Client ID not configured')
+        return
+      }
+
+      // Redirect to Google OAuth with backend callback URL
+      const redirectUri = `${window.location.origin}/.netlify/functions/auth-callback`
+      const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
+
+      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+      authUrl.searchParams.set('client_id', clientId)
+      authUrl.searchParams.set('redirect_uri', redirectUri)
+      authUrl.searchParams.set('response_type', 'code')
+      authUrl.searchParams.set('scope', scope)
+      authUrl.searchParams.set('access_type', 'offline') // Get refresh token
+      authUrl.searchParams.set('prompt', 'consent') // Force consent to get refresh token
+
+      window.location.href = authUrl.toString()
+    } else {
+      // Backend unavailable: Fall back to browser-only OAuth (Sprint 19)
+      console.log('[WelcomeScreen] Using browser-only OAuth flow (fallback)')
+
+      if (!tokenClient) {
+        alert('Authentication not ready. Please refresh the page.')
+        return
+      }
+      tokenClient.requestAccessToken() // Opens Google OAuth popup
     }
-    tokenClient.requestAccessToken() // Opens Google OAuth popup
   }
 
   return (
