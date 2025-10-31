@@ -28,12 +28,12 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       if (window.google?.accounts?.oauth2) {
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          scope: 'openid email profile https://www.googleapis.com/auth/drive.file',
+          scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
           callback: async (tokenResponse: { access_token?: string; error?: string; error_description?: string; expires_in?: number; scope?: string; token_type?: string }) => {
             if (tokenResponse.access_token) {
               try {
-                // Use v1 endpoint to get user.sub (stable user ID)
-                const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+                // Use OpenID Connect endpoint to get user.sub (stable user ID)
+                const userInfoResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
                   headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
                 })
 
@@ -43,14 +43,14 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
 
                 const userInfo = await userInfoResponse.json()
 
-                // Use user.sub (stable across devices) instead of user.id
+                // userInfo.sub is the stable user ID (consistent across devices)
                 const userData: GoogleUser = {
-                  id: userInfo.sub || userInfo.id,
+                  id: userInfo.sub,
                   email: userInfo.email,
                   name: userInfo.name,
                   picture: userInfo.picture,
-                  verified_email: userInfo.verified_email,
-                  emailVerified: userInfo.verified_email,
+                  verified_email: userInfo.email_verified || false,
+                  emailVerified: userInfo.email_verified || false,
                 }
 
                 // Store user data in sessionStorage
@@ -58,7 +58,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
 
                 // Store user.sub for rate limiting and cross-device sync
                 const { userIdentityManager } = await import('../services/auth/tokenManager')
-                userIdentityManager.storeUserInfo(userInfo.sub, userInfo.email)
+                userIdentityManager.storeUserInfo(userData.id, userData.email)
 
                 // Store tokens using encrypted TokenManager
                 const { tokenManagerEncrypted } = await import('../services/auth/TokenManagerEncrypted')

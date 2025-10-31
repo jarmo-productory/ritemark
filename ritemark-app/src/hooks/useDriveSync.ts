@@ -19,7 +19,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { AutoSaveManager } from '../services/drive/autoSaveManager'
 import type { DriveSyncStatus, DriveFile } from '../types/drive'
-import { tokenManager } from '../services/auth/tokenManager'
+import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
 
 /**
  * Options for useDriveSync hook
@@ -114,7 +114,7 @@ export function useDriveSync(
       })
 
       try {
-        const accessToken = await tokenManager.getAccessToken()
+        const accessToken = await tokenManagerEncrypted.getAccessToken()
         if (!accessToken) {
           throw new Error('Not authenticated - please sign in')
         }
@@ -236,7 +236,7 @@ export function useDriveSync(
       }))
 
       try {
-        const accessToken = await tokenManager.getAccessToken()
+        const accessToken = await tokenManagerEncrypted.getAccessToken()
         if (!accessToken) {
           throw new Error('Not authenticated - please sign in')
         }

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react'
 import type { AuthContextType, GoogleUser } from '../types/auth'
+import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -39,6 +40,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           console.log('[AuthContext] Valid token found, restoring session')
           setUser(userData)
+
+          // Restore tokens to tokenManagerEncrypted memory
+          tokenManagerEncrypted.storeTokens(tokenData).catch((err) => {
+            console.error('[AuthContext] Failed to restore tokens:', err)
+          })
 
           // Restore user.sub from localStorage
           import('../services/auth/tokenManager').then(({ userIdentityManager }) => {
@@ -83,6 +89,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null)
       sessionStorage.removeItem('ritemark_user')
       sessionStorage.removeItem('ritemark_oauth_tokens') // Use correct key
+
+      // Clear encrypted tokens from IndexedDB and memory
+      tokenManagerEncrypted.clearTokens()
 
       // Clear user identity on logout
       const { userIdentityManager } = await import('../services/auth/tokenManager')

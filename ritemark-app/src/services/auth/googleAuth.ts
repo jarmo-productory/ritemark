@@ -1,6 +1,30 @@
 /**
  * Google OAuth 2.0 Service with PKCE Flow
  * Sprint 7: Google OAuth Implementation
+ * Sprint 19: Token encryption + user identity extraction
+ *
+ * ARCHITECTURE NOTE (Sprint 19):
+ * ================================
+ * This service contains TWO OAuth flow implementations:
+ *
+ * 1. **ACTIVE (Sprint 19)**: getUserInfo() - Used by WelcomeScreen.tsx
+ *    - Extracts user.sub from Google userinfo endpoint
+ *    - Called AFTER Google Identity Services (GIS) tokenClient provides access token
+ *    - Browser-only OAuth flow (no refresh tokens)
+ *
+ * 2. **FUTURE (Sprint 20)**: Authorization Code Flow methods - NOT YET WIRED
+ *    - initiateOAuthFlow() - Generates authorization URL
+ *    - handleCallback() - Processes OAuth callback
+ *    - exchangeCodeForTokens() - Exchanges code for tokens (requires Netlify Functions backend)
+ *    - These methods are SCAFFOLDING for Sprint 20 backend implementation
+ *    - Will enable 6-month sessions with refresh tokens
+ *
+ * SPRINT 20 MIGRATION PATH:
+ * - WelcomeScreen will detect backend availability (Netlify Functions)
+ * - If backend available → Authorization Code Flow (this service)
+ * - If backend unavailable → GIS tokenClient (current Sprint 19 path)
+ *
+ * See: /docs/sprints/sprint-20/README.md for backend implementation details
  */
 
 import type {
@@ -174,7 +198,6 @@ export class GoogleAuth {
       // Store user identity (user.sub) for cross-device sync
       const { userIdentityManager } = await import('./tokenManager');
       userIdentityManager.storeUserInfo(user.id, user.email);
-      console.log('[GoogleAuth] User identity stored:', user.id);
 
       // Store tokens securely
       await this.tokenManager.storeTokens(tokens);
@@ -286,8 +309,8 @@ export class GoogleAuth {
    */
   private async getUserProfile(accessToken: string): Promise<GoogleUser> {
     try {
-      // Use v1 endpoint to get user.sub (stable user ID)
-      const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+      // Use OpenID Connect endpoint to get user.sub (stable user ID)
+      const response = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -299,14 +322,14 @@ export class GoogleAuth {
 
       const data = await response.json();
 
-      // Use data.sub (stable across devices) instead of data.id
+      // data.sub is the stable user ID (consistent across devices and sessions)
       return {
-        id: data.sub,        // ✅ FIXED: Stable user ID for Sprint 20 & 21
+        id: data.sub,
         email: data.email,
         name: data.name,
         picture: data.picture,
-        verified_email: data.verified_email || false,
-        emailVerified: data.verified_email || false,
+        verified_email: data.email_verified || false,
+        emailVerified: data.email_verified || false,
       };
     } catch (_error) {
       console.error('Failed to fetch user profile:', _error);

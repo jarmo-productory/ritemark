@@ -6,7 +6,7 @@ import { useDriveSync } from './hooks/useDriveSync'
 import { useTokenValidator } from './hooks/useTokenValidator'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
 import { AuthContext } from './contexts/AuthContext'
-import { tokenManager } from './services/auth/tokenManager'
+import { tokenManagerEncrypted } from './services/auth/TokenManagerEncrypted'
 import type { DriveFile } from './types/drive'
 import type { Editor as TipTapEditor } from '@tiptap/react'
 import 'tippy.js/dist/tippy.css'
@@ -121,7 +121,9 @@ function App() {
   const handleOpenFromDrive = async () => {
 
     // Check if we have a valid access token
-    const accessToken = await tokenManager.getAccessToken()
+    const accessToken = await tokenManagerEncrypted.getAccessToken()
+
+    console.log('[App] Token retrieved for Drive open:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null')
 
     if (!accessToken) {
       // No valid token; open auth modal instead of showing picker

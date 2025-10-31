@@ -5,33 +5,20 @@ import { useAuth } from '../hooks/useAuth'
  * Settings Button (Simplified)
  *
  * Behavior:
- * - If authenticated: Shows logout confirmation dialog
+ * - If authenticated: Shows minimal visual indicator
  * - If not authenticated: Does nothing (user sees WelcomeScreen by default)
+ * - Note: Logout functionality is in the sidebar user avatar (UserAccountInfo component)
  */
 export function SettingsButton() {
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   const getOpacity = () => {
     return isAuthenticated ? 0.25 : 0.15
   }
 
-  const handleClick = () => {
-    if (!isAuthenticated) {
-      // Not authenticated - WelcomeScreen is already shown by App.tsx
-      return
-    }
-
-    // Authenticated - show logout confirmation
-    const confirmLogout = window.confirm('Are you sure you want to sign out?')
-    if (confirmLogout) {
-      logout()
-    }
-  }
-
   return (
     <button
       className="settings-button"
-      onClick={handleClick}
       style={{ opacity: getOpacity() }}
       aria-label={isAuthenticated ? 'Account Settings' : 'Sign In'}
     >

@@ -38,6 +38,7 @@ export class TokenManagerEncrypted {
   private accessToken: string | null = null; // Memory only - never persisted
   private accessTokenExpiry: number | null = null;
   private _idToken: string | null = null; // Memory only (reserved for future use)
+  private refreshTimerId: number | null = null; // Auto-refresh timer ID
 
   /**
    * Initialize IndexedDB connection
@@ -97,10 +98,9 @@ export class TokenManagerEncrypted {
         await db.put(STORE_NAME, tokenData, 'current');
 
         // Store scope version for re-authorization detection
-        sessionStorage.setItem(STORAGE_KEYS.SCOPE_VERSION, String(OAUTH_SCOPE_VERSION));
-      } else {
-        console.warn('No refresh token provided - only access token stored in memory');
+        localStorage.setItem(STORAGE_KEYS.SCOPE_VERSION, String(OAUTH_SCOPE_VERSION));
       }
+      // Note: No refresh token in browser-only OAuth (Sprint 19) - this is expected
 
       // Schedule automatic token refresh
       if (this.accessTokenExpiry) {
@@ -240,14 +240,20 @@ export class TokenManagerEncrypted {
    * Schedule automatic token refresh
    */
   private scheduleTokenRefresh(expiresAt: number): void {
+    // Clear existing timer if any
+    if (this.refreshTimerId !== null) {
+      clearTimeout(this.refreshTimerId);
+      this.refreshTimerId = null;
+    }
+
     const refreshTime = expiresAt - Date.now() - TOKEN_REFRESH_BUFFER;
 
     if (refreshTime > 0) {
-      setTimeout(() => {
+      this.refreshTimerId = setTimeout(() => {
         this.refreshAccessToken().catch((error) => {
           console.error('Auto-refresh failed:', error);
         });
-      }, refreshTime);
+      }, refreshTime) as unknown as number;
     }
   }
 
@@ -257,7 +263,7 @@ export class TokenManagerEncrypted {
    * @returns true if re-authorization required
    */
   private requiresReauthorization(): boolean {
-    const storedVersion = sessionStorage.getItem(STORAGE_KEYS.SCOPE_VERSION);
+    const storedVersion = localStorage.getItem(STORAGE_KEYS.SCOPE_VERSION);
     const currentVersion = String(OAUTH_SCOPE_VERSION);
 
     if (!storedVersion || storedVersion !== currentVersion) {
@@ -289,8 +295,14 @@ export class TokenManagerEncrypted {
     this._idToken = null;
     this.accessTokenExpiry = null;
 
+    // Clear auto-refresh timer
+    if (this.refreshTimerId !== null) {
+      clearTimeout(this.refreshTimerId);
+      this.refreshTimerId = null;
+    }
+
     // Clear scope version
-    sessionStorage.removeItem(STORAGE_KEYS.SCOPE_VERSION);
+    localStorage.removeItem(STORAGE_KEYS.SCOPE_VERSION);
 
     // Clear IndexedDB asynchronously (fire-and-forget)
     this.initDB().then(db => {

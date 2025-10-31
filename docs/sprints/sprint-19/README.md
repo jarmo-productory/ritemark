@@ -374,8 +374,8 @@ Google OAuth API (PKCE + RTR)
 
 ## 🎉 SPRINT 19 IMPLEMENTATION SUMMARY
 
-**Implementation Date**: October 30, 2025
-**Status**: 🔄 **READY FOR PR** - Code Cleanup Complete
+**Implementation Date**: October 30-31, 2025
+**Status**: ✅ **COMPLETE** - All Codex PR Issues Resolved
 **Decision**: Backend token refresh moved to Sprint 20
 **Value Score**: 7.2/10 (HIGH VALUE - Critical Sprint 20-21 dependencies met)
 
@@ -411,3 +411,107 @@ Google OAuth API (PKCE + RTR)
 - Estimated: 6-8 hours (1 day)
 
 **See**: `/docs/sprints/sprint-19/ARCHITECTURAL-DECISION.md` for full value analysis and architectural decision rationale.
+
+---
+
+## 🔧 Codex PR Review Fixes (October 31, 2025)
+
+**Session**: Post-implementation cleanup and bug fixes
+**Duration**: 2 hours
+**Issues Resolved**: 6 critical bugs from Codex code review
+
+### Critical Bugs Fixed
+
+1. **🚨 Google Picker Broken (Production Bug)**
+   - **Issue**: "Open from Drive" showing 403 error
+   - **Root Cause**: Missing `await` keywords when calling `tokenManagerEncrypted.getAccessToken()`
+   - **Impact**: Google Picker received `Promise<string>` instead of actual token
+   - **Files Fixed**:
+     - `src/App.tsx:124`
+     - `src/hooks/usePicker.ts:120`
+     - `src/hooks/useDriveSync.ts:117,239`
+   - **Result**: Google Picker now works correctly ✅
+
+2. **🎨 Logout Dialog UX (User-Reported)**
+   - **Issue**: Ugly `window.confirm()` dialog when clicking user avatar
+   - **Root Cause**: UserAccountInfo.tsx using browser native dialog
+   - **Files Fixed**:
+     - `src/components/sidebar/UserAccountInfo.tsx:77-107`
+     - Added shadcn/ui AlertDialog with user avatar, name, email
+   - **Result**: Beautiful logout confirmation dialog ✅
+
+3. **⚠️ HTML Hydration Error (React Warning)**
+   - **Issue**: `<div>` cannot be descendant of `<p>` - hydration error
+   - **Root Cause**: AlertDialogDescription renders as `<p>`, nested divs inside
+   - **Files Fixed**:
+     - `src/components/sidebar/UserAccountInfo.tsx:79-102`
+     - Moved user info div outside AlertDialogDescription
+   - **Result**: Clean React rendering, no warnings ✅
+
+4. **🐛 Token Restoration Bug (Session Persistence)**
+   - **Issue**: Access token null after page reload despite valid session
+   - **Root Cause**: AuthContext restored user profile but never called `storeTokens()` to restore access token to memory
+   - **Files Fixed**:
+     - `src/contexts/AuthContext.tsx:44-47`
+     - Added `tokenManagerEncrypted.storeTokens(tokenData)` to session init
+   - **Result**: Tokens properly restored after reload ✅
+
+5. **⏰ Auto-Refresh Timer Memory Leak**
+   - **Issue**: Scheduled token refresh timer not cleaned up on logout
+   - **Files Fixed**:
+     - `src/services/auth/TokenManagerEncrypted.ts:41,244-258,299-303`
+     - Added `refreshTimerId` property and cleanup in `clearTokens()`
+   - **Result**: No zombie timers after logout ✅
+
+6. **📦 Scope Version Storage (UX Improvement)**
+   - **Issue**: Scope version in sessionStorage, lost when browser tab closes
+   - **Files Fixed**:
+     - `src/services/auth/TokenManagerEncrypted.ts:101,267,306`
+     - Changed sessionStorage → localStorage
+   - **Result**: Better UX, no unnecessary re-authentication ✅
+
+### Documentation & Architecture Updates
+
+**New Documentation**:
+- `/docs/architecture/visual-architecture.md` - Comprehensive UI layout guide (103 lines)
+  - ASCII layout diagrams showing component positions
+  - Component hierarchy with file paths
+  - Critical UI locations (logout in sidebar, NOT settings button)
+
+**Claude Skill Created**:
+- `.claude/skills/ui-architecture/SKILL.md` - Auto-loads visual architecture docs
+  - Prevents future UI location confusion
+  - Triggers on UI-related work
+  - Provides component hierarchy context
+
+**CLAUDE.md Updated**:
+- Added comprehensive incident documentation for async/await bug
+- Pre-flight checklist for touching async code
+- Browser validation requirements before claiming "done"
+
+### Files Modified (10 total)
+- `src/App.tsx` - Fixed async/await for token retrieval
+- `src/components/SettingsButton.tsx` - Reverted to visual indicator only
+- `src/components/WelcomeScreen.tsx` - Sprint 19 OAuth upgrades
+- `src/components/sidebar/UserAccountInfo.tsx` - Beautiful logout dialog + HTML fix
+- `src/contexts/AuthContext.tsx` - Token restoration fix
+- `src/hooks/useDriveSync.ts` - Fixed async/await (2 locations)
+- `src/hooks/usePicker.ts` - Fixed async/await
+- `src/services/auth/TokenManagerEncrypted.ts` - Timer cleanup + localStorage
+- `src/services/auth/googleAuth.ts` - Sprint 19 user identity
+- `src/test/setup.ts` - Web Crypto polyfill
+
+### Validation Results
+- ✅ TypeScript: `npm run type-check` PASSED (zero errors)
+- ✅ Production Build: `npm run build` SUCCESS (4.88s)
+- ✅ Dev Server: Running cleanly on localhost:5173
+- ✅ Hot Reload: Working correctly (HMR updates successful)
+- ✅ No Console Errors: Clean browser console
+- ✅ No React Warnings: Hydration error resolved
+
+### Sprint 19 Final Status
+**COMPLETE** ✅ - All original goals achieved + all Codex PR issues resolved
+
+**Ready For**:
+1. PR merge to main
+2. Sprint 20: Cross-Device Settings Sync (unblocked by user.sub + drive.appdata)
