@@ -97,7 +97,7 @@ export function UserAccountInfo() {
               </div>
             </div>
             <AlertDialogDescription>
-              You'll need to sign in again to continue using RiteMark.
+              This will sign you out of RiteMark. Sign in again to access your documents and settings.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
