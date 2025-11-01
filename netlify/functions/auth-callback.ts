@@ -94,10 +94,14 @@ export const handler: Handler = async (event: HandlerEvent) => {
     // - Production/staging/preview all use the fixed production Function URL
     // - Local development uses the Netlify CLI URL
     const requestUrl = event.rawUrl ? new URL(event.rawUrl) : null
-    const isLocal = requestUrl && requestUrl.host.startsWith('localhost')
+    const host = requestUrl?.host || ''
+    const isLocal = host.startsWith('localhost')
+    const isPreview = /deploy-preview-\d+--ritemark\.netlify\.app$/.test(host)
     const redirectUri = isLocal
       ? 'http://localhost:8888/.netlify/functions/auth-callback'
-      : FIXED_REDIRECT_URI
+      : isPreview && requestUrl
+        ? `${requestUrl.protocol}//${requestUrl.host}/.netlify/functions/auth-callback`
+        : FIXED_REDIRECT_URI
 
     console.log('[auth-callback] Using redirect URI for token exchange:', redirectUri)
 

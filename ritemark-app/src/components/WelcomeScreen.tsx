@@ -221,10 +221,14 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       // Codex Solution: Use a single fixed redirect URI (production Function)
       // Carry the current environment (origin) in a signed state parameter.
       // For local dev via `netlify dev`, allow localhost callback as an additional authorized URI.
-      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      const host = window.location.hostname
+      const isLocalDev = host === 'localhost' || host === '127.0.0.1'
+      const isPreview = host.includes('deploy-preview')
       const fixedRedirectUri = isLocalDev
         ? 'http://localhost:8888/.netlify/functions/auth-callback'
-        : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
+        : isPreview
+          ? `${window.location.origin}/.netlify/functions/auth-callback`
+          : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
 
       console.log('[WelcomeScreen] Using redirect URI:', fixedRedirectUri)
 
