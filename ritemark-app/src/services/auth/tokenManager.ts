@@ -4,17 +4,51 @@
  */
 
 import type { OAuthTokens, TokenRefreshResult, AuthError } from '../../types/auth';
-import { AUTH_ERRORS } from '../../types/auth';
+import { AUTH_ERRORS, OAUTH_SCOPE_VERSION } from '../../types/auth';
 
 const STORAGE_KEYS = {
   TOKENS: 'ritemark_oauth_tokens',
   TOKEN_EXPIRY: 'ritemark_token_expiry',
   REFRESH_TOKEN: 'ritemark_refresh_token',
+  SCOPE_VERSION: 'ritemark_scope_version', // Track scope version for re-auth
 } as const;
 
 const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // Refresh 5 minutes before expiry
 
 export class TokenManager {
+  /**
+   * Check if stored tokens have the latest scope version
+   * Force re-authorization when scopes change
+   * @returns true if re-authorization required
+   */
+  private requiresReauthorization(): boolean {
+    const storedVersion = sessionStorage.getItem(STORAGE_KEYS.SCOPE_VERSION);
+    const currentVersion = String(OAUTH_SCOPE_VERSION);
+
+    if (!storedVersion || storedVersion !== currentVersion) {
+      console.warn(
+        `🔄 Scope version changed (stored: ${storedVersion}, current: ${currentVersion}). Re-authorization required.`
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Check tokens and clear if scope version outdated
+   * Force re-auth when drive.appdata scope added
+   * @returns true if tokens were cleared
+   */
+  checkAndClearOutdatedTokens(): boolean {
+    if (this.requiresReauthorization()) {
+      console.log('🗑️  Clearing outdated tokens - new scopes require re-authorization');
+      this.clearTokens();
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Store OAuth tokens securely in sessionStorage
    * Note: Production should use httpOnly cookies, this is for development
@@ -37,6 +71,24 @@ export class TokenManager {
       const refreshToken = tokens.refreshToken || tokens.refresh_token;
       if (refreshToken) {
         sessionStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+      }
+
+      // Store scope version (Track scope changes for re-auth)
+      sessionStorage.setItem(STORAGE_KEYS.SCOPE_VERSION, String(OAUTH_SCOPE_VERSION));
+
+      // Verify and log scope from token response (Validate drive.appdata)
+      if (tokens.scope) {
+        const hasAppDataScope = tokens.scope.includes('drive.appdata');
+        const hasFileScope = tokens.scope.includes('drive.file');
+        console.log(`✅ OAuth scopes granted:`, {
+          'drive.file': hasFileScope,
+          'drive.appdata': hasAppDataScope,
+          full: tokens.scope,
+        });
+
+        if (!hasAppDataScope) {
+          console.warn('⚠️  drive.appdata scope not granted - cross-device sync unavailable');
+        }
       }
 
       // Set up automatic refresh timer
@@ -110,7 +162,7 @@ export class TokenManager {
 
   /**
    * Refresh access token using refresh token
-   * Note: This is a placeholder - actual implementation requires backend or Google OAuth library
+   * Implements token rotation - new refresh token invalidates the old one
    * @returns TokenRefreshResult with new tokens or error
    */
   async refreshAccessToken(): Promise<TokenRefreshResult> {
@@ -126,33 +178,128 @@ export class TokenManager {
       };
     }
 
-    // TODO: Implement actual token refresh with Google OAuth
-    // For now, return failure to trigger re-authentication
-    console.warn('Token refresh not yet implemented, user must re-authenticate');
-    return {
-      success: false,
-      error: this.createAuthError(
-        AUTH_ERRORS.REFRESH_FAILED,
-        'Token refresh requires re-authentication',
-        true
-      ),
-    };
+    try {
+      // Get client ID from environment
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        throw new Error('Google Client ID not configured');
+      }
+
+      // Exchange refresh token for new access token
+      // Google OAuth endpoint: https://oauth2.googleapis.com/token
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: clientId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Token refresh failed:', errorData);
+
+        // Clear invalid tokens
+        this.clearTokens();
+
+        throw new Error(errorData.error_description || 'Token refresh failed');
+      }
+
+      const tokenData = await response.json();
+
+      // Build new tokens object
+      const newTokens: OAuthTokens = {
+        access_token: tokenData.access_token,
+        accessToken: tokenData.access_token,
+        token_type: tokenData.token_type,
+        tokenType: tokenData.token_type,
+        expires_in: tokenData.expires_in,
+        expiresAt: Date.now() + tokenData.expires_in * 1000,
+        scope: tokenData.scope,
+        // Google returns a new refresh token on rotation
+        refresh_token: tokenData.refresh_token || refreshToken,
+        refreshToken: tokenData.refresh_token || refreshToken,
+      };
+
+      // Store new tokens (this will schedule proactive refresh)
+      await this.storeTokens(newTokens);
+
+      console.log('✅ Token refreshed successfully, scheduled next refresh');
+
+      return {
+        success: true,
+        tokens: newTokens,
+      };
+    } catch (error) {
+      console.error('Token refresh error:', error);
+
+      // Clear tokens on refresh failure
+      this.clearTokens();
+
+      return {
+        success: false,
+        error: this.createAuthError(
+          AUTH_ERRORS.REFRESH_FAILED,
+          error instanceof Error ? error.message : 'Token refresh failed',
+          true
+        ),
+      };
+    }
   }
 
   /**
    * Schedule automatic token refresh before expiry
+   * Proactive refresh: Runs 5 minutes before token expires
    * @param expiresAt - Token expiry timestamp
    */
   private scheduleTokenRefresh(expiresAt: number): void {
     const refreshTime = expiresAt - Date.now() - TOKEN_REFRESH_BUFFER;
 
     if (refreshTime > 0) {
-      setTimeout(() => {
-        this.refreshAccessToken().catch((_error) => {
-          console.error('Automatic token refresh failed:', _error);
-        });
+      const minutes = Math.floor(refreshTime / 60000);
+      console.log(`📅 Scheduled proactive token refresh in ${minutes} minutes`);
+
+      setTimeout(async () => {
+        console.log('⏰ Proactive token refresh triggered');
+        const result = await this.refreshAccessToken();
+
+        if (!result.success) {
+          console.error('🚨 Proactive token refresh failed:', result.error);
+          // Token refresh failure will clear tokens and user must re-authenticate
+        }
       }, refreshTime);
+    } else {
+      console.warn('⚠️  Token already expired or expires soon, immediate refresh needed');
     }
+  }
+
+  /**
+   * Refresh token if needed (reactive refresh)
+   * Called before API requests to ensure token is valid
+   * @returns Promise resolving to true if token is valid, false if refresh failed
+   */
+  async refreshTokenIfNeeded(): Promise<boolean> {
+    // Check if token is expired or expiring soon
+    if (!this.isTokenExpired()) {
+      return true; // Token is still valid
+    }
+
+    console.log('🔄 Token expired or expiring soon, refreshing...');
+
+    // Attempt to refresh token
+    const result = await this.refreshAccessToken();
+
+    if (result.success) {
+      console.log('✅ Reactive token refresh successful');
+      return true;
+    }
+
+    console.error('❌ Reactive token refresh failed:', result.error);
+    return false;
   }
 
   /**
@@ -161,6 +308,7 @@ export class TokenManager {
   clearTokens(): void {
     sessionStorage.removeItem(STORAGE_KEYS.TOKENS);
     sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.SCOPE_VERSION); // Clear scope version
   }
 
   /**
@@ -207,3 +355,61 @@ export class TokenManager {
 }
 
 export const tokenManager = new TokenManager();
+
+// User identity storage interface
+interface UserInfo {
+  userId: string;      // Google user.sub - stable across devices
+  email: string;       // For display only
+  createdAt: number;   // Timestamp
+}
+
+// Add USER_INFO key
+const USER_INFO_KEY = 'ritemark_user_info';
+
+// User identity methods
+export const userIdentityManager = {
+  /**
+   * Store user identity information
+   * Used for rate limiting and cross-device sync
+   * @param userId - Google user.sub (stable user ID)
+   * @param email - User email (for display only)
+   */
+  storeUserInfo(userId: string, email: string): void {
+    try {
+      const userInfo: UserInfo = {
+        userId,
+        email,
+        createdAt: Date.now(),
+      };
+      localStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo));
+      console.log('✅ User identity stored:', { userId, email });
+    } catch (error) {
+      console.error('Failed to store user info:', error);
+    }
+  },
+
+  /**
+   * Retrieve user identity information
+   * @returns User info or null if not found
+   */
+  getUserInfo(): UserInfo | null {
+    try {
+      const userInfoStr = localStorage.getItem(USER_INFO_KEY);
+      if (!userInfoStr) {
+        return null;
+      }
+      return JSON.parse(userInfoStr) as UserInfo;
+    } catch (error) {
+      console.error('Failed to retrieve user info:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Clear user identity on logout
+   */
+  clearUserInfo(): void {
+    localStorage.removeItem(USER_INFO_KEY);
+    console.log('🗑️  User identity cleared');
+  }
+};

@@ -14,7 +14,7 @@ import type { Editor as TipTapEditor } from '@tiptap/react'
  * - Inserts table with header row by default
  * - Mobile-responsive (touch-friendly)
  *
- * @see /docs/sprints/sprint-11-task-breakdown.md - Phase 2 Tasks
+ * @see /docs/sprints/sprint-11-task-breakdown.md - Tasks
  */
 
 interface TablePickerProps {

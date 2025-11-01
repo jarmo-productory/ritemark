@@ -115,6 +115,7 @@ export interface IPKCEGenerator {
 
 export interface AuthContextType {
   user: GoogleUser | null
+  userId: string | null // Google user.sub for rate limiting
   isAuthenticated: boolean
   isLoading: boolean
   login: () => Promise<void>
@@ -171,7 +172,12 @@ export const OAUTH_SCOPES = [
   'email',
   'profile',
   'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.appdata', // Cross-device settings sync
 ] as const
+
+// Scope version for breaking changes (Added drive.appdata)
+// Increment this when scopes change to force user re-authorization
+export const OAUTH_SCOPE_VERSION = 2 // v1: drive.file only, v2: + drive.appdata
 
 // Standard auth error codes
 export const AUTH_ERRORS = {

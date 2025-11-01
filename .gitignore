@@ -32,3 +32,4 @@ claude-flow.ps1
 # Only docs/user-guide/ should be public
 docs/*
 !docs/user-guide/
+.env

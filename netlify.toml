@@ -1,11 +1,22 @@
 [build]
   base = "ritemark-app"
   publish = "dist"
-  command = "npm ci && npm run build"
+  command = "cd .. && npm ci && cd ritemark-app && npm ci && npm run build"
+  functions = "../netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
   HUSKY = "0"
+
+# Netlify Functions configuration (Sprint 20)
+[functions]
+  node_bundler = "esbuild"
+
+# API endpoint redirects (Sprint 20 - Backend Token Refresh)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
 
 [[redirects]]
   from = "/"
@@ -26,7 +37,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://unpkg.com; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com; frame-src https://accounts.google.com https://content-googleapis-com.storage.googleapis.com https://docs.google.com https://drive.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; style-src-elem 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://unpkg.com; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com; frame-src https://accounts.google.com https://content-googleapis-com.storage.googleapis.com https://docs.google.com https://drive.google.com https://app.netlify.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; style-src-elem 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; upgrade-insecure-requests"
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"

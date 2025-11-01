@@ -1,6 +1,6 @@
 /**
  * FileCache Usage Examples
- * Sprint 8 Phase 1: Google Drive API Integration
+ * Sprint 8 Google Drive API Integration
  *
  * Demonstrates offline-first file caching patterns for RiteMark
  */

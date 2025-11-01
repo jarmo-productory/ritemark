@@ -1,6 +1,6 @@
 /**
  * FileCache Service - IndexedDB wrapper for offline persistence
- * Sprint 8 Phase 1: Google Drive API Integration
+ * Sprint 8 Google Drive API Integration
  *
  * Provides offline-first file caching with sync queue management
  * Handles iOS Safari tab suspension and network failures

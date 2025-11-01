@@ -22,7 +22,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { tokenManager } from '../services/auth/tokenManager'
+import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
 
 /**
  * Return type for usePicker hook
@@ -117,11 +117,13 @@ export function usePicker(): UsePickerReturn {
     const initPicker = async () => {
       try {
         // Get OAuth token
-        const token = await tokenManager.getAccessToken()
+        const token = await tokenManagerEncrypted.getAccessToken()
         if (!token) {
           console.warn('No OAuth token available - user must sign in')
           return
         }
+
+        console.log('[usePicker] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'null')
 
         setOauthToken(token)
 

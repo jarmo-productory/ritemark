@@ -1,6 +1,30 @@
 /**
  * Google OAuth 2.0 Service with PKCE Flow
  * Sprint 7: Google OAuth Implementation
+ * Sprint 19: Token encryption + user identity extraction
+ *
+ * ARCHITECTURE NOTE (Sprint 19):
+ * ================================
+ * This service contains TWO OAuth flow implementations:
+ *
+ * 1. **ACTIVE (Sprint 19)**: getUserInfo() - Used by WelcomeScreen.tsx
+ *    - Extracts user.sub from Google userinfo endpoint
+ *    - Called AFTER Google Identity Services (GIS) tokenClient provides access token
+ *    - Browser-only OAuth flow (no refresh tokens)
+ *
+ * 2. **FUTURE (Sprint 20)**: Authorization Code Flow methods - NOT YET WIRED
+ *    - initiateOAuthFlow() - Generates authorization URL
+ *    - handleCallback() - Processes OAuth callback
+ *    - exchangeCodeForTokens() - Exchanges code for tokens (requires Netlify Functions backend)
+ *    - These methods are SCAFFOLDING for Sprint 20 backend implementation
+ *    - Will enable 6-month sessions with refresh tokens
+ *
+ * SPRINT 20 MIGRATION PATH:
+ * - WelcomeScreen will detect backend availability (Netlify Functions)
+ * - If backend available → Authorization Code Flow (this service)
+ * - If backend unavailable → GIS tokenClient (current Sprint 19 path)
+ *
+ * See: /docs/sprints/sprint-20/README.md for backend implementation details
  */
 
 import type {
@@ -14,7 +38,7 @@ import type {
 } from '../../types/auth';
 import { OAUTH_SCOPES, AUTH_ERRORS } from '../../types/auth';
 import { PKCEGenerator } from './pkceGenerator';
-import { TokenManager } from './tokenManager';
+import { TokenManagerEncrypted } from './TokenManagerEncrypted';
 
 const OAUTH_STATE_KEY = 'ritemark_oauth_state';
 
@@ -23,7 +47,7 @@ export class GoogleAuth {
   private redirectUri: string;
   private scopes: string[];
   private pkceGenerator: PKCEGenerator;
-  private tokenManager: TokenManager;
+  private tokenManager: TokenManagerEncrypted;
 
   constructor(config: OAuthConfig) {
     // Validate required config (unless mock mode)
@@ -35,7 +59,44 @@ export class GoogleAuth {
     this.redirectUri = config.redirectUri;
     this.scopes = config.scopes || [...OAUTH_SCOPES];
     this.pkceGenerator = new PKCEGenerator();
-    this.tokenManager = new TokenManager();
+    this.tokenManager = new TokenManagerEncrypted();
+
+    // Initialize: Check for stored refresh token and attempt to restore session
+    this.initializeWithStoredTokens().catch((error) => {
+      console.warn('Failed to initialize with stored tokens:', error);
+    });
+  }
+
+  /**
+   * Initialize authentication with stored refresh token (if available)
+   * Attempts to restore session on app load
+   * Token persistence across browser restarts
+   */
+  private async initializeWithStoredTokens(): Promise<void> {
+    const refreshToken = await this.tokenManager.getRefreshToken();
+
+    if (!refreshToken) {
+      console.log('📭 No stored refresh token found');
+      return;
+    }
+
+    console.log('🔄 Found stored refresh token, attempting to restore session...');
+
+    // Check if tokens are expired
+    if (!this.tokenManager.isTokenExpired()) {
+      console.log('✅ Existing tokens still valid');
+      return;
+    }
+
+    // Token expired, try to refresh
+    const result = await this.tokenManager.refreshAccessToken();
+
+    if (result.success) {
+      console.log('✅ Session restored with stored refresh token');
+    } else {
+      console.warn('❌ Failed to restore session, user must re-authenticate');
+      this.tokenManager.clearTokens();
+    }
   }
 
   /**
@@ -134,6 +195,10 @@ export class GoogleAuth {
       // Retrieve user profile
       const user = await this.getUserProfile(tokens.accessToken || tokens.access_token || '');
 
+      // Store user identity (user.sub) for cross-device sync
+      const { userIdentityManager } = await import('./tokenManager');
+      userIdentityManager.storeUserInfo(user.id, user.email);
+
       // Store tokens securely
       await this.tokenManager.storeTokens(tokens);
 
@@ -183,9 +248,15 @@ export class GoogleAuth {
 
   /**
    * Check if user is currently authenticated
+   * Check scope version and force re-auth if outdated
    * @returns True if valid tokens exist, false otherwise
    */
   isAuthenticated(): boolean {
+    // Check scope version first (Force re-auth if scopes changed)
+    if (this.tokenManager.checkAndClearOutdatedTokens()) {
+      return false; // Tokens cleared, user must re-authenticate
+    }
+
     const tokens = sessionStorage.getItem('ritemark_oauth_tokens');
     return !!tokens;
   }
@@ -234,10 +305,12 @@ export class GoogleAuth {
 
   /**
    * Retrieve user profile from Google API
+   * Extract stable user.sub for cross-device identity
    */
   private async getUserProfile(accessToken: string): Promise<GoogleUser> {
     try {
-      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      // Use OpenID Connect endpoint to get user.sub (stable user ID)
+      const response = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -249,13 +322,14 @@ export class GoogleAuth {
 
       const data = await response.json();
 
+      // data.sub is the stable user ID (consistent across devices and sessions)
       return {
-        id: data.id,
+        id: data.sub,
         email: data.email,
         name: data.name,
         picture: data.picture,
-        verified_email: data.verified_email || false,
-        emailVerified: data.verified_email || false,
+        verified_email: data.email_verified || false,
+        emailVerified: data.email_verified || false,
       };
     } catch (_error) {
       console.error('Failed to fetch user profile:', _error);
