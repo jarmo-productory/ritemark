@@ -221,14 +221,12 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       // Codex Solution: Use a single fixed redirect URI (production Function)
       // Carry the current environment (origin) in a signed state parameter.
       // For local dev via `netlify dev`, allow localhost callback as an additional authorized URI.
+      // NOTE: Preview deploys will NOT have working OAuth (Google doesn't support per-PR URLs)
       const host = window.location.hostname
       const isLocalDev = host === 'localhost' || host === '127.0.0.1'
-      const isPreview = host.includes('deploy-preview')
       const fixedRedirectUri = isLocalDev
         ? 'http://localhost:8888/.netlify/functions/auth-callback'
-        : isPreview
-          ? `${window.location.origin}/.netlify/functions/auth-callback`
-          : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
+        : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
 
       console.log('[WelcomeScreen] Using redirect URI:', fixedRedirectUri)
 
@@ -236,7 +234,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
 
       // Encode return destination in state (where to redirect after OAuth)
       const state = {
-        origin: window.location.origin,  // Preview or production origin
+        origin: window.location.origin,  // Local dev or production origin
         returnPath: '/app',              // Ensure the SPA route, not landing page
         nonce: crypto.randomUUID(),      // CSRF protection
         ts: Date.now()                   // Replay protection

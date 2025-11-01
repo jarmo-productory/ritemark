@@ -91,17 +91,14 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
   try {
     // Choose redirect URI for token exchange:
-    // - Production/staging/preview all use the fixed production Function URL
+    // - Production uses the fixed production Function URL
     // - Local development uses the Netlify CLI URL
+    // - Preview deploys will fail (Google OAuth doesn't support per-PR URLs)
     const requestUrl = event.rawUrl ? new URL(event.rawUrl) : null
-    const host = requestUrl?.host || ''
-    const isLocal = host.startsWith('localhost')
-    const isPreview = /deploy-preview-\d+--ritemark\.netlify\.app$/.test(host)
+    const isLocal = requestUrl?.host?.startsWith('localhost') ?? false
     const redirectUri = isLocal
       ? 'http://localhost:8888/.netlify/functions/auth-callback'
-      : isPreview && requestUrl
-        ? `${requestUrl.protocol}//${requestUrl.host}/.netlify/functions/auth-callback`
-        : FIXED_REDIRECT_URI
+      : FIXED_REDIRECT_URI
 
     console.log('[auth-callback] Using redirect URI for token exchange:', redirectUri)
 
