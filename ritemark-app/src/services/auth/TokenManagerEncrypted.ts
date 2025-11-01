@@ -210,8 +210,8 @@ export class TokenManagerEncrypted {
       };
 
       // Store new access token (no refresh token - stays server-side)
-      this.accessToken = newTokens.accessToken;
-      this.accessTokenExpiry = newTokens.expiresAt;
+      this.accessToken = newTokens.accessToken ?? null;
+      this.accessTokenExpiry = newTokens.expiresAt ?? null;
 
       // Schedule next refresh
       if (newTokens.expiresAt) {
