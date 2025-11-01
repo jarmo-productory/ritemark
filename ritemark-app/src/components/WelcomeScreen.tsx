@@ -219,8 +219,15 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       }
 
       // Codex Solution: Fixed redirect URI + state-based return routing
-      // Always use production Function URL (registered in Google Console)
-      const fixedRedirectUri = 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
+      // TEMPORARY: Use preview Function URL for testing (before production deploy)
+      // TODO: Switch to production URL after merging to main
+      const isPreview = window.location.hostname.includes('deploy-preview')
+      const fixedRedirectUri = isPreview
+        ? `${window.location.origin}/.netlify/functions/auth-callback`  // Preview Function
+        : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'  // Production Function
+
+      console.log('[WelcomeScreen] Using redirect URI:', fixedRedirectUri)
+
       const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
 
       // Encode return destination in state (where to redirect after OAuth)

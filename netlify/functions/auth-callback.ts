@@ -90,11 +90,21 @@ export const handler: Handler = async (event: HandlerEvent) => {
   }
 
   try {
-    // Initialize OAuth2 client with FIXED redirect URI
+    // Derive redirect URI from request (for preview testing)
+    // TEMPORARY: Allows testing on preview deploys before production merge
+    // TODO: Switch to FIXED_REDIRECT_URI only after production deploy
+    const requestUrl = event.rawUrl ? new URL(event.rawUrl) : null
+    const redirectUri = requestUrl
+      ? `${requestUrl.protocol}//${requestUrl.host}/.netlify/functions/auth-callback`
+      : FIXED_REDIRECT_URI
+
+    console.log('[auth-callback] Using redirect URI for token exchange:', redirectUri)
+
+    // Initialize OAuth2 client with redirect URI that matches initial request
     const oauth2Client = new google.auth.OAuth2(
       CLIENT_ID,
       CLIENT_SECRET,
-      FIXED_REDIRECT_URI
+      redirectUri
     )
 
     console.log('[auth-callback] Exchanging code for tokens...')
