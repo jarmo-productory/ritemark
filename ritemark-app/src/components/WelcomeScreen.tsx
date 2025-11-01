@@ -207,8 +207,12 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   }, [accessTokenReceived])
 
   const handleSignIn = () => {
+    // TEMPORARY: Force browser-only OAuth if backend check fails
+    // Allows login while waiting for Google Console redirect URI updates
+    const forceBackendOAuth = import.meta.env.VITE_FORCE_BACKEND_OAUTH === 'true'
+
     // Sprint 20 Phase 0: Check backend availability
-    if (backendAvailable === true) {
+    if (backendAvailable === true && forceBackendOAuth) {
       // Backend available: Use Authorization Code Flow via Netlify Function
       console.log('[WelcomeScreen] Using backend OAuth flow')
 
