@@ -1,7 +1,7 @@
 [build]
   base = "ritemark-app"
   publish = "dist"
-  command = "npm ci && npm run build"
+  command = "cd .. && npm ci && cd ritemark-app && npm ci && npm run build"
   functions = "../netlify/functions"
 
 [build.environment]
