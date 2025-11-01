@@ -22,20 +22,6 @@ import { getStore } from '@netlify/blobs'
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 
-/**
- * Detect frontend URL based on deployment context
- * Netlify automatically provides `URL` for all deploys:
- * - Preview deploys: https://deploy-preview-11--ritemark.netlify.app
- * - Production: https://ritemark.netlify.app
- * - Local dev: Falls back to environment variable or localhost
- *
- * See: https://docs.netlify.com/configure-builds/environment-variables/
- */
-const FRONTEND_URL = process.env.URL ||
-  process.env.NETLIFY_SITE_URL ||
-  process.env.FRONTEND_URL ||
-  'http://localhost:5173'
-
 // Netlify Blob store for refresh tokens
 const REFRESH_TOKENS_STORE = 'refresh-tokens'
 
@@ -55,6 +41,11 @@ const REFRESH_TOKEN_TTL = 180 * 24 * 60 * 60 * 1000
 export const handler: Handler = async (event: HandlerEvent) => {
   console.log('[auth-callback] Received OAuth callback')
 
+  // Derive base URL from incoming request (not env vars!)
+  // This ensures preview deploys round-trip correctly
+  const baseUrl = getBaseUrl(event)
+  console.log('[auth-callback] Detected base URL:', baseUrl)
+
   // Extract authorization code from query params
   const code = event.queryStringParameters?.code
   const error = event.queryStringParameters?.error
@@ -62,7 +53,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
   // Handle user denial or OAuth errors
   if (error) {
     console.error('[auth-callback] OAuth error:', error)
-    return redirect(FRONTEND_URL, {
+    return redirect(baseUrl, {
       error: error,
       error_description: event.queryStringParameters?.error_description || 'OAuth failed'
     })
@@ -70,18 +61,18 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
   if (!code) {
     console.error('[auth-callback] Missing authorization code')
-    return redirect(FRONTEND_URL, {
+    return redirect(baseUrl, {
       error: 'missing_code',
       error_description: 'Authorization code not provided'
     })
   }
 
   try {
-    // Initialize OAuth2 client
+    // Initialize OAuth2 client with per-request base URL
     const oauth2Client = new google.auth.OAuth2(
       CLIENT_ID,
       CLIENT_SECRET,
-      `${FRONTEND_URL}/.netlify/functions/auth-callback`
+      `${baseUrl}/.netlify/functions/auth-callback`
     )
 
     console.log('[auth-callback] Exchanging code for tokens...')
@@ -141,7 +132,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     // Redirect to frontend with access token
     // Note: Access token in URL is OK (short-lived, 1-hour)
     // Refresh token never sent to browser (stored server-side)
-    return redirect(FRONTEND_URL, {
+    return redirect(baseUrl, {
       access_token: tokens.access_token,
       expires_in: '3600', // 1 hour
       token_type: 'Bearer',
@@ -151,11 +142,35 @@ export const handler: Handler = async (event: HandlerEvent) => {
   } catch (error) {
     console.error('[auth-callback] Token exchange failed:', error)
 
-    return redirect(FRONTEND_URL, {
+    return redirect(baseUrl, {
       error: 'auth_failed',
       error_description: error instanceof Error ? error.message : 'Token exchange failed'
     })
   }
+}
+
+/**
+ * Helper: Get base URL from incoming request
+ *
+ * GPT-5 Solution: Derive URL from request, not environment variables!
+ * - process.env.URL is ALWAYS production URL, even for preview deploys
+ * - Must parse from event.rawUrl or x-forwarded-* headers
+ *
+ * This ensures preview deploys round-trip correctly:
+ * - Preview: https://deploy-preview-11--ritemark.netlify.app
+ * - Production: https://ritemark.netlify.app
+ */
+function getBaseUrl(event: HandlerEvent): string {
+  // Best: Use rawUrl if available
+  if (event.rawUrl) {
+    const url = new URL(event.rawUrl)
+    return `${url.protocol}//${url.host}`
+  }
+
+  // Fallback: Reconstruct from headers
+  const proto = event.headers['x-forwarded-proto'] || 'https'
+  const host = event.headers['x-forwarded-host'] || event.headers.host || 'localhost:8888'
+  return `${proto}://${host}`
 }
 
 /**
