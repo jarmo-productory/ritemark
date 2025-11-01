@@ -112,19 +112,26 @@ export const handler: Handler = async (event: HandlerEvent) => {
       throw new Error('No ID token received from Google')
     }
 
-    // Store refresh token in Netlify Blob (if provided)
+    // Store refresh token in Netlify Blob (if provided and Blobs configured)
     if (tokens.refresh_token) {
-      const store = getStore(REFRESH_TOKENS_STORE)
+      try {
+        const store = getStore(REFRESH_TOKENS_STORE)
 
-      await store.set(userId, tokens.refresh_token, {
-        metadata: {
-          createdAt: Date.now().toString(),
-          expiresAt: (Date.now() + REFRESH_TOKEN_TTL).toString(),
-          userId: userId
-        }
-      })
+        await store.set(userId, tokens.refresh_token, {
+          metadata: {
+            createdAt: Date.now().toString(),
+            expiresAt: (Date.now() + REFRESH_TOKEN_TTL).toString(),
+            userId: userId
+          }
+        })
 
-      console.log('[auth-callback] Refresh token stored for user:', userId)
+        console.log('[auth-callback] ✅ Refresh token stored for user:', userId)
+      } catch (blobError) {
+        // Netlify Blobs not configured - this is OK for testing
+        // OAuth flow will still work, but sessions won't persist server-side
+        console.warn('[auth-callback] ⚠️  Netlify Blobs not configured, skipping refresh token storage')
+        console.warn('[auth-callback] Error:', blobError instanceof Error ? blobError.message : blobError)
+      }
     } else {
       console.warn('[auth-callback] No refresh token received (may need prompt=consent)')
     }
