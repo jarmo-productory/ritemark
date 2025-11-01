@@ -1,0 +1,21 @@
+{
+  "name": "ritemark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RiteMark: WYSIWYG Markdown Editor - Root package for Netlify Functions",
+  "type": "module",
+  "scripts": {
+    "install-app": "cd ritemark-app && npm install"
+  },
+  "dependencies": {
+    "googleapis": "^159.0.0",
+    "@netlify/blobs": "^10.3.1"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^5.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jarmo-productory/ritemark.git"
+  }
+}
