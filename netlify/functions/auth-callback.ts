@@ -58,10 +58,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
   const error = event.queryStringParameters?.error
 
   // Parse and validate state
-  let state: { origin: string; nonce: string; ts: number }
+  let state: { origin: string; returnPath: string; nonce: string; ts: number }
   try {
     state = parseAndValidateState(rawState)
-    console.log('[auth-callback] State validated:', { origin: state.origin, nonce: state.nonce })
+    console.log('[auth-callback] State validated:', { origin: state.origin, returnPath: state.returnPath, nonce: state.nonce })
   } catch (stateError) {
     console.error('[auth-callback] State validation failed:', stateError)
     // Fallback to production URL if state validation fails
@@ -75,7 +75,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
   // Handle user denial or OAuth errors
   if (error) {
     console.error('[auth-callback] OAuth error:', error)
-    return redirect(`${state.origin}/app`, {
+    return redirect(`${state.origin}${state.returnPath}`, {
       error: error,
       error_description: event.queryStringParameters?.error_description || 'OAuth failed'
     })
@@ -83,16 +83,15 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
   if (!code) {
     console.error('[auth-callback] Missing authorization code')
-    return redirect(`${state.origin}/app`, {
+    return redirect(`${state.origin}${state.returnPath}`, {
       error: 'missing_code',
       error_description: 'Authorization code not provided'
     })
   }
 
   try {
-    // Derive redirect URI from request (for preview testing)
-    // TEMPORARY: Allows testing on preview deploys before production merge
-    // TODO: Switch to FIXED_REDIRECT_URI only after production deploy
+    // Derive redirect URI from request to match the initial auth request
+    // This allows the same Function to handle both production and localhost callbacks
     const requestUrl = event.rawUrl ? new URL(event.rawUrl) : null
     const redirectUri = requestUrl
       ? `${requestUrl.protocol}//${requestUrl.host}/.netlify/functions/auth-callback`
@@ -101,6 +100,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     console.log('[auth-callback] Using redirect URI for token exchange:', redirectUri)
 
     // Initialize OAuth2 client with redirect URI that matches initial request
+    // Google requires this to exactly match the redirect_uri from the authorization request
     const oauth2Client = new google.auth.OAuth2(
       CLIENT_ID,
       CLIENT_SECRET,
@@ -168,10 +168,11 @@ export const handler: Handler = async (event: HandlerEvent) => {
       console.warn('[auth-callback] No refresh token received (may need prompt=consent)')
     }
 
-    // Redirect to validated origin /app route with access token
+    // Redirect to validated origin + returnPath with access token
+    // returnPath ensures we hit /app (SPA route), not / (landing page)
     // Note: Access token in URL is OK (short-lived, 1-hour)
     // Refresh token never sent to browser (stored server-side)
-    return redirect(`${state.origin}/app`, {
+    return redirect(`${state.origin}${state.returnPath}`, {
       access_token: tokens.access_token,
       expires_in: '3600', // 1 hour
       token_type: 'Bearer',
@@ -181,7 +182,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
   } catch (error) {
     console.error('[auth-callback] Token exchange failed:', error)
 
-    return redirect(`${state.origin}/app`, {
+    return redirect(`${state.origin}${state.returnPath}`, {
       error: 'auth_failed',
       error_description: error instanceof Error ? error.message : 'Token exchange failed'
     })
@@ -198,7 +199,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
  *
  * Throws error if validation fails
  */
-function parseAndValidateState(rawState: string | undefined): { origin: string; nonce: string; ts: number } {
+function parseAndValidateState(rawState: string | undefined): { origin: string; returnPath: string; nonce: string; ts: number } {
   if (!rawState) {
     throw new Error('Missing state parameter')
   }
@@ -212,11 +213,12 @@ function parseAndValidateState(rawState: string | undefined): { origin: string; 
     // Add padding if needed
     const padded = base64 + '='.repeat((4 - base64.length % 4) % 4)
 
-    const decoded = atob(padded)
-    const state = JSON.parse(decoded) as { origin: string; nonce: string; ts: number }
+    // Use Buffer.from() instead of atob() for Node.js compatibility
+    const decoded = Buffer.from(padded, 'base64').toString('utf8')
+    const state = JSON.parse(decoded) as { origin: string; returnPath: string; nonce: string; ts: number }
 
     // Validate required fields
-    if (!state.origin || !state.nonce || !state.ts) {
+    if (!state.origin || !state.returnPath || !state.nonce || !state.ts) {
       throw new Error('Invalid state structure')
     }
 

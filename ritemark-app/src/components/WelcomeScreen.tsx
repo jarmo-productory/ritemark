@@ -207,12 +207,8 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   }, [accessTokenReceived])
 
   const handleSignIn = () => {
-    // TEMPORARY: Force browser-only OAuth if backend check fails
-    // Allows login while waiting for Google Console redirect URI updates
-    const forceBackendOAuth = import.meta.env.VITE_FORCE_BACKEND_OAUTH === 'true'
-
     // Sprint 20 Phase 0: Check backend availability
-    if (backendAvailable === true && forceBackendOAuth) {
+    if (backendAvailable === true) {
       // Backend available: Use Authorization Code Flow via Netlify Function
       console.log('[WelcomeScreen] Using backend OAuth flow')
 
@@ -222,13 +218,13 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
         return
       }
 
-      // Codex Solution: Fixed redirect URI + state-based return routing
-      // TEMPORARY: Use preview Function URL for testing (before production deploy)
-      // TODO: Switch to production URL after merging to main
-      const isPreview = window.location.hostname.includes('deploy-preview')
-      const fixedRedirectUri = isPreview
-        ? `${window.location.origin}/.netlify/functions/auth-callback`  // Preview Function
-        : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'  // Production Function
+      // Codex Solution: Use a single fixed redirect URI (production Function)
+      // Carry the current environment (origin) in a signed state parameter.
+      // For local dev via `netlify dev`, allow localhost callback as an additional authorized URI.
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      const fixedRedirectUri = isLocalDev
+        ? 'http://localhost:8888/.netlify/functions/auth-callback'
+        : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
 
       console.log('[WelcomeScreen] Using redirect URI:', fixedRedirectUri)
 
@@ -237,6 +233,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       // Encode return destination in state (where to redirect after OAuth)
       const state = {
         origin: window.location.origin,  // Preview or production origin
+        returnPath: '/app',              // Ensure the SPA route, not landing page
         nonce: crypto.randomUUID(),      // CSRF protection
         ts: Date.now()                   // Replay protection
       }
