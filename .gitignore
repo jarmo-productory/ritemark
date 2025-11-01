@@ -33,3 +33,4 @@ claude-flow.ps1
 docs/*
 !docs/user-guide/
 .env
+node_modules/
