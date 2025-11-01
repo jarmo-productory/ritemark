@@ -385,6 +385,14 @@ export class SettingsSyncService {
 
       return settings;
     } catch (error) {
+      // Handle encryption key mismatch (test data from different browser/localhost)
+      if (error instanceof Error && error.message === 'ENCRYPTION_KEY_MISMATCH') {
+        console.warn('[SettingsSync] Settings encrypted with different browser key - deleting incompatible data');
+        // Delete incompatible encrypted settings to prevent repeated errors
+        await this.deleteFromDrive();
+        return null;
+      }
+
       console.error('[SettingsSync] Failed to load from Drive:', error);
       return null;
     }

@@ -111,6 +111,13 @@ export async function decryptSettings(
 
     return settings
   } catch (error) {
+    // Handle encryption key mismatch gracefully (expected in cross-browser scenarios)
+    if (error instanceof Error && error.name === 'OperationError') {
+      console.warn('[settingsEncryption] Cannot decrypt settings - encrypted with different browser key (this is normal after browser change or testing)')
+      throw new Error('ENCRYPTION_KEY_MISMATCH')
+    }
+
+    // Other errors (corrupted data, network issues, etc.)
     console.error('[settingsEncryption] Decryption failed:', error)
     throw new Error(`Failed to decrypt settings: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
