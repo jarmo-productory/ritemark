@@ -53,7 +53,7 @@ function App() {
         console.log('[App] Processing OAuth callback from backend')
 
         try {
-          // Store tokens in TokenManagerEncrypted
+          // Store tokens in memory (TokenManagerEncrypted)
           const expiresAt = Date.now() + (parseInt(expiresIn || '3600') * 1000)
 
           await tokenManagerEncrypted.storeTokens({
@@ -62,24 +62,26 @@ function App() {
             // Note: refreshToken stored server-side in Netlify Blobs
           })
 
-          // Set user in AuthContext (triggers isAuthenticated = true)
-          if (authContext?.setUser) {
-            authContext.setUser({
-              id: userId,
-              email: '', // Will be fetched by userIdentityManager
-              name: '',
-              picture: ''
-            })
-          }
+          // Store tokens in sessionStorage (AuthContext pattern)
+          sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
+            accessToken,
+            expiresAt
+          }))
 
-          console.log('[App] ✅ OAuth callback processed, user logged in')
+          // Store minimal user data in sessionStorage
+          // AuthContext will restore this on next render
+          sessionStorage.setItem('ritemark_user', JSON.stringify({
+            id: userId,
+            email: '', // Will be fetched by userIdentityManager
+            name: '',
+            picture: ''
+          }))
 
-          // Clean URL (remove tokens from address bar)
+          console.log('[App] ✅ OAuth callback processed, reloading to activate session')
+
+          // Clean URL (remove tokens from address bar) and reload
           const cleanUrl = window.location.pathname
-          window.history.replaceState({}, '', cleanUrl)
-
-          // Hide welcome screen
-          setShowWelcomeScreen(false)
+          window.location.replace(cleanUrl)
         } catch (error) {
           console.error('[App] Failed to process OAuth callback:', error)
         }
@@ -87,7 +89,7 @@ function App() {
     }
 
     handleOAuthCallback()
-  }, [authContext])
+  }, [])
 
   // Clear document state when user logs out
   useEffect(() => {
