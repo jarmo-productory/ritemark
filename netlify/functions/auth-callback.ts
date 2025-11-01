@@ -24,11 +24,14 @@ const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 
 /**
  * Detect frontend URL based on deployment context
- * - Preview deploys: Use DEPLOY_PREVIEW_URL (e.g., https://deploy-preview-11--ritemark.netlify.app)
- * - Production: Use NETLIFY_SITE_URL (e.g., https://ritemark.netlify.app)
- * - Local dev: Default to http://localhost:5173
+ * Netlify automatically provides `URL` for all deploys:
+ * - Preview deploys: https://deploy-preview-11--ritemark.netlify.app
+ * - Production: https://ritemark.netlify.app
+ * - Local dev: Falls back to environment variable or localhost
+ *
+ * See: https://docs.netlify.com/configure-builds/environment-variables/
  */
-const FRONTEND_URL = process.env.DEPLOY_PREVIEW_URL ||
+const FRONTEND_URL = process.env.URL ||
   process.env.NETLIFY_SITE_URL ||
   process.env.FRONTEND_URL ||
   'http://localhost:5173'
