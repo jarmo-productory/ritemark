@@ -126,8 +126,12 @@ export const handler: Handler = async (event: HandlerEvent) => {
       expiryDate: tokens.expiry_date
     })
 
-    // Extract user.sub from ID token (optional; don't block flow if missing)
+    // Extract user info from ID token (optional; don't block flow if missing)
     let userId = 'unknown'
+    let userEmail = ''
+    let userName = ''
+    let userPicture = ''
+
     if (tokens.id_token) {
       try {
         const ticket = await oauth2Client.verifyIdToken({
@@ -137,7 +141,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
         const payload = ticket.getPayload()
         if (payload?.sub) {
           userId = payload.sub
-          console.log('[auth-callback] User ID extracted:', userId)
+          userEmail = payload.email || ''
+          userName = payload.name || ''
+          userPicture = payload.picture || ''
+          console.log('[auth-callback] User info extracted:', { userId, email: userEmail, name: userName })
         } else {
           console.warn('[auth-callback] No user.sub in ID token payload')
         }
@@ -172,7 +179,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       console.warn('[auth-callback] No refresh token received (may need prompt=consent)')
     }
 
-    // Redirect to validated origin + returnPath with access token
+    // Redirect to validated origin + returnPath with access token and user info
     // returnPath ensures we hit /app (SPA route), not / (landing page)
     // Note: Access token in URL is OK (short-lived, 1-hour)
     // Refresh token never sent to browser (stored server-side)
@@ -180,7 +187,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
       access_token: tokens.access_token,
       expires_in: '3600', // 1 hour
       token_type: 'Bearer',
-      user_id: userId
+      user_id: userId,
+      user_email: userEmail,
+      user_name: userName,
+      user_picture: userPicture
     })
 
   } catch (error) {

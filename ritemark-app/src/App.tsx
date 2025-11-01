@@ -48,6 +48,9 @@ function App() {
       const accessToken = params.get('access_token')
       const userId = params.get('user_id')
       const expiresIn = params.get('expires_in')
+      const userEmail = params.get('user_email') || ''
+      const userName = params.get('user_name') || ''
+      const userPicture = params.get('user_picture') || ''
 
       if (accessToken && userId) {
         console.log('[App] Processing OAuth callback from backend')
@@ -68,16 +71,19 @@ function App() {
             expiresAt
           }))
 
-          // Store minimal user data in sessionStorage
-          // AuthContext will restore this on next render
+          // Store complete user data from backend (extracted from ID token)
           sessionStorage.setItem('ritemark_user', JSON.stringify({
             id: userId,
-            email: '', // Will be fetched by userIdentityManager
-            name: '',
-            picture: ''
+            email: userEmail,
+            name: userName,
+            picture: userPicture
           }))
 
-          console.log('[App] ✅ OAuth callback processed, reloading to activate session')
+          // Store user identity for rate limiting and cross-device sync
+          const { userIdentityManager } = await import('./services/auth/tokenManager')
+          userIdentityManager.storeUserInfo(userId, userEmail)
+
+          console.log('[App] ✅ OAuth callback processed with user:', userName || userEmail || userId)
 
           // Clean URL (remove tokens from address bar) and reload
           const cleanUrl = window.location.pathname
