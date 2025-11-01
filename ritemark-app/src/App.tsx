@@ -41,6 +41,54 @@ function App() {
   // Track if WelcomeScreen should be shown (separate from isNewDocument)
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
 
+  // Sprint 20: Handle OAuth callback from backend
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const accessToken = params.get('access_token')
+      const userId = params.get('user_id')
+      const expiresIn = params.get('expires_in')
+
+      if (accessToken && userId) {
+        console.log('[App] Processing OAuth callback from backend')
+
+        try {
+          // Store tokens in TokenManagerEncrypted
+          const expiresAt = Date.now() + (parseInt(expiresIn || '3600') * 1000)
+
+          await tokenManagerEncrypted.storeTokens({
+            accessToken,
+            expiresAt,
+            // Note: refreshToken stored server-side in Netlify Blobs
+          })
+
+          // Set user in AuthContext (triggers isAuthenticated = true)
+          if (authContext?.setUser) {
+            authContext.setUser({
+              id: userId,
+              email: '', // Will be fetched by userIdentityManager
+              name: '',
+              picture: ''
+            })
+          }
+
+          console.log('[App] ✅ OAuth callback processed, user logged in')
+
+          // Clean URL (remove tokens from address bar)
+          const cleanUrl = window.location.pathname
+          window.history.replaceState({}, '', cleanUrl)
+
+          // Hide welcome screen
+          setShowWelcomeScreen(false)
+        } catch (error) {
+          console.error('[App] Failed to process OAuth callback:', error)
+        }
+      }
+    }
+
+    handleOAuthCallback()
+  }, [authContext])
+
   // Clear document state when user logs out
   useEffect(() => {
     if (!isAuthenticated) {

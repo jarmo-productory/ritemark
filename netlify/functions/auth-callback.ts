@@ -136,10 +136,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
       console.warn('[auth-callback] No refresh token received (may need prompt=consent)')
     }
 
-    // Redirect to frontend with access token
+    // Redirect to frontend /app route with access token
     // Note: Access token in URL is OK (short-lived, 1-hour)
     // Refresh token never sent to browser (stored server-side)
-    return redirect(baseUrl, {
+    return redirect(`${baseUrl}/app`, {
       access_token: tokens.access_token,
       expires_in: '3600', // 1 hour
       token_type: 'Bearer',
