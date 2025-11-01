@@ -22,6 +22,17 @@ import { getStore } from '@netlify/blobs'
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 
+// Codex Solution: Fixed redirect URI (registered in Google Console)
+const FIXED_REDIRECT_URI = 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
+
+// Origin allowlist (security: prevent open redirects)
+const ALLOWED_ORIGINS = [
+  'https://ritemark.netlify.app',              // Production
+  /^https:\/\/deploy-preview-\d+--ritemark\.netlify\.app$/,  // Preview deploys
+  'http://localhost:5173',                     // Local dev (Vite)
+  'http://localhost:8888'                      // Local dev (Netlify CLI)
+]
+
 // Netlify Blob store for refresh tokens
 const REFRESH_TOKENS_STORE = 'refresh-tokens'
 
@@ -41,19 +52,30 @@ const REFRESH_TOKEN_TTL = 180 * 24 * 60 * 60 * 1000
 export const handler: Handler = async (event: HandlerEvent) => {
   console.log('[auth-callback] Received OAuth callback')
 
-  // Derive base URL from incoming request (not env vars!)
-  // This ensures preview deploys round-trip correctly
-  const baseUrl = getBaseUrl(event)
-  console.log('[auth-callback] Detected base URL:', baseUrl)
-
-  // Extract authorization code from query params
+  // Extract and validate state parameter (Codex solution)
+  const rawState = event.queryStringParameters?.state
   const code = event.queryStringParameters?.code
   const error = event.queryStringParameters?.error
+
+  // Parse and validate state
+  let state: { origin: string; nonce: string; ts: number }
+  try {
+    state = parseAndValidateState(rawState)
+    console.log('[auth-callback] State validated:', { origin: state.origin, nonce: state.nonce })
+  } catch (stateError) {
+    console.error('[auth-callback] State validation failed:', stateError)
+    // Fallback to production URL if state validation fails
+    const fallbackUrl = 'https://ritemark.netlify.app/app'
+    return redirect(fallbackUrl, {
+      error: 'invalid_state',
+      error_description: stateError instanceof Error ? stateError.message : 'State validation failed'
+    })
+  }
 
   // Handle user denial or OAuth errors
   if (error) {
     console.error('[auth-callback] OAuth error:', error)
-    return redirect(baseUrl, {
+    return redirect(`${state.origin}/app`, {
       error: error,
       error_description: event.queryStringParameters?.error_description || 'OAuth failed'
     })
@@ -61,18 +83,18 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
   if (!code) {
     console.error('[auth-callback] Missing authorization code')
-    return redirect(baseUrl, {
+    return redirect(`${state.origin}/app`, {
       error: 'missing_code',
       error_description: 'Authorization code not provided'
     })
   }
 
   try {
-    // Initialize OAuth2 client with per-request base URL
+    // Initialize OAuth2 client with FIXED redirect URI
     const oauth2Client = new google.auth.OAuth2(
       CLIENT_ID,
       CLIENT_SECRET,
-      `${baseUrl}/.netlify/functions/auth-callback`
+      FIXED_REDIRECT_URI
     )
 
     console.log('[auth-callback] Exchanging code for tokens...')
@@ -136,10 +158,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
       console.warn('[auth-callback] No refresh token received (may need prompt=consent)')
     }
 
-    // Redirect to frontend /app route with access token
+    // Redirect to validated origin /app route with access token
     // Note: Access token in URL is OK (short-lived, 1-hour)
     // Refresh token never sent to browser (stored server-side)
-    return redirect(`${baseUrl}/app`, {
+    return redirect(`${state.origin}/app`, {
       access_token: tokens.access_token,
       expires_in: '3600', // 1 hour
       token_type: 'Bearer',
@@ -149,7 +171,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
   } catch (error) {
     console.error('[auth-callback] Token exchange failed:', error)
 
-    return redirect(baseUrl, {
+    return redirect(`${state.origin}/app`, {
       error: 'auth_failed',
       error_description: error instanceof Error ? error.message : 'Token exchange failed'
     })
@@ -157,27 +179,60 @@ export const handler: Handler = async (event: HandlerEvent) => {
 }
 
 /**
- * Helper: Get base URL from incoming request
+ * Helper: Parse and validate state parameter (Codex solution)
  *
- * GPT-5 Solution: Derive URL from request, not environment variables!
- * - process.env.URL is ALWAYS production URL, even for preview deploys
- * - Must parse from event.rawUrl or x-forwarded-* headers
+ * Security validations:
+ * - Decode Base64URL
+ * - Check timestamp freshness (within 10 minutes)
+ * - Validate origin against allowlist
  *
- * This ensures preview deploys round-trip correctly:
- * - Preview: https://deploy-preview-11--ritemark.netlify.app
- * - Production: https://ritemark.netlify.app
+ * Throws error if validation fails
  */
-function getBaseUrl(event: HandlerEvent): string {
-  // Best: Use rawUrl if available
-  if (event.rawUrl) {
-    const url = new URL(event.rawUrl)
-    return `${url.protocol}//${url.host}`
+function parseAndValidateState(rawState: string | undefined): { origin: string; nonce: string; ts: number } {
+  if (!rawState) {
+    throw new Error('Missing state parameter')
   }
 
-  // Fallback: Reconstruct from headers
-  const proto = event.headers['x-forwarded-proto'] || 'https'
-  const host = event.headers['x-forwarded-host'] || event.headers.host || 'localhost:8888'
-  return `${proto}://${host}`
+  try {
+    // Decode Base64URL (reverse the encoding from frontend)
+    const base64 = rawState
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+
+    // Add padding if needed
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4)
+
+    const decoded = atob(padded)
+    const state = JSON.parse(decoded) as { origin: string; nonce: string; ts: number }
+
+    // Validate required fields
+    if (!state.origin || !state.nonce || !state.ts) {
+      throw new Error('Invalid state structure')
+    }
+
+    // Check timestamp freshness (10 minutes)
+    const age = Date.now() - state.ts
+    const maxAge = 10 * 60 * 1000 // 10 minutes
+    if (age > maxAge) {
+      throw new Error(`State expired (age: ${Math.round(age / 1000)}s)`)
+    }
+
+    // Validate origin against allowlist
+    const isAllowed = ALLOWED_ORIGINS.some(allowed => {
+      if (typeof allowed === 'string') {
+        return state.origin === allowed
+      }
+      return allowed.test(state.origin)
+    })
+
+    if (!isAllowed) {
+      throw new Error(`Origin not allowed: ${state.origin}`)
+    }
+
+    return state
+  } catch (error) {
+    throw new Error(`State validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 /**

@@ -218,18 +218,34 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
         return
       }
 
-      // Redirect to Google OAuth with backend callback URL
-      const redirectUri = `${window.location.origin}/.netlify/functions/auth-callback`
+      // Codex Solution: Fixed redirect URI + state-based return routing
+      // Always use production Function URL (registered in Google Console)
+      const fixedRedirectUri = 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
       const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
+
+      // Encode return destination in state (where to redirect after OAuth)
+      const state = {
+        origin: window.location.origin,  // Preview or production origin
+        nonce: crypto.randomUUID(),      // CSRF protection
+        ts: Date.now()                   // Replay protection
+      }
+
+      // Base64URL encode state (URL-safe, no +, /, =)
+      const stateEncoded = btoa(JSON.stringify(state))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
 
       const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
       authUrl.searchParams.set('client_id', clientId)
-      authUrl.searchParams.set('redirect_uri', redirectUri)
+      authUrl.searchParams.set('redirect_uri', fixedRedirectUri)
       authUrl.searchParams.set('response_type', 'code')
       authUrl.searchParams.set('scope', scope)
       authUrl.searchParams.set('access_type', 'offline') // Get refresh token
       authUrl.searchParams.set('prompt', 'consent') // Force consent to get refresh token
+      authUrl.searchParams.set('state', stateEncoded)
 
+      console.log('[WelcomeScreen] OAuth state:', state)
       window.location.href = authUrl.toString()
     } else {
       // Backend unavailable: Fall back to browser-only OAuth (Sprint 19)
