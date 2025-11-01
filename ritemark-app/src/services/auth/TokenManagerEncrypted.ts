@@ -166,9 +166,79 @@ export class TokenManagerEncrypted {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token via backend (Sprint 20 - Phase 0)
+   * Uses Netlify Function for 6-month sessions with server-side refresh tokens
    */
-  async refreshAccessToken(): Promise<TokenRefreshResult> {
+  private async refreshAccessTokenViaBackend(userId: string): Promise<TokenRefreshResult> {
+    try {
+      const response = await fetch('/.netlify/functions/refresh-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[TokenManager] Backend refresh failed:', errorData);
+
+        // Check if refresh token expired (re-auth required)
+        if (errorData.error === 'refresh_token_not_found' || errorData.error === 'refresh_token_expired') {
+          this.clearTokens();
+          return {
+            success: false,
+            error: this.createAuthError(
+              AUTH_ERRORS.REFRESH_FAILED,
+              'Session expired. Please sign in again.',
+              true
+            ),
+          };
+        }
+
+        throw new Error(errorData.message || 'Backend token refresh failed');
+      }
+
+      const tokenData = await response.json();
+
+      // Backend returns only access token (refresh token stays server-side)
+      const newTokens: OAuthTokens = {
+        access_token: tokenData.access_token,
+        accessToken: tokenData.access_token,
+        token_type: tokenData.token_type || 'Bearer',
+        tokenType: tokenData.token_type || 'Bearer',
+        expires_in: tokenData.expires_in,
+        expiresAt: Date.now() + tokenData.expires_in * 1000,
+      };
+
+      // Store new access token (no refresh token - stays server-side)
+      this.accessToken = newTokens.accessToken ?? null;
+      this.accessTokenExpiry = newTokens.expiresAt ?? null;
+
+      // Schedule next refresh
+      if (newTokens.expiresAt) {
+        this.scheduleTokenRefresh(newTokens.expiresAt);
+      }
+
+      console.log('[TokenManager] Backend refresh successful');
+
+      return { success: true, tokens: newTokens };
+    } catch (error) {
+      console.error('[TokenManager] Backend refresh error:', error);
+      return {
+        success: false,
+        error: this.createAuthError(
+          AUTH_ERRORS.REFRESH_FAILED,
+          error instanceof Error ? error.message : 'Backend token refresh failed',
+          true
+        ),
+      };
+    }
+  }
+
+  /**
+   * Refresh access token (browser-only fallback)
+   * Sprint 19: Direct Google OAuth refresh (if no backend)
+   */
+  private async refreshAccessTokenBrowserOnly(): Promise<TokenRefreshResult> {
     const refreshToken = await this.getRefreshToken();
     if (!refreshToken) {
       return {
@@ -220,6 +290,8 @@ export class TokenManagerEncrypted {
 
       await this.storeTokens(newTokens);
 
+      console.log('[TokenManager] Browser-only refresh successful');
+
       return { success: true, tokens: newTokens };
     } catch (error) {
       console.error('Token refresh error:', error);
@@ -234,6 +306,42 @@ export class TokenManagerEncrypted {
         ),
       };
     }
+  }
+
+  /**
+   * Refresh access token with automatic backend/browser-only fallback
+   * Sprint 20: Try backend first, fall back to browser-only
+   */
+  async refreshAccessToken(): Promise<TokenRefreshResult> {
+    // Check if backend is available
+    const { checkBackendHealth } = await import('../../utils/backendHealth');
+    const backendAvailable = await checkBackendHealth();
+
+    if (backendAvailable) {
+      // Try backend refresh first (6-month sessions)
+      console.log('[TokenManager] Backend available, using server-side refresh');
+
+      // Get user ID for backend refresh
+      const { userIdentityManager } = await import('./tokenManager');
+      const userInfo = userIdentityManager.getUserInfo();
+
+      if (userInfo?.userId) {
+        const result = await this.refreshAccessTokenViaBackend(userInfo.userId);
+
+        if (result.success) {
+          return result;
+        }
+
+        console.warn('[TokenManager] Backend refresh failed, falling back to browser-only');
+      } else {
+        console.warn('[TokenManager] No user ID found, falling back to browser-only');
+      }
+    } else {
+      console.log('[TokenManager] Backend unavailable, using browser-only refresh');
+    }
+
+    // Fallback to browser-only refresh (Sprint 19)
+    return this.refreshAccessTokenBrowserOnly();
   }
 
   /**

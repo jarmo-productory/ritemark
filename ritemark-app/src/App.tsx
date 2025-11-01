@@ -41,6 +41,56 @@ function App() {
   // Track if WelcomeScreen should be shown (separate from isNewDocument)
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
 
+  // Sprint 20: Handle OAuth callback from backend
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const accessToken = params.get('access_token')
+      const userId = params.get('user_id')
+      const expiresIn = params.get('expires_in')
+
+      if (accessToken && userId) {
+        console.log('[App] Processing OAuth callback from backend')
+
+        try {
+          // Store tokens in memory (TokenManagerEncrypted)
+          const expiresAt = Date.now() + (parseInt(expiresIn || '3600') * 1000)
+
+          await tokenManagerEncrypted.storeTokens({
+            accessToken,
+            expiresAt,
+            // Note: refreshToken stored server-side in Netlify Blobs
+          })
+
+          // Store tokens in sessionStorage (AuthContext pattern)
+          sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
+            accessToken,
+            expiresAt
+          }))
+
+          // Store minimal user data in sessionStorage
+          // AuthContext will restore this on next render
+          sessionStorage.setItem('ritemark_user', JSON.stringify({
+            id: userId,
+            email: '', // Will be fetched by userIdentityManager
+            name: '',
+            picture: ''
+          }))
+
+          console.log('[App] ✅ OAuth callback processed, reloading to activate session')
+
+          // Clean URL (remove tokens from address bar) and reload
+          const cleanUrl = window.location.pathname
+          window.location.replace(cleanUrl)
+        } catch (error) {
+          console.error('[App] Failed to process OAuth callback:', error)
+        }
+      }
+    }
+
+    handleOAuthCallback()
+  }, [])
+
   // Clear document state when user logs out
   useEffect(() => {
     if (!isAuthenticated) {

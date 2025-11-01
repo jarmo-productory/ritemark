@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    // Target ES2020 for modern JavaScript features
+    "target": "ES2020",
+
+    // CommonJS module system (required by Netlify Functions)
+    "module": "CommonJS",
+
+    // Enable all strict type checking options
+    "strict": true,
+
+    // Module resolution strategy
+    "moduleResolution": "node",
+
+    // Allow default imports from modules with no default export
+    "esModuleInterop": true,
+
+    // Skip type checking of declaration files
+    "skipLibCheck": true,
+
+    // Ensure consistent casing in file names
+    "forceConsistentCasingInFileNames": true,
+
+    // Resolve JSON modules
+    "resolveJsonModule": true,
+
+    // Output directory
+    "outDir": "../../.netlify/functions-internal",
+
+    // Root directory
+    "rootDir": ".",
+
+    // Type roots (look in project's node_modules)
+    "typeRoots": ["../../node_modules/@types"],
+
+    // Lib inclusions
+    "lib": ["ES2020"]
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}
