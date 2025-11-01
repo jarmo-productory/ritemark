@@ -47,8 +47,9 @@ export async function checkBackendHealth(): Promise<boolean> {
     clearTimeout(timeoutId)
 
     // 405 Method Not Allowed = backend available (expects POST, not HEAD)
-    // Any other successful response = backend available
-    const isAvailable = response.status === 405 || (response.status >= 200 && response.status < 500)
+    // This is the ONLY valid response - Netlify Function returns 405 for HEAD requests
+    // Any other status (including 200 from Vite dev server) means backend unavailable
+    const isAvailable = response.status === 405
 
     cachedHealth = isAvailable
     cacheTime = Date.now()
