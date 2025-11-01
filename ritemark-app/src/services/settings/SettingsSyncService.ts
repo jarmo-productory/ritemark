@@ -65,7 +65,6 @@ export class SettingsSyncService {
       // Cache in IndexedDB (instant)
       const db = await this.initDB();
       await db.put(STORE_NAME, settings, 'current');
-      console.log('[SettingsSync] Settings cached to IndexedDB');
 
       // Encrypt settings
       const encrypted = await encryptSettings(settings);
@@ -78,7 +77,6 @@ export class SettingsSyncService {
 
       // Upload to Drive AppData (background)
       await this.uploadToDrive(encryptedWithUserId);
-      console.log('[SettingsSync] Settings uploaded to Drive AppData');
 
       // Update last sync timestamp
       this.lastSyncTime = Date.now();
@@ -100,8 +98,6 @@ export class SettingsSyncService {
       // Try IndexedDB cache first (instant load <10ms)
       const cached = await db.get(STORE_NAME, 'current') as UserSettings | undefined;
       if (cached) {
-        console.log('[SettingsSync] Settings loaded from cache (instant)');
-
         // Sync in background (don't block UI)
         this.syncSettings().catch(error => {
           console.error('[SettingsSync] Background sync failed:', error);
@@ -111,17 +107,14 @@ export class SettingsSyncService {
       }
 
       // No cache, fetch from Drive
-      console.log('[SettingsSync] No cache, fetching from Drive...');
       const remote = await this.loadFromDrive();
       if (remote) {
         // Cache for next time
         await db.put(STORE_NAME, remote, 'current');
-        console.log('[SettingsSync] Settings loaded from Drive and cached');
         return remote;
       }
 
       // No settings found (first-time user)
-      console.log('[SettingsSync] No settings found (first-time user)');
       return null;
     } catch (error) {
       console.error('[SettingsSync] Failed to load settings:', error);
@@ -134,7 +127,6 @@ export class SettingsSyncService {
    */
   async syncSettings(): Promise<void> {
     if (this.syncing) {
-      console.log('[SettingsSync] Sync already in progress, skipping');
       return; // Prevent concurrent syncs
     }
 
@@ -152,7 +144,6 @@ export class SettingsSyncService {
       if (!remote) {
         // No remote, upload local
         if (local) {
-          console.log('[SettingsSync] No remote settings, uploading local');
           await this.saveSettings(local);
         }
         return;
@@ -160,7 +151,6 @@ export class SettingsSyncService {
 
       if (!local) {
         // No local, download remote
-        console.log('[SettingsSync] No local settings, downloading remote');
         await db.put(STORE_NAME, remote, 'current');
         this.lastSyncTime = Date.now();
         await db.put(STORE_NAME, this.lastSyncTime, 'lastSyncTimestamp');
@@ -170,18 +160,14 @@ export class SettingsSyncService {
       // Compare timestamps (last-write-wins)
       if (remote.timestamp > local.timestamp) {
         // Remote is newer, update local
-        console.log('⬇️  Settings synced from another device');
         await db.put(STORE_NAME, remote, 'current');
         this.lastSyncTime = Date.now();
         await db.put(STORE_NAME, this.lastSyncTime, 'lastSyncTimestamp');
       } else if (local.timestamp > remote.timestamp) {
         // Local is newer, upload to Drive
-        console.log('⬆️  Settings synced to Drive');
         await this.saveSettings(local);
-      } else {
-        // Timestamps equal, no sync needed
-        console.log('[SettingsSync] Settings already in sync');
       }
+      // Timestamps equal, no sync needed
     } catch (error) {
       console.error('[SettingsSync] Sync failed:', error);
       throw new Error('Settings sync failed');
@@ -199,11 +185,9 @@ export class SettingsSyncService {
       const db = await this.initDB();
       await db.delete(STORE_NAME, 'current');
       await db.delete(STORE_NAME, 'lastSyncTimestamp');
-      console.log('[SettingsSync] Settings deleted from IndexedDB');
 
       // Delete from Drive AppData
       await this.deleteFromDrive();
-      console.log('[SettingsSync] Settings deleted from Drive AppData');
 
       this.lastSyncTime = null;
     } catch (error) {
@@ -236,8 +220,6 @@ export class SettingsSyncService {
 
     // Sync on online event
     window.addEventListener('online', this.handleOnlineEvent);
-
-    console.log('[SettingsSync] Auto-sync started (30s interval)');
   }
 
   /**
@@ -251,15 +233,12 @@ export class SettingsSyncService {
 
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     window.removeEventListener('online', this.handleOnlineEvent);
-
-    console.log('[SettingsSync] Auto-sync stopped');
   }
 
   /**
    * Force sync now (for manual sync button)
    */
   async forceSyncNow(): Promise<void> {
-    console.log('[SettingsSync] Force sync triggered');
     await this.syncSettings();
   }
 
@@ -385,7 +364,6 @@ export class SettingsSyncService {
 
       const listData = await listResponse.json();
       if (!listData.files || listData.files.length === 0) {
-        console.log('[SettingsSync] No settings file found in Drive AppData');
         return null;
       }
 

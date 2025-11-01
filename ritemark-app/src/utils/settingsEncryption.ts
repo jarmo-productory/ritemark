@@ -130,12 +130,10 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
     // Try to retrieve existing key from IndexedDB
     const storedKey = await getFromIndexedDB<CryptoKey>(ENCRYPTION_KEY_ID)
     if (storedKey) {
-      console.log('[settingsEncryption] Using existing encryption key from IndexedDB')
       return storedKey
     }
 
     // Generate new non-extractable AES-256-GCM key
-    console.log('[settingsEncryption] Generating new encryption key')
     const key = await crypto.subtle.generateKey(
       { name: 'AES-GCM', length: 256 },
       false, // Non-extractable (security best practice - key cannot leave browser)
@@ -144,7 +142,6 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
 
     // Store key in IndexedDB for future use
     await saveToIndexedDB(ENCRYPTION_KEY_ID, key)
-    console.log('[settingsEncryption] Encryption key saved to IndexedDB')
 
     return key
   } catch (error) {

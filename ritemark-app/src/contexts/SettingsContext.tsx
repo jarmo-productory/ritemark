@@ -7,6 +7,7 @@
 
 import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react'
 import type { UserSettings } from '../types/settings'
+import { settingsSyncService } from '../services/settings/SettingsSyncService'
 
 /**
  * Settings context interface
@@ -74,38 +75,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [error, setError] = useState<Error | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null)
 
-  // Initialize SettingsSyncService (lazy import to avoid circular dependencies)
-  const syncService = useMemo(() => {
-    // Placeholder: Import actual service when implemented
-    // import { SettingsSyncService } from '../services/settings/SettingsSyncService'
-    // return new SettingsSyncService()
-
-    // Temporary mock service for type safety until real service is implemented
-    return {
-      loadSettings: async (): Promise<UserSettings | null> => {
-        console.warn('[SettingsContext] SettingsSyncService not implemented yet')
-        return null
-      },
-      saveSettings: async (_settings: UserSettings): Promise<void> => {
-        console.warn('[SettingsContext] SettingsSyncService not implemented yet')
-      },
-      syncSettings: async (): Promise<void> => {
-        console.warn('[SettingsContext] SettingsSyncService not implemented yet')
-      },
-      deleteSettings: async (): Promise<void> => {
-        console.warn('[SettingsContext] SettingsSyncService not implemented yet')
-      },
-      startAutoSync: (): void => {
-        console.warn('[SettingsContext] SettingsSyncService not implemented yet')
-      },
-      stopAutoSync: (): void => {
-        console.warn('[SettingsContext] SettingsSyncService not implemented yet')
-      },
-      getLastSyncTime: (): number | null => {
-        return null
-      },
-    }
-  }, [])
+  // Use the actual SettingsSyncService singleton
+  const syncService = useMemo(() => settingsSyncService, [])
 
   // Load settings on mount and start auto-sync
   useEffect(() => {
@@ -134,8 +105,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       const loaded = await syncService.loadSettings()
       setSettings(loaded)
       setLastSyncTime(syncService.getLastSyncTime())
-
-      console.log('[SettingsContext] Settings loaded successfully')
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load settings')
       setError(error)
@@ -158,8 +127,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         await syncService.saveSettings(newSettings)
         setSettings(newSettings)
         setLastSyncTime(Date.now())
-
-        console.log('[SettingsContext] Settings saved successfully')
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to save settings')
         setError(error)
@@ -190,7 +157,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       }
 
       setLastSyncTime(Date.now())
-      console.log('[SettingsContext] Settings synced successfully')
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to sync settings')
       setError(error)
@@ -212,8 +178,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       await syncService.deleteSettings()
       setSettings(null)
       setLastSyncTime(null)
-
-      console.log('[SettingsContext] Settings deleted successfully')
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to delete settings')
       setError(error)
