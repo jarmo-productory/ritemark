@@ -4,6 +4,28 @@ All notable changes to RiteMark are documented here. Latest releases appear firs
 
 ---
 
+## November 1, 2025 - Your Settings Sync Everywhere
+
+**Pick Up Where You Left Off** 🔄
+
+Your editor preferences now sync automatically across all your devices. Change your font size on your laptop, and it's already updated on your phone.
+
+### What Syncs
+- **Editor preferences** - Font size, font family, theme (light/dark)
+- **Auto-save settings** - Your preferred auto-save timing
+- **It just works** - Changes sync in the background every 30 seconds
+- **Private and secure** - Everything is encrypted before syncing to your Google Drive
+
+### How It Works
+- **Automatic syncing** - No buttons to click, it happens behind the scenes
+- **Works offline** - Settings load instantly from your device's cache
+- **Cross-device** - Start editing on desktop, continue on mobile
+- **No setup needed** - Just sign in with Google and it's enabled
+
+**Technical Note:** Settings are stored encrypted in your Google Drive's private app folder. Only you can access them.
+
+---
+
 ## October 27, 2025 - Export & Share Features
 
 **New Ways to Share Your Work** 📤
