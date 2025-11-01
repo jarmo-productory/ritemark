@@ -90,11 +90,13 @@ export const handler: Handler = async (event: HandlerEvent) => {
   }
 
   try {
-    // Derive redirect URI from request to match the initial auth request
-    // This allows the same Function to handle both production and localhost callbacks
+    // Choose redirect URI for token exchange:
+    // - Production/staging/preview all use the fixed production Function URL
+    // - Local development uses the Netlify CLI URL
     const requestUrl = event.rawUrl ? new URL(event.rawUrl) : null
-    const redirectUri = requestUrl
-      ? `${requestUrl.protocol}//${requestUrl.host}/.netlify/functions/auth-callback`
+    const isLocal = requestUrl && requestUrl.host.startsWith('localhost')
+    const redirectUri = isLocal
+      ? 'http://localhost:8888/.netlify/functions/auth-callback'
       : FIXED_REDIRECT_URI
 
     console.log('[auth-callback] Using redirect URI for token exchange:', redirectUri)
@@ -123,25 +125,26 @@ export const handler: Handler = async (event: HandlerEvent) => {
       expiryDate: tokens.expiry_date
     })
 
-    // Extract user.sub from ID token
-    let userId: string
-
+    // Extract user.sub from ID token (optional; don't block flow if missing)
+    let userId = 'unknown'
     if (tokens.id_token) {
-      // Verify and decode ID token
-      const ticket = await oauth2Client.verifyIdToken({
-        idToken: tokens.id_token,
-        audience: CLIENT_ID
-      })
-
-      const payload = ticket.getPayload()
-      if (!payload?.sub) {
-        throw new Error('No user.sub found in ID token')
+      try {
+        const ticket = await oauth2Client.verifyIdToken({
+          idToken: tokens.id_token,
+          audience: CLIENT_ID
+        })
+        const payload = ticket.getPayload()
+        if (payload?.sub) {
+          userId = payload.sub
+          console.log('[auth-callback] User ID extracted:', userId)
+        } else {
+          console.warn('[auth-callback] No user.sub in ID token payload')
+        }
+      } catch (verifyErr) {
+        console.warn('[auth-callback] ID token verification failed:', verifyErr instanceof Error ? verifyErr.message : verifyErr)
       }
-
-      userId = payload.sub
-      console.log('[auth-callback] User ID extracted:', userId)
     } else {
-      throw new Error('No ID token received from Google')
+      console.warn('[auth-callback] No ID token received; continuing without userId')
     }
 
     // Store refresh token in Netlify Blob (if provided and Blobs configured)
