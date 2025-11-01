@@ -21,7 +21,17 @@ import { getStore } from '@netlify/blobs'
 // Environment variables (set in Netlify Dashboard)
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+
+/**
+ * Detect frontend URL based on deployment context
+ * - Preview deploys: Use DEPLOY_PREVIEW_URL (e.g., https://deploy-preview-11--ritemark.netlify.app)
+ * - Production: Use NETLIFY_SITE_URL (e.g., https://ritemark.netlify.app)
+ * - Local dev: Default to http://localhost:5173
+ */
+const FRONTEND_URL = process.env.DEPLOY_PREVIEW_URL ||
+  process.env.NETLIFY_SITE_URL ||
+  process.env.FRONTEND_URL ||
+  'http://localhost:5173'
 
 // Netlify Blob store for refresh tokens
 const REFRESH_TOKENS_STORE = 'refresh-tokens'
