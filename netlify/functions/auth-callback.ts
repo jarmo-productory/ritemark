@@ -12,6 +12,7 @@
  * - CLIENT_SECRET used here (never exposed to browser)
  * - Refresh tokens stored server-side only
  * - Access tokens sent to browser (short-lived, 1-hour)
+ * - OAuth authentication prevents abuse
  */
 
 import type { Handler, HandlerEvent } from '@netlify/functions'

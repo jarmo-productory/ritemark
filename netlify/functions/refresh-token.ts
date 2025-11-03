@@ -9,7 +9,7 @@
  *
  * Security:
  * - POST only (not GET - prevents CSRF)
- * - Rate limiting per user
+ * - OAuth authentication required (userId from verified tokens)
  * - Refresh tokens stored server-side only
  * - Access tokens returned (short-lived, 1-hour)
  */
