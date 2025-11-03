@@ -297,9 +297,21 @@ export class SettingsSyncService {
       });
 
       if (!updateResponse.ok) {
-        throw new Error(`Drive API update failed: ${updateResponse.status}`);
+        // If file not found (404), fall back to creating a new file
+        if (updateResponse.status === 404) {
+          console.warn('[SettingsSync] File not found (404), creating new file instead');
+          // Fall through to CREATE logic below
+        } else {
+          throw new Error(`Drive API update failed: ${updateResponse.status}`);
+        }
+      } else {
+        // Update successful, return early
+        return;
       }
-    } else {
+    }
+
+    // Create new file (either no fileId found, or PATCH returned 404)
+    {
       // Create new file
       const metadata = {
         name: 'settings.json',

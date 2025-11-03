@@ -34,3 +34,5 @@ docs/*
 !docs/user-guide/
 .env
 node_modules/
+.env.local
+ritemark-app/.env.local

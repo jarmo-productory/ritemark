@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react'
 import type { AuthContextType, GoogleUser } from '../types/auth'
 import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
+import { tokenValidator } from '../services/auth/TokenValidator'
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -54,6 +55,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log('[AuthContext] User ID restored:', userInfo.userId)
             }
           })
+
+          // Sprint 22 Security: Start periodic token validation
+          tokenValidator.startValidation(() => {
+            console.warn('[AuthContext] Token validation failed - logging out')
+            logout()
+          })
         }
       } catch (err) {
         console.error('Failed to restore user session:', err)
@@ -96,6 +103,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Clear user identity on logout
       const { userIdentityManager } = await import('../services/auth/tokenManager')
       userIdentityManager.clearUserInfo()
+
+      // Sprint 22 Security: Stop token validation on logout
+      tokenValidator.stopValidation()
     } finally {
       setIsLoading(false) // Always clear loading state
     }

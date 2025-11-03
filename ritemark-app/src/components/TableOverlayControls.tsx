@@ -42,6 +42,14 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
   useEffect(() => {
     if (!editor) return
 
+    const getEditorElement = (): HTMLElement | null => {
+      try {
+        return ((editor as any).view?.dom ?? null) as HTMLElement | null
+      } catch {
+        return null
+      }
+    }
+
     // Find ALL table elements in DOM
     const updateTablePositions = () => {
       const tableElements = document.querySelectorAll('.tiptap-table-node')
@@ -118,26 +126,41 @@ export function TableOverlayControls({ editor }: TableOverlayControlsProps) {
     }
 
     // Update on editor changes
+    editor.on('create', updateTablePositions)
     editor.on('transaction', updateTablePositions)
     editor.on('focus', updateTablePositions)
     editor.on('blur', updateTablePositions)
 
-    // Update on scroll
-    const editorElement = editor.view.dom
-    editorElement.addEventListener('scroll', updateTablePositions)
-    editorElement.addEventListener('mousemove', handleMouseMove)
+    // Update on scroll/mouse within editor element once available
+    let editorElement: HTMLElement | null = getEditorElement()
+    const attachDomListeners = () => {
+      const el = getEditorElement()
+      if (!el) return
+      editorElement = el
+      el.addEventListener('scroll', updateTablePositions)
+      el.addEventListener('mousemove', handleMouseMove)
+    }
+
+    // Try attach immediately and also after create
+    attachDomListeners()
+    editor.on('create', attachDomListeners)
+
     window.addEventListener('scroll', updateTablePositions)
     window.addEventListener('resize', updateTablePositions)
 
-    // Initial update
-    updateTablePositions()
+    // Initial update deferred to next frame to ensure DOM ready
+    requestAnimationFrame(() => updateTablePositions())
 
     return () => {
+      editor.off('create', updateTablePositions)
       editor.off('transaction', updateTablePositions)
       editor.off('focus', updateTablePositions)
       editor.off('blur', updateTablePositions)
-      editorElement.removeEventListener('scroll', updateTablePositions)
-      editorElement.removeEventListener('mousemove', handleMouseMove)
+      editor.off('create', attachDomListeners)
+      if (editorElement) {
+        editorElement.removeEventListener('scroll', updateTablePositions)
+        editorElement.removeEventListener('mousemove', handleMouseMove)
+      }
       window.removeEventListener('scroll', updateTablePositions)
       window.removeEventListener('resize', updateTablePositions)
     }

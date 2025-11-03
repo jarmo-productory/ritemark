@@ -81,6 +81,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
         syncStatus={syncStatus}
         editor={editor}
         hasDocument={hasDocument}
+        content={content}
         onNewDocument={onNewDocument}
         onOpenFromDrive={onOpenFromDrive}
       />

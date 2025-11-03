@@ -90,6 +90,9 @@ export function useDriveSync(
 
   const autoSaveManager = useRef<AutoSaveManager | null>(null)
   const currentFileId = useRef<string | null>(fileId)
+  const currentTitle = useRef<string>(title)
+  const onFileCreatedRef = useRef<typeof onFileCreated>(onFileCreated)
+  const onAuthErrorRef = useRef<typeof onAuthError>(onAuthError)
 
   // Update currentFileId when fileId prop changes
   useEffect(() => {
@@ -98,6 +101,19 @@ export function useDriveSync(
       autoSaveManager.current.setFileId(fileId)
     }
   }, [fileId])
+
+  // Keep title and callbacks current without re-creating manager
+  useEffect(() => {
+    currentTitle.current = title
+  }, [title])
+
+  useEffect(() => {
+    onFileCreatedRef.current = onFileCreated
+  }, [onFileCreated])
+
+  useEffect(() => {
+    onAuthErrorRef.current = onAuthError
+  }, [onAuthError])
 
   /**
    * Initialize auto-save manager with save function
@@ -126,12 +142,12 @@ export function useDriveSync(
         } else {
           // Create new file
           const newFileId = await createDriveFile(
-            title || 'Untitled Document',
+            currentTitle.current || 'Untitled Document',
             contentToSave,
             accessToken
           )
           currentFileId.current = newFileId
-          onFileCreated?.(newFileId)
+          onFileCreatedRef.current?.(newFileId)
         }
 
         const now = new Date().toISOString()
@@ -152,8 +168,8 @@ export function useDriveSync(
         if (errorMessage.includes('Not authenticated') || errorMessage.includes('authentication')) {
           // Only trigger auth error dialog if we have a document (user was working)
           // If no document, user should see welcome screen instead
-          if (fileId) {
-            onAuthError?.()
+          if (currentFileId.current) {
+            onAuthErrorRef.current?.()
           }
           // Don't set error status for auth errors - they're handled by dialog or welcome screen
           return
@@ -171,7 +187,7 @@ export function useDriveSync(
       }
     }
 
-    autoSaveManager.current = new AutoSaveManager(fileId, saveFunction, {
+    autoSaveManager.current = new AutoSaveManager(currentFileId.current, saveFunction, {
       debounceMs,
     })
 
@@ -179,7 +195,8 @@ export function useDriveSync(
       autoSaveManager.current?.destroy()
       autoSaveManager.current = null
     }
-  }, [fileId, debounceMs, onFileCreated, title])
+  // Initialize once; rely on refs for dynamic values. Recreate only if debounceMs changes.
+  }, [debounceMs])
 
   /**
    * Trigger auto-save on content change
@@ -265,7 +282,7 @@ export function useDriveSync(
           // Only trigger auth error dialog if we have a document (user was working)
           // If no document, user should see welcome screen instead
           if (currentFileId.current) {
-            onAuthError?.()
+            onAuthErrorRef.current?.()
           }
           throw error
         }
