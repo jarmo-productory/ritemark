@@ -1,9 +1,10 @@
-import { useState, useContext, useEffect, useCallback } from 'react'
+import { useState, useContext, useEffect, useCallback, useRef } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Editor } from './components/Editor'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { useDriveSync } from './hooks/useDriveSync'
 import { useTokenValidator } from './hooks/useTokenValidator'
+import { useSettings } from './hooks/useSettings'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
 import { AuthContext } from './contexts/AuthContext'
 import { tokenManagerEncrypted } from './services/auth/TokenManagerEncrypted'
@@ -15,6 +16,9 @@ function App() {
   // Authentication context
   const authContext = useContext(AuthContext)
   const isAuthenticated = authContext?.isAuthenticated ?? false
+
+  // Settings context
+  const { settings, saveSettings, loading: settingsLoading } = useSettings()
 
   // Document state
   const [fileId, setFileId] = useState<string | null>(null)
@@ -42,48 +46,18 @@ function App() {
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
 
   // Sprint 20: Handle OAuth callback from backend
+  // Sprint 22: Use shared OAuth callback handler
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const params = new URLSearchParams(window.location.search)
       const accessToken = params.get('access_token')
       const userId = params.get('user_id')
-      const expiresIn = params.get('expires_in')
-      const userEmail = params.get('user_email') || ''
-      const userName = params.get('user_name') || ''
-      const userPicture = params.get('user_picture') || ''
 
       if (accessToken && userId) {
-        console.log('[App] Processing OAuth callback from backend')
-
         try {
-          // Store tokens in memory (TokenManagerEncrypted)
-          const expiresAt = Date.now() + (parseInt(expiresIn || '3600') * 1000)
-
-          await tokenManagerEncrypted.storeTokens({
-            accessToken,
-            expiresAt,
-            // Note: refreshToken stored server-side in Netlify Blobs
-          })
-
-          // Store tokens in sessionStorage (AuthContext pattern)
-          sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify({
-            accessToken,
-            expiresAt
-          }))
-
-          // Store complete user data from backend (extracted from ID token)
-          sessionStorage.setItem('ritemark_user', JSON.stringify({
-            id: userId,
-            email: userEmail,
-            name: userName,
-            picture: userPicture
-          }))
-
-          // Store user identity for rate limiting and cross-device sync
-          const { userIdentityManager } = await import('./services/auth/tokenManager')
-          userIdentityManager.storeUserInfo(userId, userEmail)
-
-          console.log('[App] ✅ OAuth callback processed with user:', userName || userEmail || userId)
+          // Sprint 22: Use shared callback handler
+          const { oauthCallbackHandler } = await import('./services/auth/OAuthCallbackHandler')
+          await oauthCallbackHandler.handleBackendCallback(params)
 
           // Clean URL (remove tokens from address bar) and reload
           const cleanUrl = window.location.pathname
@@ -96,6 +70,40 @@ function App() {
 
     handleOAuthCallback()
   }, [])
+
+  // Track last opened file for "Pick up where you left off" feature
+  useEffect(() => {
+    const trackLastOpenedFile = async () => {
+      // Only track if feature is enabled and we have a file open
+      if (!fileId || !settings?.preferences?.autoOpenLastFile) {
+        return
+      }
+
+      // Prevent saving if file ID hasn't actually changed
+      if (settings?.preferences?.lastOpenedFileId === fileId) {
+        return
+      }
+
+      try {
+        // Update settings with last opened file ID
+        const updatedSettings = {
+          ...settings,
+          preferences: {
+            ...settings.preferences,
+            lastOpenedFileId: fileId,
+            lastOpenedFileName: title,
+          },
+          timestamp: Date.now()
+        }
+
+        await saveSettings(updatedSettings)
+      } catch (error) {
+        console.error('[App] Failed to save last opened file:', error)
+      }
+    }
+
+    trackLastOpenedFile()
+  }, [fileId, title]) // ✅ FIXED - Only depend on fileId and title, not settings!
 
   // Clear document state when user logs out
   useEffect(() => {
@@ -125,11 +133,70 @@ function App() {
   }, [shouldShowAuthDialog, dismissAuthDialog])
 
   // Drive sync hook
+  const handleFileCreated = useCallback((newFileId: string) => {
+    setFileId(newFileId)
+  }, [])
+
+  const handleAuthError = useCallback(() => {
+    triggerAuthDialog()
+  }, [triggerAuthDialog])
+
   const { syncStatus, loadFile } = useDriveSync(fileId, title, content, {
-    onFileCreated: (newFileId) => setFileId(newFileId),
+    onFileCreated: handleFileCreated,
     // On auth errors (e.g., 401), open the unified AuthModal
-    onAuthError: () => triggerAuthDialog(),
+    onAuthError: handleAuthError,
   })
+
+  // Auto-open last file on app startup (after authentication loads)
+  const hasAutoOpened = useRef(false)
+
+  useEffect(() => {
+    // Only auto-open ONCE per session
+    if (hasAutoOpened.current) {
+      return
+    }
+
+    // Only auto-open if:
+    // 1. Feature is enabled
+    // 2. We have a last opened file ID
+    // 3. User is authenticated
+    // 4. No file is currently open
+    // 5. Settings have loaded (not null)
+    // Do not attempt auto-open until settings finished loading
+    if (settingsLoading) {
+      return
+    }
+
+    const shouldAutoOpen =
+      settings?.preferences?.autoOpenLastFile &&
+      settings?.preferences?.lastOpenedFileId &&
+      isAuthenticated &&
+      !fileId
+
+    if (shouldAutoOpen) {
+      const lastFileId = settings.preferences.lastOpenedFileId!
+
+      // Load file content from Drive (same as handleFileSelect)
+      const autoLoadFile = async () => {
+        try {
+          const { metadata, content: fileContent } = await loadFile(lastFileId)
+
+          setFileId(metadata.id)
+          setTitle(metadata.name)
+          setContent(fileContent)
+          setIsNewDocument(false)
+          setShowWelcomeScreen(false)
+        } catch (error) {
+          console.error('[App] Failed to auto-open file:', error)
+          // On error, just show welcome screen
+          setShowWelcomeScreen(true)
+        }
+      }
+
+      autoLoadFile()
+      hasAutoOpened.current = true // Mark as auto-opened to prevent repeats
+    }
+  }, [isAuthenticated, settingsLoading, settings?.preferences?.autoOpenLastFile, settings?.preferences?.lastOpenedFileId, fileId, loadFile])
 
   const handleNewDocument = () => {
     setFileId(null)
@@ -164,7 +231,6 @@ function App() {
 
         await driveClient.renameFile(fileId, validatedTitle)
 
-        console.log(`[App] File renamed: ${validatedTitle}`)
       } catch (error) {
         console.error('[App] Failed to rename file:', error)
         // Revert title on error
@@ -175,11 +241,8 @@ function App() {
   }
 
   const handleOpenFromDrive = async () => {
-
     // Check if we have a valid access token
     const accessToken = await tokenManagerEncrypted.getAccessToken()
-
-    console.log('[App] Token retrieved for Drive open:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null')
 
     if (!accessToken) {
       // No valid token; open auth modal instead of showing picker
@@ -225,8 +288,6 @@ function App() {
       // Update app state with reloaded content
       setTitle(metadata.name)
       setContent(fileContent)
-
-      console.log('[App] File reloaded successfully')
     } catch (error) {
       console.error('[App] Failed to reload file:', error)
       alert(`Failed to reload file: ${error instanceof Error ? error.message : 'Unknown error'}`)

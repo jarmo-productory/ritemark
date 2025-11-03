@@ -33,6 +33,12 @@ export interface UserSettings {
     autoSave: boolean
     /** Auto-save interval in seconds */
     autoSaveInterval: number
+    /** Auto-open last file on app start (Sprint 21) */
+    autoOpenLastFile?: boolean
+    /** Last opened file ID for "Pick up where you left off" (Sprint 21) */
+    lastOpenedFileId?: string
+    /** Last opened file name for debugging/logging (Sprint 21) */
+    lastOpenedFileName?: string
   }
 
   /** Keyboard shortcuts (future feature) */

@@ -28,11 +28,8 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 export async function checkBackendHealth(): Promise<boolean> {
   // Check cache first
   if (cachedHealth !== null && Date.now() - cacheTime < CACHE_TTL) {
-    console.log('[backendHealth] Using cached result:', cachedHealth)
     return cachedHealth
   }
-
-  console.log('[backendHealth] Checking backend availability...')
 
   try {
     // HEAD request with 3-second timeout
@@ -54,17 +51,9 @@ export async function checkBackendHealth(): Promise<boolean> {
     cachedHealth = isAvailable
     cacheTime = Date.now()
 
-    console.log('[backendHealth] Backend check result:', {
-      available: isAvailable,
-      status: response.status,
-      cached: true
-    })
-
     return isAvailable
   } catch (error) {
     // Network error, timeout, or backend unavailable
-    console.warn('[backendHealth] Backend unavailable:', error)
-
     cachedHealth = false
     cacheTime = Date.now()
 
@@ -79,5 +68,4 @@ export async function checkBackendHealth(): Promise<boolean> {
 export function clearBackendHealthCache(): void {
   cachedHealth = null
   cacheTime = 0
-  console.log('[backendHealth] Cache cleared')
 }

@@ -41,7 +41,8 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - **Sprint 15**: Share button & state management fix ✅ COMPLETED (Oct 23, 2025)
 - **Sprint 16**: Offline status indicator ✅ COMPLETED (Oct 25, 2025)
 - **Sprint 17**: Version history & restore functionality ✅ COMPLETED (Oct 26, 2025)
-- **Sprint 19**: OAuth security upgrade (user identity + drive.appdata) 🔄 READY FOR PR (Oct 30, 2025)
+- **Sprint 19**: OAuth security upgrade (user identity + drive.appdata) ✅ COMPLETED (Oct 30, 2025)
+- **Sprint 20**: Cross-device settings sync (AppData + backend OAuth) ✅ COMPLETED (2025)
 
 ### 🎯 Sprint 4 Achievements Summary
 ✅ **Major Breakthrough**: True WYSIWYG markdown editing experience achieved
@@ -261,12 +262,10 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 **Note**: Sprint 18 documentation complete but implementation deferred to prioritize Sprint 19 OAuth security upgrade
 
-#### **Sprint 19**: OAuth Security Upgrade 🔄 READY FOR PR
+#### **Sprint 19**: OAuth Security Upgrade ✅ COMPLETED
 **Goal**: User identity extraction + drive.appdata scope for cross-device sync
 **Timeline**: 1 day (October 30, 2025)
-**Status**: 🔄 **READY FOR PR** - Code Cleanup Complete
-**Decision**: Backend token refresh moved to Sprint 20
-**PR Status**: Awaiting user approval
+**Merge**: October 30, 2025
 
 **Critical Achievements**:
 1. ✅ **User Identity Extraction** - `user.sub` from Google v1 endpoint (stable cross-device ID)
@@ -299,10 +298,26 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 ---
 
-### 🔮 Future Sprints (Sprint 20+)
+#### **Sprint 20**: Cross-Device Settings Sync ✅ COMPLETED
+**Goal**: Settings synchronization across devices using Google Drive AppData
+**Timeline**: 2025
+**Merge**: 2025
 
-- **Sprint 20**: Cross-Device Settings Sync (Google Drive AppData) - ✅ UNBLOCKED
-- **Sprint 21**: Rate Limiting + BYOK (Bring Your Own Key) - ✅ UNBLOCKED
+**Critical Achievements**:
+- ✅ **AppData Integration** - Google Drive AppData API for secure settings storage
+- ✅ **Cross-Device Sync** - User preferences synchronized across all devices
+- ✅ **Backend OAuth** - Netlify serverless functions for token management
+- ✅ **Encrypted Storage** - Settings encrypted at rest using AES-256-GCM
+- ✅ **SettingsContext** - React context for app-wide settings management
+- ✅ **Settings Sync Service** - Robust sync service with error handling
+
+**See**: `/docs/sprints/sprint-20/` for complete documentation
+
+---
+
+### 🔮 Future Sprints (Sprint 21+)
+
+- **Sprint 21**: Settings Dialog + Rate Limiting 🚧 **IN PROGRESS**
 - **Sprint 22+**: AI Writing Assistant (OpenAI/Anthropic integration)
 - **Sprint 23+**: Real-Time Collaboration (Y.js CRDT)
 - **Sprint 24+**: Collaboration UI & Presence
@@ -328,10 +343,9 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 19 🔄 READY FOR PR - OAuth Security Upgrade (awaiting user approval)
-**Next Sprint**: Sprint 20 (Cross-Device Sync + Backend Token Refresh)
-**Last Completed**: Sprint 17 ✅ Version History Feature (October 26, 2025)
-**Last Updated**: October 30, 2025 - Sprint 19 cleanup complete, awaiting PR approval
+**Current Sprint**: Sprint 21 🚧 Settings Dialog + Rate Limiting (IN PROGRESS)
+**Last Completed**: Sprint 20 ✅ Cross-Device Settings Sync (2025)
+**Last Updated**: November 3, 2025 - Sprint 21 in progress
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 

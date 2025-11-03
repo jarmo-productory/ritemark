@@ -244,12 +244,25 @@ function parseAndValidateState(rawState: string | undefined): { origin: string; 
       throw new Error(`State expired (age: ${Math.round(age / 1000)}s)`)
     }
 
-    // Validate origin against allowlist
+    // Validate origin against allowlist (Sprint 22 Security hardening)
     const isAllowed = ALLOWED_ORIGINS.some(allowed => {
       if (typeof allowed === 'string') {
+        // Exact string match (production/localhost)
         return state.origin === allowed
       }
-      return allowed.test(state.origin)
+
+      // Sprint 22: For regex patterns, verify both pattern match AND hostname suffix
+      // Defense against subdomain attacks (e.g., evil.com/deploy-preview-123--ritemark.netlify.app)
+      if (allowed.test(state.origin)) {
+        try {
+          const url = new URL(state.origin)
+          // Verify hostname ends with netlify.app (prevents spoofing)
+          return url.hostname.endsWith('netlify.app')
+        } catch {
+          return false  // Invalid URL format
+        }
+      }
+      return false
     })
 
     if (!isAllowed) {

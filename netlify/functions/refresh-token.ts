@@ -25,8 +25,62 @@ const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 // Netlify Blob store for refresh tokens
 const REFRESH_TOKENS_STORE = 'refresh-tokens'
 
+// Sprint 22 Security: Rate limiting store
+const RATE_LIMIT_STORE = 'rate-limits'
+
 // Token expiration (180 days)
 const REFRESH_TOKEN_TTL = 180 * 24 * 60 * 60 * 1000
+
+// Sprint 22 Security: Rate limit configuration
+const RATE_LIMIT = {
+  maxRequests: 10,        // Maximum requests per window
+  windowMs: 60 * 1000,    // 1-minute sliding window
+  keyPrefix: 'refresh:'   // Prefix for rate limit keys
+}
+
+/**
+ * Sprint 22 Security: Rate Limiting Helper
+ *
+ * Uses Netlify Blobs to track request counts per IP address
+ * Implements sliding window rate limiting (10 requests per minute)
+ *
+ * @returns { allowed: boolean, remaining: number, retryAfter?: number }
+ */
+async function checkRateLimit(clientIp: string): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
+  const store = getStore(RATE_LIMIT_STORE)
+  const key = `${RATE_LIMIT.keyPrefix}${clientIp}`
+  const now = Date.now()
+
+  try {
+    // Get current rate limit data
+    const data = await store.get(key, { type: 'json' }) as { requests: number[]; } | null
+
+    // Filter out expired timestamps (outside the time window)
+    const requests = (data?.requests || []).filter((timestamp: number) => now - timestamp < RATE_LIMIT.windowMs)
+
+    // Check if rate limit exceeded
+    if (requests.length >= RATE_LIMIT.maxRequests) {
+      const oldestRequest = Math.min(...requests)
+      const retryAfter = Math.ceil((oldestRequest + RATE_LIMIT.windowMs - now) / 1000)
+
+      return { allowed: false, remaining: 0, retryAfter }
+    }
+
+    // Add current request timestamp
+    requests.push(now)
+
+    // Store updated request list with TTL
+    await store.setJSON(key, { requests }, {
+      metadata: { updatedAt: now.toString() }
+    })
+
+    return { allowed: true, remaining: RATE_LIMIT.maxRequests - requests.length }
+  } catch (error) {
+    // On error, allow request but log warning (fail open for availability)
+    console.warn('[refresh-token] Rate limit check failed:', error)
+    return { allowed: true, remaining: RATE_LIMIT.maxRequests }
+  }
+}
 
 /**
  * Token Refresh Handler
@@ -39,6 +93,32 @@ const REFRESH_TOKEN_TTL = 180 * 24 * 60 * 60 * 1000
  * 5. Return new access token to frontend
  */
 export const handler: Handler = async (event: HandlerEvent) => {
+  // Sprint 22 Security: Rate limiting check (before any processing)
+  const clientIp = event.headers['x-forwarded-for']?.split(',')[0].trim() ||
+                   event.headers['client-ip'] ||
+                   'unknown'
+
+  const rateLimit = await checkRateLimit(clientIp)
+
+  if (!rateLimit.allowed) {
+    console.warn(`[refresh-token] Rate limit exceeded for IP: ${clientIp}`)
+    return {
+      statusCode: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(rateLimit.retryAfter || 60),
+        'X-RateLimit-Limit': String(RATE_LIMIT.maxRequests),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': String(Math.ceil((Date.now() + (rateLimit.retryAfter || 60) * 1000) / 1000))
+      } as Record<string, string>,
+      body: JSON.stringify({
+        error: 'rate_limit_exceeded',
+        message: `Too many token refresh requests. Please try again in ${rateLimit.retryAfter} seconds.`,
+        retryAfter: rateLimit.retryAfter
+      })
+    }
+  }
+
   // Security: POST only
   if (event.httpMethod !== 'POST') {
     return {
@@ -146,8 +226,11 @@ export const handler: Handler = async (event: HandlerEvent) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate'
-      },
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        // Sprint 22 Security: Include rate limit headers in response
+        'X-RateLimit-Limit': String(RATE_LIMIT.maxRequests),
+        'X-RateLimit-Remaining': String(rateLimit.remaining)
+      } as Record<string, string>,
       body: JSON.stringify({
         access_token: credentials.access_token,
         expires_in: 3600, // 1 hour

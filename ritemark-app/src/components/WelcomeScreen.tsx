@@ -1,8 +1,10 @@
 import { FileText, FolderOpen, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AuthErrorDialog } from '@/components/AuthErrorDialog'
 import { useContext, useState, useEffect } from 'react'
 import { AuthContext } from '@/contexts/AuthContext'
+import { useBackendHealth } from '@/contexts/BackendHealthContext'
 import type { GoogleUser } from '@/types/auth'
 
 interface WelcomeScreenProps {
@@ -17,19 +19,21 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   const user = authContext?.user
   const [tokenClient, setTokenClient] = useState<{ requestAccessToken: () => void } | null>(null)
   const [accessTokenReceived, setAccessTokenReceived] = useState(false)
-  const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null)
 
+  // Sprint 22 Performance: Use global backend health context
+  const { backendAvailable } = useBackendHealth()
 
-  // Check backend health on mount (Sprint 20 - Phase 0)
-  useEffect(() => {
-    const checkHealth = async () => {
-      const { checkBackendHealth } = await import('../utils/backendHealth')
-      const available = await checkBackendHealth()
-      setBackendAvailable(available)
-      console.log('[WelcomeScreen] Backend health check:', available ? 'available' : 'unavailable')
-    }
-    checkHealth()
-  }, [])
+  // Sprint 22 UX: Error dialog state
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean
+    title?: string
+    message: string
+    error?: Error | unknown
+    onRetry?: () => void
+  }>({
+    open: false,
+    message: ''
+  })
 
   // Initialize Google OAuth token client (browser-only fallback, Sprint 19)
   useEffect(() => {
@@ -44,63 +48,39 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
           callback: async (tokenResponse: { access_token?: string; error?: string; error_description?: string; expires_in?: number; scope?: string; token_type?: string }) => {
             if (tokenResponse.access_token) {
               try {
-                // Use OpenID Connect endpoint to get user.sub (stable user ID)
-                const userInfoResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                })
-
-                if (!userInfoResponse.ok) {
-                  throw new Error('Failed to fetch user info')
-                }
-
-                const userInfo = await userInfoResponse.json()
-
-                // userInfo.sub is the stable user ID (consistent across devices)
-                const userData: GoogleUser = {
-                  id: userInfo.sub,
-                  email: userInfo.email,
-                  name: userInfo.name,
-                  picture: userInfo.picture,
-                  verified_email: userInfo.email_verified || false,
-                  emailVerified: userInfo.email_verified || false,
-                }
-
-                // Store user data in sessionStorage
-                sessionStorage.setItem('ritemark_user', JSON.stringify(userData))
-
-                // Store user.sub for rate limiting and cross-device sync
-                const { userIdentityManager } = await import('../services/auth/tokenManager')
-                userIdentityManager.storeUserInfo(userData.id, userData.email)
-
-                // Store tokens using encrypted TokenManager
-                const { tokenManagerEncrypted } = await import('../services/auth/TokenManagerEncrypted')
-
-                const tokens = {
-                  access_token: tokenResponse.access_token,
-                  accessToken: tokenResponse.access_token,
-                  expires_in: tokenResponse.expires_in,
-                  scope: tokenResponse.scope,
-                  token_type: (tokenResponse.token_type || 'Bearer') as 'Bearer',
-                  tokenType: 'Bearer' as const,
-                  expiresAt: Date.now() + ((tokenResponse.expires_in || 3600) * 1000),
-                }
-
-                await tokenManagerEncrypted.storeTokens(tokens)
-
-                // Also store in sessionStorage for backward compatibility
-                sessionStorage.setItem('ritemark_oauth_tokens', JSON.stringify(tokens))
+                // Sprint 22: Use shared callback handler
+                const { oauthCallbackHandler } = await import('../services/auth/OAuthCallbackHandler')
+                await oauthCallbackHandler.handleBrowserCallback(tokenResponse)
 
                 setAccessTokenReceived(true)
               } catch (err) {
                 console.error('Authentication failed:', err)
-                alert('Authentication failed. Please try again.')
+                setErrorDialog({
+                  open: true,
+                  title: 'Authentication Failed',
+                  message: 'Failed to complete authentication. Please try again.',
+                  error: err,
+                  onRetry: () => {
+                    setErrorDialog({ open: false, message: '' })
+                    tokenClient?.requestAccessToken()
+                  }
+                })
               }
             } else {
               // Error: User denied access or Google returned error
               const errorMessage = tokenResponse.error === 'access_denied'
-                ? 'Access denied. You need to grant permission to use RiteMark.'
-                : `Authentication failed: ${tokenResponse.error_description || tokenResponse.error || 'Unknown error'}`
-              alert(errorMessage)
+                ? 'You need to grant permission to use RiteMark.'
+                : tokenResponse.error_description || tokenResponse.error || 'Unknown error'
+
+              setErrorDialog({
+                open: true,
+                title: tokenResponse.error === 'access_denied' ? 'Access Denied' : 'Authentication Failed',
+                message: errorMessage,
+                onRetry: tokenResponse.error === 'access_denied' ? undefined : () => {
+                  setErrorDialog({ open: false, message: '' })
+                  tokenClient?.requestAccessToken()
+                }
+              })
             }
           },
         })
@@ -120,15 +100,78 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
     }
   }, [accessTokenReceived])
 
+  /**
+   * Initiate Google OAuth sign-in flow
+   *
+   * **OAuth Flow Selection Strategy (Sprint 20)**
+   *
+   * This function implements a dual OAuth flow architecture to solve the
+   * "Google OAuth doesn't support per-PR URLs" problem while maintaining
+   * long-lived sessions in production.
+   *
+   * ## Flow 1: Backend OAuth (Authorization Code Flow)
+   * **When**: Backend available (production + local dev via Netlify CLI)
+   * **How**: Exchanges authorization code for tokens via Netlify Function
+   * **Benefits**:
+   * - 6-month sessions (refresh tokens stored server-side in Netlify Blobs)
+   * - More secure (CLIENT_SECRET never exposed to browser)
+   * - Automatic token refresh without re-authentication
+   *
+   * ## Flow 2: Browser-Only OAuth (Implicit Flow)
+   * **When**: Backend unavailable (preview deploys, offline development)
+   * **How**: Direct token request via Google Identity Services
+   * **Benefits**:
+   * - Works without backend infrastructure
+   * - Enables preview deploy testing
+   * **Limitations**:
+   * - 1-hour sessions only (no refresh token)
+   * - Less secure (tokens only in browser memory)
+   *
+   * ## Preview Deploy Limitation
+   * Google OAuth requires fixed redirect URIs registered in Google Console.
+   * Per-PR URLs (e.g., `deploy-preview-123--ritemark.netlify.app`) cannot
+   * be registered dynamically, so preview deploys fall back to browser-only OAuth.
+   *
+   * ## Environment Detection
+   * Backend availability checked via HEAD request to `/refresh-token` endpoint:
+   * - 405 Method Not Allowed = Netlify Function available ✅
+   * - Network error/timeout = Backend unavailable ❌
+   * - Result cached for 5 minutes (see `backendHealth.ts`)
+   *
+   * ## Security (Sprint 22)
+   * - State parameter with nonce (CSRF protection)
+   * - Timestamp validation (replay attack prevention)
+   * - Origin allowlist (open redirect prevention)
+   * - Rate limiting on token refresh endpoint
+   *
+   * @see https://developers.google.com/identity/protocols/oauth2
+   * @see /netlify/functions/auth-callback.ts (backend OAuth handler)
+   * @see /netlify/functions/refresh-token.ts (token refresh endpoint)
+   * @see /docs/architecture/ADR-004-oauth-flow-selection.md
+   */
   const handleSignIn = () => {
+    // Sprint 22 Security: HTTPS enforcement in production
+    const protocol = window.location.protocol
+    const host = window.location.hostname
+    const isLocalDev = host === 'localhost' || host === '127.0.0.1'
+
+    // Enforce HTTPS in production (graceful redirect, non-blocking)
+    if (!isLocalDev && protocol !== 'https:') {
+      console.warn('[WelcomeScreen] OAuth over HTTP detected - redirecting to HTTPS for security')
+      window.location.href = `https://${window.location.host}${window.location.pathname}`
+      return
+    }
+
     // Sprint 20 Phase 0: Check backend availability
     if (backendAvailable === true) {
       // Backend available: Use Authorization Code Flow via Netlify Function
-      console.log('[WelcomeScreen] Using backend OAuth flow')
-
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
       if (!clientId) {
-        alert('Google Client ID not configured')
+        setErrorDialog({
+          open: true,
+          title: 'Configuration Error',
+          message: 'Google Client ID is not configured. Please check your environment variables.'
+        })
         return
       }
 
@@ -136,21 +179,22 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       // Carry the current environment (origin) in a signed state parameter.
       // For local dev via `netlify dev`, allow localhost callback as an additional authorized URI.
       // NOTE: Preview deploys will NOT have working OAuth (Google doesn't support per-PR URLs)
-      const host = window.location.hostname
-      const isLocalDev = host === 'localhost' || host === '127.0.0.1'
       const fixedRedirectUri = isLocalDev
         ? 'http://localhost:8888/.netlify/functions/auth-callback'
         : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
 
-      console.log('[WelcomeScreen] Using redirect URI:', fixedRedirectUri)
-
       const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
 
       // Encode return destination in state (where to redirect after OAuth)
+      const nonce = crypto.randomUUID()  // Generate nonce for CSRF protection
+
+      // Sprint 22 Security: Store nonce in sessionStorage for client-side validation
+      sessionStorage.setItem('oauth_nonce', nonce)
+
       const state = {
         origin: window.location.origin,  // Local dev or production origin
         returnPath: '/app',              // Ensure the SPA route, not landing page
-        nonce: crypto.randomUUID(),      // CSRF protection
+        nonce,                           // CSRF protection
         ts: Date.now()                   // Replay protection
       }
 
@@ -169,14 +213,21 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       authUrl.searchParams.set('prompt', 'consent') // Force consent to get refresh token
       authUrl.searchParams.set('state', stateEncoded)
 
-      console.log('[WelcomeScreen] OAuth state:', state)
       window.location.href = authUrl.toString()
     } else {
       // Backend unavailable: Fall back to browser-only OAuth (Sprint 19)
-      console.log('[WelcomeScreen] Using browser-only OAuth flow (fallback)')
 
       if (!tokenClient) {
-        alert('Authentication not ready. Please refresh the page.')
+        setErrorDialog({
+          open: true,
+          title: 'Authentication Not Ready',
+          message: 'The authentication system is still loading. Please wait a moment and try again.',
+          onRetry: () => {
+            setErrorDialog({ open: false, message: '' })
+            // Retry after a short delay
+            setTimeout(() => handleSignIn(), 1000)
+          }
+        })
         return
       }
       tokenClient.requestAccessToken() // Opens Google OAuth popup
@@ -184,6 +235,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   }
 
   return (
+    <>
     <Dialog open={true} onOpenChange={(open) => !open && onCancel?.()}>
       <DialogContent
         className="max-w-md"
@@ -263,5 +315,16 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Sprint 22 UX: Professional error dialog replacing alert() */}
+    <AuthErrorDialog
+      open={errorDialog.open}
+      onClose={() => setErrorDialog({ open: false, message: '' })}
+      onRetry={errorDialog.onRetry}
+      title={errorDialog.title}
+      message={errorDialog.message}
+      error={errorDialog.error}
+    />
+    </>
   )
 }

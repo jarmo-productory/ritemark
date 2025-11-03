@@ -5,9 +5,10 @@
  * Integrates with SettingsSyncService for cross-device persistence
  */
 
-import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react'
+import React, { createContext, useState, useEffect, useMemo, useCallback, useContext } from 'react'
 import type { UserSettings } from '../types/settings'
 import { settingsSyncService } from '../services/settings/SettingsSyncService'
+import { AuthContext } from './AuthContext'
 
 /**
  * Settings context interface
@@ -78,20 +79,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // Use the actual SettingsSyncService singleton
   const syncService = useMemo(() => settingsSyncService, [])
 
-  // Load settings on mount and start auto-sync
-  useEffect(() => {
-    // Load settings from cache/Drive
-    loadSettings()
-
-    // Start background sync (every 30 seconds)
-    syncService.startAutoSync()
-
-    // Cleanup: stop auto-sync on unmount
-    return () => {
-      syncService.stopAutoSync()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Only run once on mount
+  // Get authentication state
+  const auth = useContext(AuthContext)
+  const isAuthenticated = auth?.isAuthenticated ?? false
 
   /**
    * Load settings (cache-first strategy)
@@ -113,6 +103,28 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       setLoading(false)
     }
   }, [syncService])
+
+  // Delay settings load and auto-sync start until authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Stop auto-sync and clear state when logged out
+      syncService.stopAutoSync()
+      setSettings(null)
+      setLastSyncTime(null)
+      return
+    }
+
+    // Load settings from cache/Drive (after auth is ready)
+    loadSettings()
+
+    // Start background sync (every 30 seconds)
+    syncService.startAutoSync()
+
+    // Cleanup: stop auto-sync on unmount or when auth changes
+    return () => {
+      syncService.stopAutoSync()
+    }
+  }, [isAuthenticated, loadSettings, syncService])
 
   /**
    * Save settings (local + cloud sync)

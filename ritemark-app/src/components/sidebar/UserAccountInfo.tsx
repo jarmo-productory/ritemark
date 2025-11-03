@@ -1,4 +1,11 @@
-import { useContext, useState } from 'react'
+/**
+ * User Account Info Component with Settings & Account Dialog
+ *
+ * Shows user profile in sidebar. Click to open comprehensive Settings & Account dialog.
+ * Repurposed from simple logout dialog (Sprint 21 Phase 0)
+ */
+
+import { useContext, useState, useCallback } from 'react'
 import { User, CheckCircle } from 'lucide-react'
 import {
   SidebarMenu,
@@ -6,26 +13,31 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { AuthContext } from '@/contexts/AuthContext'
+import { useSettings } from '@/hooks/useSettings'
+import { UserProfileSection } from '@/components/settings/UserProfileSection'
+import { GeneralSettingsSection } from '@/components/settings/GeneralSettingsSection'
+import { PrivacyDataSection } from '@/components/settings/PrivacyDataSection'
+import type { UserSettings } from '@/types/settings'
 
 /**
- * User Account Info Component with Beautiful Logout Dialog
+ * UserAccountInfo Component
  *
- * Shows user profile in sidebar. Click to open logout confirmation dialog.
+ * Single entrypoint for Settings & Account dialog (bottom left sidebar)
+ * Replaces the old simple logout AlertDialog
  */
 export function UserAccountInfo() {
   const authContext = useContext(AuthContext)
   const { user, isAuthenticated, logout } = authContext || {}
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const { settings, saveSettings, syncing } = useSettings()
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false)
 
   // Don't render if not authenticated
   if (!isAuthenticated || !user) {
@@ -33,15 +45,70 @@ export function UserAccountInfo() {
   }
 
   const handleUserClick = () => {
-    setShowLogoutDialog(true)
+    setShowSettingsDialog(true)
   }
 
   const handleLogout = () => {
-    setShowLogoutDialog(false)
+    setShowSettingsDialog(false)
     if (logout) {
       logout()
     }
   }
+
+  const handleDeleteAccount = async () => {
+    try {
+      // TODO: Call delete-account Netlify function in Phase 5
+      console.log('[UserAccountInfo] Delete account for user:', user.sub)
+      alert('Account deletion feature coming in Phase 5')
+
+      // For now, just logout
+      if (logout) {
+        logout()
+      }
+    } catch (error) {
+      console.error('[UserAccountInfo] Account deletion failed:', error)
+      alert('Failed to delete account. Please try again.')
+    }
+  }
+
+  /**
+   * Handle setting changes with dot-notation path
+   * Example: 'preferences.theme' -> settings.preferences.theme = value
+   */
+  const handleSettingChange = useCallback(
+    async (path: string, value: any) => {
+      if (!settings) return
+
+      try {
+        // Parse dot-notation path (e.g., 'preferences.theme')
+        const keys = path.split('.')
+        const updatedSettings = JSON.parse(JSON.stringify(settings)) as UserSettings
+
+        // Navigate to the nested property and set value
+        let current: any = updatedSettings
+        for (let i = 0; i < keys.length - 1; i++) {
+          const key = keys[i]
+          if (!current[key]) {
+            current[key] = {}
+          }
+          current = current[key]
+        }
+        current[keys[keys.length - 1]] = value
+
+        // Update timestamp for conflict resolution
+        updatedSettings.timestamp = Date.now()
+
+        // Save settings (triggers sync to Drive AppData)
+        await saveSettings(updatedSettings)
+
+        console.log(`[UserAccountInfo] Setting updated: ${path} =`, value)
+      } catch (error) {
+        console.error('[UserAccountInfo] Failed to update setting:', error)
+        alert('Failed to save setting. Please try again.')
+      }
+    },
+    [settings, saveSettings]
+  )
 
   return (
     <>
@@ -74,38 +141,32 @@ export function UserAccountInfo() {
         </SidebarMenuItem>
       </SidebarMenu>
 
-      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sign out of RiteMark?</AlertDialogTitle>
-            {/* User info display - moved outside AlertDialogDescription to fix HTML nesting */}
-            <div className="flex items-center gap-3 mt-4 mb-2">
-              {user.picture ? (
-                <img
-                  src={user.picture}
-                  alt={user.name || 'User'}
-                  className="w-12 h-12 rounded-full"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                  <User className="w-6 h-6 text-gray-500" />
-                </div>
-              )}
-              <div className="text-left">
-                <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                <div className="text-xs text-gray-500">{user.email}</div>
-              </div>
-            </div>
-            <AlertDialogDescription>
-              This will sign you out of RiteMark. Sign in again to access your documents and settings.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout}>Sign Out</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="max-w-[560px] max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Settings & Account</DialogTitle>
+          </DialogHeader>
+
+          {/* User Profile Section */}
+          <UserProfileSection user={user} />
+
+          {/* General Settings Section */}
+          <GeneralSettingsSection settings={settings} onSettingChange={handleSettingChange} />
+
+          {/* Privacy & Data Section */}
+          <PrivacyDataSection userId={user.sub || ''} onDeleteAccount={handleDeleteAccount} />
+
+          {/* Footer Actions */}
+          <DialogFooter className="pt-6">
+            <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleLogout} disabled={syncing}>
+              Sign Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

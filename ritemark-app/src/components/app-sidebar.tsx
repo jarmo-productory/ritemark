@@ -23,11 +23,12 @@ interface AppSidebarProps {
   syncStatus: DriveSyncStatus
   editor?: TipTapEditor | null
   hasDocument?: boolean
+  content?: string
   onNewDocument?: () => void
   onOpenFromDrive?: () => void
 }
 
-export function AppSidebar({ documentTitle, syncStatus, editor, hasDocument, onNewDocument, onOpenFromDrive }: AppSidebarProps) {
+export function AppSidebar({ documentTitle, syncStatus, editor, hasDocument, content, onNewDocument, onOpenFromDrive }: AppSidebarProps) {
   const authContext = useContext(AuthContext)
   const isAuthenticated = authContext?.isAuthenticated ?? false
 
@@ -88,7 +89,7 @@ export function AppSidebar({ documentTitle, syncStatus, editor, hasDocument, onN
         <SidebarGroup>
           <SidebarGroupLabel>Contents</SidebarGroupLabel>
           <SidebarGroupContent>
-            <TableOfContentsNav editor={editor} />
+            <TableOfContentsNav editor={editor} content={content} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
