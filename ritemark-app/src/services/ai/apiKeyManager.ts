@@ -9,7 +9,7 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb'
-import { generateEncryptionKey, encryptData, decryptData, type EncryptedData } from '@/utils/crypto'
+import { generateEncryptionKey, encryptData, decryptData } from '@/utils/crypto'
 
 const DB_NAME = 'ritemark-settings'
 const DB_VERSION = 3 // Sprint 23: Bumped to 3 to fix missing api-keys store
@@ -64,7 +64,7 @@ class APIKeyManager {
     // Open/create IndexedDB database with timeout
     // Version 3: Fixed missing api-keys store creation (Sprint 23)
     const dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
+      upgrade(db) {
         // Create object store if it doesn't exist
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: 'id' })

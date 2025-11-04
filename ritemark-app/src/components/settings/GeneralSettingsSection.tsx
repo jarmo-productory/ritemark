@@ -48,11 +48,8 @@ export function GeneralSettingsSection({ settings, onSettingChange }: GeneralSet
     try {
       await apiKeyManager.deleteAPIKey()
       setMaskedKey(null)
-      setApiKey('')
-      setSaveMessage('API key deleted successfully')
-      setTimeout(() => setSaveMessage(''), 3000)
     } catch (error) {
-      setSaveMessage(error instanceof Error ? error.message : 'Failed to delete API key')
+      console.error('Failed to delete API key:', error)
     }
   }
 

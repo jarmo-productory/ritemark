@@ -39,7 +39,7 @@ export class SettingsSyncService {
     }
 
     this.db = await openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
+      upgrade(db) {
         // Sprint 20: settings-cache store
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME);
