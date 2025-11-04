@@ -4,6 +4,44 @@ All notable changes to RiteMark are documented here. Latest releases appear firs
 
 ---
 
+## November 4, 2025 (Later) - AI Gets Smarter + Better Layout
+
+**More Ways to Write, Cleaner Interface** ✨
+
+The AI can now add new content to your document, and we've perfected the editor layout.
+
+### What's New
+
+**AI Insert Text**
+- **Add new content** - Ask the AI to "write a conclusion" or "add examples after this paragraph"
+- **Smart positioning** - AI places content exactly where you want it:
+  - At the start or end of your document
+  - Before or after specific text ("insert summary after Introduction")
+  - At your cursor position
+- **Markdown formatting** - AI uses proper headings, bold, lists, and quotes automatically
+- **Context-aware** - Remembers your full conversation for better suggestions
+
+**Selection Awareness**
+- **See what's selected** - Visual indicator shows exactly what text the AI is working with
+- **Click to select** - Select text, then ask AI to edit it
+- **Clear selection** - Easy ✕ button to deselect
+
+**Better Editor Layout**
+- **AI chat stays put** - Chat sidebar never scrolls away (always visible on the right)
+- **Cleaner scrolling** - Only your document scrolls, header and sidebar stay fixed
+- **Perfect sizing** - Editor uses all available space, everything fills the viewport
+- **Table of Contents works** - Fixed scrolling to headings with the new layout
+
+### Technical Improvements
+- Markdown rendered automatically (## becomes headings, **bold** works, - creates lists)
+- Viewport-locked design (h-screen w-screen overflow-hidden)
+- TOC adapted to scroll container instead of window
+- 16px offset from top for comfortable reading
+
+**How to use it:** Select some text (or don't), then tell the AI "add a conclusion" or "write examples after this section"
+
+---
+
 ## November 4, 2025 - AI Writing Assistant
 
 **Your AI-Powered Writing Partner** 🤖

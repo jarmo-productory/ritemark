@@ -396,10 +396,20 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - **Status**: ✅ Implementation complete, browser validated (Nov 4, 2025)
 - **Documentation**: See `/docs/sprints/sprint-23/` for complete implementation details
 
-**Sprint 24**: Expand to 3 Tools
-- **Goal**: Add `insertText` and `applyFormatting` tools
-- **Timeline**: 2-3 days
-- **Deliverable**: Multi-tool AI orchestration with 3 working tools
+**Sprint 24**: insertText Tool + Viewport Layout ✅ COMPLETED
+- **Goal**: Add `insertText` tool with markdown formatting + fix layout
+- **Timeline**: 1 day (November 4, 2025)
+- **Status**: ✅ Implementation complete, production deployed
+- **Deliverables**:
+  - ✅ insertText tool with 3 position strategies (absolute, relative, selection)
+  - ✅ Markdown-to-HTML conversion using marked library
+  - ✅ Conversation history for context-aware AI responses
+  - ✅ Viewport-locked layout (AI chat fixed on screen)
+  - ✅ Selection awareness with live preview
+  - ✅ TOC scrolling adapted to new layout
+  - ⏭️ applyFormatting tool skipped (user insight: "buttons solve this")
+- **Merge**: November 4, 2025 (commit: 24e22e5)
+- **See**: `/docs/sprints/sprint-24/` for complete documentation
 
 #### **Phase 2: Minimal Viable AI Agent (Sprints 25-27)**
 
@@ -457,9 +467,9 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 24 🎯 Ready to start
-**Last Completed**: Sprint 23 ✅ Real AI Tool Implementation with API Key Management (November 4, 2025)
-**Last Updated**: November 4, 2025 - Sprint 23 completed with OpenAI GPT-5-mini + user API key management
+**Current Sprint**: Sprint 25 🎯 Ready to start
+**Last Completed**: Sprint 24 ✅ insertText Tool + Viewport Layout (November 4, 2025)
+**Last Updated**: November 4, 2025 - Sprint 24 completed with insertText tool, markdown formatting, and viewport-locked layout
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
