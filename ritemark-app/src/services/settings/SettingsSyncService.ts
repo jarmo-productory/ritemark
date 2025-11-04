@@ -450,9 +450,10 @@ export class SettingsSyncService {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!deleteResponse.ok) {
+        if (!deleteResponse.ok && deleteResponse.status !== 404) {
           throw new Error(`Drive API delete failed: ${deleteResponse.status}`);
         }
+        // 404 is OK - file already deleted or never existed
       }
     } catch (error) {
       console.error('[SettingsSync] Failed to delete from Drive:', error);
