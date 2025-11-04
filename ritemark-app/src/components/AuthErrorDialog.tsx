@@ -39,16 +39,18 @@ export function AuthErrorDialog({
         </DialogHeader>
 
         <DialogDescription className="space-y-3">
-          <p className="text-sm text-foreground">{message}</p>
+          <>
+            <p className="text-sm text-foreground">{message}</p>
 
-          {error && (
-            <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer font-medium">Technical details</summary>
-              <pre className="mt-2 rounded bg-muted p-2 overflow-x-auto">
-                {error instanceof Error ? error.message : String(error)}
-              </pre>
-            </details>
-          )}
+            {error && (
+              <details className="text-xs text-muted-foreground">
+                <summary className="cursor-pointer font-medium">Technical details</summary>
+                <pre className="mt-2 rounded bg-muted p-2 overflow-x-auto">
+                  {error instanceof Error ? error.message : String(error)}
+                </pre>
+              </details>
+            )}
+          </>
         </DialogDescription>
 
         <DialogFooter className="flex-row gap-2">

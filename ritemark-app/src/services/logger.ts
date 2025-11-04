@@ -105,7 +105,6 @@ export class Logger {
    * Sprint 22: Logs to console (can be extended to send to analytics)
    */
   private log(event: LogEvent): void {
-    const timestamp = new Date(event.timestamp).toISOString()
     const prefix = `[${event.context}]`
 
     // Console output

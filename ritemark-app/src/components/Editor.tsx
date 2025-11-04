@@ -16,6 +16,7 @@ import { ImageExtension } from '../extensions/imageExtensions'
 import { SlashCommands } from '../extensions/SlashCommands'
 import { FormattingBubbleMenu } from './FormattingBubbleMenu'
 import { TableOverlayControls } from './TableOverlayControls'
+import { AIChatSidebar } from './ai/AIChatSidebar'
 
 // Initialize Turndown for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -91,10 +92,12 @@ interface EditorProps {
   placeholder?: string
   className?: string
   onEditorReady?: (editor: TipTapEditor) => void
+  fileId?: string | null
 }
 
 export function Editor({
   value,
+  fileId,
   onChange,
   placeholder = "Start writing...",
   className = "",
@@ -423,17 +426,24 @@ export function Editor({
   }, [editor, value])
 
   return (
-    <div className={`wysiwyg-editor ${className}`}>
-      <EditorContent editor={editor} />
+    <div className="flex h-full">
+      {/* Editor (left side) */}
+      <div className={`wysiwyg-editor flex-1 overflow-auto ${className}`}>
+        <EditorContent editor={editor} />
 
-      {editor ? (
-        <>
-          <FormattingBubbleMenu editor={editor} />
-          <TableOverlayControls editor={editor} />
-        </>
-      ) : (
-        <div style={{ display: 'none' }}>Editor not ready</div>
-      )}
+        {editor ? (
+          <>
+            <FormattingBubbleMenu editor={editor} />
+            <TableOverlayControls editor={editor} />
+          </>
+        ) : (
+          <div style={{ display: 'none' }}>Editor not ready</div>
+        )}
+      </div>
+
+      {/* AI Sidebar (right side) */}
+      {editor && <AIChatSidebar editor={editor} fileId={fileId} />}
+
       <style>{`
         .wysiwyg-editor .ProseMirror {
           outline: none !important;

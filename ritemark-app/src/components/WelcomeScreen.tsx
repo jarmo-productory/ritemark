@@ -5,7 +5,6 @@ import { AuthErrorDialog } from '@/components/AuthErrorDialog'
 import { useContext, useState, useEffect } from 'react'
 import { AuthContext } from '@/contexts/AuthContext'
 import { useBackendHealth } from '@/contexts/BackendHealthContext'
-import type { GoogleUser } from '@/types/auth'
 
 interface WelcomeScreenProps {
   onNewDocument: () => void

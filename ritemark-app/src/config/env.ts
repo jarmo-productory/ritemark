@@ -89,8 +89,8 @@ export type Environment = typeof ENV
  */
 try {
   // Trigger validation by accessing ENV object
-  const validation = ENV.GOOGLE_CLIENT_ID
-  
+  ENV.GOOGLE_CLIENT_ID
+
   console.log('✅ Environment variables validated successfully')
   console.log('[ENV] Google Client ID:', ENV.GOOGLE_CLIENT_ID.substring(0, 20) + '...')
   console.log('[ENV] Environment:', ENV.MODE)

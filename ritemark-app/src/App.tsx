@@ -174,7 +174,7 @@ function App() {
       !fileId
 
     if (shouldAutoOpen) {
-      const lastFileId = settings.preferences.lastOpenedFileId!
+      const lastFileId = settings.preferences?.lastOpenedFileId!
 
       // Load file content from Drive (same as handleFileSelect)
       const autoLoadFile = async () => {
@@ -314,6 +314,7 @@ function App() {
             value={content}
             onChange={setContent}
             onEditorReady={handleEditorReady}
+            fileId={fileId}
           />
         ) : showWelcomeScreen ? (
           <WelcomeScreen

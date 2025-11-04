@@ -17,7 +17,7 @@ import type { UserSettings, EncryptedSettings } from '../../types/settings';
 import { tokenManagerEncrypted } from '../auth/TokenManagerEncrypted';
 
 const DB_NAME = 'ritemark-settings';
-const DB_VERSION = 1;
+const DB_VERSION = 3; // Sprint 23: Bumped to 3 to fix missing api-keys store
 const STORE_NAME = 'settings-cache';
 const SYNC_INTERVAL = 30000; // 30 seconds
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
@@ -31,6 +31,7 @@ export class SettingsSyncService {
 
   /**
    * Initialize IndexedDB for settings caching
+   * Sprint 23: Updated to version 2 to share database with API key storage
    */
   private async initDB(): Promise<IDBPDatabase> {
     if (this.db) {
@@ -38,9 +39,15 @@ export class SettingsSyncService {
     }
 
     this.db = await openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        // Sprint 20: settings-cache store
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME);
+        }
+
+        // Sprint 23: api-keys store (MUST be created here since SettingsSyncService runs first)
+        if (!db.objectStoreNames.contains('api-keys')) {
+          db.createObjectStore('api-keys', { keyPath: 'id' });
         }
       },
     });

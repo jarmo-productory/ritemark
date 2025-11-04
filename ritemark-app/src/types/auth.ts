@@ -36,6 +36,7 @@ export interface OAuthState {
 
 export interface GoogleUser {
   id: string
+  sub?: string // Google user ID (from JWT token)
   email: string
   verified_email?: boolean
   name: string

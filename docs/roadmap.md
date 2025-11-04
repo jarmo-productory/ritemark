@@ -315,13 +315,127 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 ---
 
-### 🔮 Future Sprints (Sprint 21+)
+#### **Sprint 21/22**: OAuth Security Hardening + Settings Dialog ✅ COMPLETED
+**Goal**: Enterprise-grade OAuth security + comprehensive settings management + GDPR compliance
+**Timeline**: 2 days (November 1-3, 2025)
+**Merge**: November 3, 2025 (PR #12)
 
-- **Sprint 21**: Settings Dialog + Rate Limiting 🚧 **IN PROGRESS**
-- **Sprint 22+**: AI Writing Assistant (OpenAI/Anthropic integration)
-- **Sprint 23+**: Real-Time Collaboration (Y.js CRDT)
-- **Sprint 24+**: Collaboration UI & Presence
-- **Sprint 25+**: Comments & Suggestions
+**Critical Achievements**:
+- ✅ **15 OAuth security improvements** - CSRF protection, rate limiting, token validation, HTTPS enforcement
+- ✅ **Settings & Account Dialog** - Unified hub for all user preferences
+- ✅ **Professional Error Handling** - AuthErrorDialog replacing browser alert() calls
+- ✅ **Token Validator Service** - 15-minute OAuth token introspection with auto-logout
+- ✅ **Structured Logging** - Logger service with metadata support and log levels
+- ✅ **Backend Health Optimization** - Global context for backend availability checks
+- ✅ **GDPR Compliance** - Data export and account deletion features
+- ✅ **Code Quality** - OAuthCallbackHandler deduplicated 130+ lines of code
+
+**Settings Dialog Features**:
+- User profile display (avatar, name, email)
+- General preferences (auto-open last file, theme selection)
+- Privacy & data section (export, deletion, privacy policy)
+- Keyboard shortcuts reference modal
+- Mobile-responsive design with accessibility (WCAG 2.1 AA)
+
+**Security Improvements**:
+- CSRF protection with nonce validation
+- Rate limiting (10 req/min per IP) using Netlify Blobs
+- HTTPS enforcement with graceful redirect
+- Token introspection every 15 minutes
+- Origin allowlist hardening
+
+**Bug Fixes**:
+- TOC scrolling fixed (Sprint 15 knowledge reuse)
+- Token manager async/await integration
+- SessionStorage deprecation warnings
+
+**Technical Stack**:
+- 42 files changed (+3,308 additions, -391 deletions)
+- New components: AuthErrorDialog, BackendHealthContext, TokenValidator, OAuthCallbackHandler, Logger
+- Settings dialog sections: UserProfile, GeneralSettings, PrivacyData, KeyboardShortcuts
+- Netlify Functions: GDPR export, GDPR deletion, rate limiting
+
+**Date Completed**: November 3, 2025
+**See**: `/docs/sprints/sprint-21/` for complete documentation
+
+---
+
+### 🔮 Future Sprints (Sprint 22+)
+
+#### **Phase 1: AI Architecture Validation (Sprints 22-24)**
+
+**Sprint 22**: Client-Side Tool Execution POC ✅ IMPLEMENTATION COMPLETE
+- **Goal**: Validate TipTap commands can be executed from AI tool calls in browser
+- **Timeline**: 4 hours (executed via claude-flow swarm)
+- **Status**: ✅ Implementation complete, browser testing in progress
+- **Deliverables**:
+  - ✅ ToolExecutor service (`src/services/ai/toolExecutor.ts`)
+  - ✅ FakeAI parser (`src/services/ai/fakeAI.ts`)
+  - ✅ POC UI component (`src/components/ai/AICommandPOC.tsx`)
+  - ✅ TipTap tool specification (20 KB documentation)
+  - ⏳ Browser validation testing (pending)
+- **Next**: Browser tests → Sprint 24 (if pass) or Sprint 23 (if issues)
+
+**Sprint 23**: Real AI Tool Implementation ✅ COMPLETED
+- **Goal**: Production AI integration with OpenAI GPT-5-mini + user-managed API keys
+- **Timeline**: 2 days (November 3-4, 2025)
+- **Deliverables**:
+  - ✅ OpenAI GPT-5-mini function calling integration
+  - ✅ Case-insensitive text search (`findTextInDocument`)
+  - ✅ Production chat sidebar UI with message history
+  - ✅ **API key management in Settings dialog**
+  - ✅ **Inline API key input in chat sidebar**
+  - ✅ **Encrypted API key storage** (AES-256-GCM, IndexedDB)
+  - ✅ **Shared APIKeyInput component** (zero code duplication)
+  - ✅ **Event-based state sync** (Settings ↔ ChatSidebar)
+  - ✅ **BYOK model** with NO fallback (prevents accidental billing)
+  - ✅ Single tool: `replaceText` with real LLM
+  - ✅ Document-aware chat (resets on file change)
+  - ✅ Icon buttons (SendHorizontal, RotateCcw)
+  - ✅ Comprehensive error handling
+- **Status**: ✅ Implementation complete, browser validated (Nov 4, 2025)
+- **Documentation**: See `/docs/sprints/sprint-23/` for complete implementation details
+
+**Sprint 24**: Expand to 3 Tools
+- **Goal**: Add `insertText` and `applyFormatting` tools
+- **Timeline**: 2-3 days
+- **Deliverable**: Multi-tool AI orchestration with 3 working tools
+
+#### **Phase 2: Minimal Viable AI Agent (Sprints 25-27)**
+
+**Sprint 25**: Single Real AI Tool
+- **Goal**: First real LLM-powered editor manipulation
+- **Timeline**: 3-4 days
+- **Deliverable**: ONE tool (`replaceText`) with real OpenAI API call
+- **Success Criteria**: AI successfully modifies editor content
+
+**Sprint 26**: Error Handling & UX Polish
+- **Goal**: Production-ready AI interaction
+- **Timeline**: 2 days
+- **Deliverable**: Loading states, error handling, undo functionality
+
+**Sprint 27**: Expand to 3 Tools
+- **Goal**: Validate architecture scales
+- **Timeline**: 3-4 days
+- **Deliverable**: Add `insertText` and `applyFormatting` tools
+
+#### **Phase 3: Framework Migration (Sprint 28+)**
+
+**Sprint 28**: Vercel AI SDK Migration
+- **Goal**: Replace direct OpenAI SDK with Vercel AI SDK
+- **Timeline**: 2-3 days
+- **Deliverable**: Streaming UI, same features with better UX
+
+**Sprint 29+**: Feature Expansion
+- More tools (find, delete, rewrite, etc.)
+- Advanced UX (command palette, inline suggestions)
+- Model comparison (Claude vs GPT-4)
+- Testing & evals
+
+#### **Future: Real-Time Collaboration (Sprint 30+)**
+- **Sprint 30+**: Real-Time Collaboration (Y.js CRDT)
+- **Sprint 31+**: Collaboration UI & Presence
+- **Sprint 32+**: Comments & Suggestions
 
 **Note**: Mobile responsive design already implemented in Sprint 4
 
@@ -343,9 +457,9 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 21 🚧 Settings Dialog + Rate Limiting (IN PROGRESS)
-**Last Completed**: Sprint 20 ✅ Cross-Device Settings Sync (2025)
-**Last Updated**: November 3, 2025 - Sprint 21 in progress
+**Current Sprint**: Sprint 24 🎯 Ready to start
+**Last Completed**: Sprint 23 ✅ Real AI Tool Implementation with API Key Management (November 4, 2025)
+**Last Updated**: November 4, 2025 - Sprint 23 completed with OpenAI GPT-5-mini + user API key management
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 

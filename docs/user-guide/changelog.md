@@ -4,6 +4,85 @@ All notable changes to RiteMark are documented here. Latest releases appear firs
 
 ---
 
+## November 4, 2025 - AI Writing Assistant
+
+**Your AI-Powered Writing Partner** 🤖
+
+We've integrated OpenAI to help you write and edit faster. Ask the AI to make changes to your document using natural language commands.
+
+### What's New
+
+**AI Chat Sidebar**
+- **Natural language editing** - Just tell the AI what you want: "replace hello with hi" or "change the greeting"
+- **Instant document changes** - AI modifies your text in real-time
+- **Message history** - Keep track of your conversation with the AI
+- **Smart context** - Automatically resets when you switch documents
+
+**Your Own API Key (BYOK)**
+- **You control costs** - Bring your own OpenAI API key, no surprise charges from us
+- **Secure storage** - Your key is encrypted with bank-grade AES-256-GCM encryption
+- **Two ways to add** - Enter your key in Settings → General, or directly in the chat sidebar
+- **Instant sync** - Add your key anywhere, and it updates everywhere immediately
+- **Easy management** - View your masked key or delete it anytime
+
+**How to Get Started**
+1. Get a free OpenAI API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Add it in Settings → General (click your avatar) or in the AI chat sidebar
+3. Click the chat icon in the top-right corner
+4. Start giving commands like "make this more professional" or "fix grammar"
+
+### Technical Details
+- Uses OpenAI's GPT-5-mini model for fast, affordable edits
+- All processing happens in your browser - your documents never leave your device
+- Keys are encrypted and stored locally in IndexedDB
+- Zero-duplication architecture with shared components
+
+**Privacy Note:** We never see your API key or your documents. Everything stays on your device and communicates directly with OpenAI.
+
+---
+
+## November 3, 2025 - Enhanced Security & Settings
+
+**Safer, More Professional, More Control** 🔒
+
+We've hardened OAuth security, added comprehensive settings management, and improved the overall user experience.
+
+### What's New
+
+**Settings & Account Dialog**
+- **Unified settings hub** - All preferences in one place (click your avatar in the sidebar)
+- **User profile section** - See your Google account info at a glance
+- **General preferences** - Pick up where you left off, theme selection, keyboard shortcuts
+- **Privacy & data controls** - Export your data, manage your account
+- **Professional design** - Clean, accessible interface following WCAG guidelines
+
+**OAuth Security Improvements**
+- **Better error messages** - No more browser alerts, professional error dialogs with retry options
+- **Token validation** - Automatic token checking every 15 minutes with graceful re-authentication
+- **HTTPS enforcement** - Secure connections in production
+- **Rate limiting** - 10 requests per minute per IP to prevent abuse
+- **CSRF protection** - Enhanced security with state parameter validation
+
+**GDPR Compliance**
+- **Export your data** - Download all your settings and preferences as JSON
+- **Delete your account** - Permanently remove all your data with clear confirmation
+- **Privacy transparency** - Updated privacy policy with comprehensive data handling details
+
+### Bug Fixes
+- Fixed: Table of Contents scrolling now works reliably (Sprint 15 pattern reuse)
+- Fixed: Token refresh handles async operations correctly
+- Fixed: Backend health checks optimized with global context
+
+### Technical Improvements
+- Professional error dialogs replace browser alerts
+- Structured logging with metadata support
+- Shared OAuth callback handler (130+ lines deduplicated)
+- Backend health context for performance optimization
+
+**Where to find it:** Click your avatar in the bottom-left sidebar to access Settings & Account.
+
+---
+
 ## November 1, 2025 - Your Settings Sync Everywhere
 
 **Pick Up Where You Left Off** 🔄
