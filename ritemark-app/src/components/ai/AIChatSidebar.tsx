@@ -1,13 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 import { Editor } from '@tiptap/react'
-import { executeCommand } from '@/services/ai/openAIClient'
+import { executeCommand, type ConversationMessage } from '@/services/ai/openAIClient'
 import { apiKeyManager, API_KEY_CHANGED_EVENT, type APIKeyChangedEvent } from '@/services/ai/apiKeyManager'
 import { APIKeyInput } from '@/components/settings/APIKeyInput'
-import { SendHorizontal, RotateCcw, Key } from 'lucide-react'
+import { SelectionIndicator } from '@/components/ai/SelectionIndicator'
+import { SendHorizontal, RotateCcw, Key, Replace, FilePlus } from 'lucide-react'
+import type { EditorSelection } from '@/types/editor'
 
 interface AIChatSidebarProps {
   editor: Editor
   fileId?: string | null
+  liveSelection?: EditorSelection
+  persistedSelection?: EditorSelection
+  onClearSelection?: () => void
 }
 
 interface Message {
@@ -15,9 +20,12 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  toolType?: 'replace' | 'insert' // Tool type for visual indicators
 }
 
-export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
+export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelection, onClearSelection }: AIChatSidebarProps) {
+  console.log('[AIChatSidebar] liveSelection:', liveSelection, 'persistedSelection:', persistedSelection)
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -92,17 +100,39 @@ export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
     setInput('')
     setIsLoading(true)
 
-    // Execute AI command
-    const result = await executeCommand(userMessageContent, editor)
+    // Build conversation history (exclude tool metadata)
+    const history: ConversationMessage[] = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+
+    // Execute AI command with persisted selection context and conversation history
+    const result = await executeCommand(
+      userMessageContent,
+      editor,
+      persistedSelection || { text: '', from: 0, to: 0, isEmpty: true, wordCount: 0 },
+      history
+    )
+
+    // Detect tool type from message content
+    let toolType: 'replace' | 'insert' | undefined
+    if (result.success && result.message) {
+      if (result.message.startsWith('Replaced')) {
+        toolType = 'replace'
+      } else if (result.message.startsWith('Inserted')) {
+        toolType = 'insert'
+      }
+    }
 
     // Add AI response to history
     const aiMessage: Message = {
       id: `ai-${Date.now()}`,
       role: 'assistant',
       content: result.success
-        ? `✅ ${result.message}`
-        : `❌ ${result.error}`,
-      timestamp: new Date()
+        ? (result.message || 'Success')
+        : (result.error || 'An error occurred'),
+      timestamp: new Date(),
+      toolType
     }
     setMessages(prev => [...prev, aiMessage])
     setIsLoading(false)
@@ -128,7 +158,7 @@ export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
   // Show loading state while checking for API key
   if (hasApiKey === null) {
     return (
-      <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 border-l bg-background flex items-center justify-center">
+      <div className="w-64 h-full border-l bg-background flex items-center justify-center shrink-0">
         <div className="text-muted-foreground text-sm">Loading...</div>
       </div>
     )
@@ -137,7 +167,7 @@ export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
   // Show API key input if no key exists
   if (!hasApiKey) {
     return (
-      <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 border-l bg-background flex flex-col">
+      <div className="w-64 h-full border-l bg-background flex flex-col shrink-0">
         {/* Header */}
         <div className="border-b p-4">
           <div className="flex items-center space-x-2">
@@ -167,7 +197,7 @@ export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
 
   // Normal chat interface (hasApiKey === true)
   return (
-    <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 border-l bg-background flex flex-col">
+    <div className="w-64 h-full border-l bg-background flex flex-col shrink-0">
       {/* Header */}
       <div className="border-b p-4">
         <div className="flex items-center justify-between">
@@ -187,12 +217,17 @@ export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
         </div>
       </div>
 
+      {/* Selection Indicator - Live character-by-character preview */}
+      <SelectionIndicator selection={liveSelection} onClearSelection={onClearSelection} />
+
       {/* Messages Area - Scrolls from bottom */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && !isLoading && (
           <div className="text-center text-muted-foreground text-sm mt-8">
             <p>👋 Try commands like:</p>
             <p className="mt-2 text-xs">"replace hello with goodbye"</p>
+            <p className="mt-1 text-xs">"add examples after this"</p>
+            <p className="mt-1 text-xs">"write a conclusion"</p>
           </div>
         )}
 
@@ -208,6 +243,23 @@ export function AIChatSidebar({ editor, fileId }: AIChatSidebarProps) {
                   : 'bg-muted text-foreground'
               }`}
             >
+              {/* Show tool icon for assistant messages with tool type */}
+              {message.role === 'assistant' && message.toolType && (
+                <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
+                  {message.toolType === 'replace' && (
+                    <>
+                      <Replace className="w-3 h-3" />
+                      <span className="text-xs font-medium">Replace</span>
+                    </>
+                  )}
+                  {message.toolType === 'insert' && (
+                    <>
+                      <FilePlus className="w-3 h-3" />
+                      <span className="text-xs font-medium">Insert</span>
+                    </>
+                  )}
+                </div>
+              )}
               {message.content}
             </div>
           </div>

@@ -71,6 +71,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
 
   return (
     <SidebarProvider
+      className="h-full"
       style={{
         ["--sidebar-width" as string]: "19rem",
         ["--sidebar-width-icon" as string]: "3rem",
@@ -160,7 +161,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 h-full overflow-hidden">
           {children || (
             <>
               <div className="grid auto-rows-min gap-4 md:grid-cols-3">

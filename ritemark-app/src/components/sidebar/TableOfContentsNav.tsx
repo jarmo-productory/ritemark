@@ -202,15 +202,7 @@ export function TableOfContentsNav({ editor, content }: TableOfContentsNavProps)
     if (!editor || headings.length === 0) return
 
     const updateActiveHeading = () => {
-      const scrollY = window.scrollY
-      const viewportHeight = window.innerHeight
-      const viewportTop = scrollY
-      const viewportBottom = scrollY + viewportHeight
-
-      let currentActiveId = '' // Start with no active heading
-      let topmostVisibleHeading = null
-      let lastPassedHeading = null
-
+      // Find the scrollable container (editor content div with overflow-y-auto)
       let root: HTMLElement | null = null
       try {
         root = ((editor as any).view?.dom ?? null) as HTMLElement | null
@@ -218,13 +210,27 @@ export function TableOfContentsNav({ editor, content }: TableOfContentsNavProps)
         return
       }
       if (!root) return
+
+      const scrollContainer = root.closest('.overflow-y-auto') as HTMLElement | null
+      if (!scrollContainer) return
+
+      const scrollY = scrollContainer.scrollTop
+      const viewportHeight = scrollContainer.clientHeight
+      const viewportTop = scrollY
+      const viewportBottom = scrollY + viewportHeight
+
+      let currentActiveId = '' // Start with no active heading
+      let topmostVisibleHeading = null
+      let lastPassedHeading = null
+
       const allNodes = root.querySelectorAll('h1, h2, h3, h4, h5, h6')
       for (const heading of headings) {
         const el = allNodes[heading.domIndex] as Element | undefined
         if (!el) continue
 
         const rect = el.getBoundingClientRect()
-        const headingTop = rect.top + scrollY
+        const containerRect = scrollContainer.getBoundingClientRect()
+        const headingTop = rect.top - containerRect.top + scrollY
 
         // Check if heading is currently visible in viewport
         const isVisible = headingTop >= viewportTop && headingTop <= viewportBottom
@@ -254,11 +260,22 @@ export function TableOfContentsNav({ editor, content }: TableOfContentsNavProps)
     // Initial active heading detection
     updateActiveHeading()
 
-    // Listen to scroll events
-    window.addEventListener('scroll', updateActiveHeading, { passive: true })
+    // Find scrollable container and listen to its scroll events
+    let root: HTMLElement | null = null
+    try {
+      root = ((editor as any).view?.dom ?? null) as HTMLElement | null
+    } catch {
+      return
+    }
+    if (!root) return
+
+    const scrollContainer = root.closest('.overflow-y-auto') as HTMLElement | null
+    if (!scrollContainer) return
+
+    scrollContainer.addEventListener('scroll', updateActiveHeading, { passive: true })
 
     return () => {
-      window.removeEventListener('scroll', updateActiveHeading)
+      scrollContainer.removeEventListener('scroll', updateActiveHeading)
     }
   }, [editor, headings])
 
@@ -299,15 +316,21 @@ export function TableOfContentsNav({ editor, content }: TableOfContentsNavProps)
     }
 
     if (!root) return
+
+    // Find the scrollable container
+    const scrollContainer = root.closest('.overflow-y-auto') as HTMLElement | null
+    if (!scrollContainer) return
+
     const allHeadings = root.querySelectorAll('h1, h2, h3, h4, h5, h6')
     const element = allHeadings[heading.domIndex] as Element | undefined
     if (!element) return
 
     const rect = element.getBoundingClientRect()
-    const elementTop = rect.top + window.scrollY
-    const targetScroll = Math.max(0, elementTop - 64)
+    const containerRect = scrollContainer.getBoundingClientRect()
+    const elementTop = rect.top - containerRect.top + scrollContainer.scrollTop
+    const targetScroll = Math.max(0, elementTop - 16)
 
-    const currentScroll = window.scrollY
+    const currentScroll = scrollContainer.scrollTop
     const scrollDiff = Math.abs(currentScroll - targetScroll)
 
     if (scrollDiff < 5) {
@@ -315,7 +338,7 @@ export function TableOfContentsNav({ editor, content }: TableOfContentsNavProps)
       return
     }
 
-    window.scrollTo({
+    scrollContainer.scrollTo({
       top: targetScroll,
       behavior: 'smooth'
     })

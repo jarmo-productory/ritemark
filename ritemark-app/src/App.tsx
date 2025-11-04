@@ -8,8 +8,10 @@ import { useSettings } from './hooks/useSettings'
 import { DriveFilePicker } from './components/drive/DriveFilePicker'
 import { AuthContext } from './contexts/AuthContext'
 import { tokenManagerEncrypted } from './services/auth/TokenManagerEncrypted'
+import { setPersistedSelection } from './extensions/PersistedSelectionExtension'
 import type { DriveFile } from './types/drive'
 import type { Editor as TipTapEditor } from '@tiptap/react'
+import type { EditorSelection } from './types/editor'
 import 'tippy.js/dist/tippy.css'
 
 function App() {
@@ -28,8 +30,86 @@ function App() {
 
   // Stable callback for onEditorReady
   const handleEditorReady = useCallback((editorInstance: TipTapEditor) => {
+    console.log('[App.tsx] 📝 Editor instance received:', editorInstance ? 'YES' : 'NO')
     setEditor(editorInstance)
   }, [])
+
+  // Current selection from editor (received from Editor.tsx via callback)
+  const [currentSelection, setCurrentSelection] = useState<EditorSelection>({
+    text: '',
+    from: 0,
+    to: 0,
+    isEmpty: true,
+    wordCount: 0
+  })
+
+  // Handle selection changes from Editor component
+  const handleSelectionChange = useCallback((selection: EditorSelection) => {
+    console.log('[App.tsx] 📍 Selection received from Editor:', {
+      isEmpty: selection.isEmpty,
+      text: selection.text.substring(0, 50),
+      wordCount: selection.wordCount
+    })
+    setCurrentSelection(selection)
+  }, [])
+
+  // Persist last non-empty selection even when focus moves to input field
+  const [lastSelection, setLastSelection] = useState<EditorSelection>({
+    text: '',
+    from: 0,
+    to: 0,
+    isEmpty: true,
+    wordCount: 0
+  })
+
+  // Update persisted selection whenever currentSelection changes
+  useEffect(() => {
+    if (!currentSelection.isEmpty && currentSelection.text.trim().length > 0) {
+      console.log('[App.tsx] ✅ PERSISTING selection to lastSelection:', {
+        text: currentSelection.text.substring(0, 50),
+        wordCount: currentSelection.wordCount
+      })
+      setLastSelection(currentSelection)
+    }
+  }, [currentSelection])
+
+  // Update persisted highlight in editor when lastSelection changes
+  useEffect(() => {
+    console.log('[App.tsx] 🔍 useEffect triggered - editor:', !!editor, 'lastSelection:', lastSelection)
+
+    if (!editor) {
+      console.log('[App.tsx] ⚠️ No editor instance yet')
+      return
+    }
+
+    if (lastSelection && !lastSelection.isEmpty) {
+      console.log('[App.tsx] 🎨 Setting persisted highlight:', {
+        from: lastSelection.from,
+        to: lastSelection.to,
+        text: lastSelection.text.substring(0, 50)
+      })
+      setPersistedSelection(editor, lastSelection.from, lastSelection.to)
+    } else {
+      console.log('[App.tsx] 🧹 Clearing persisted highlight')
+      setPersistedSelection(editor, null, null)
+    }
+  }, [lastSelection, editor])
+
+  // Clear persisted selection
+  const handleClearSelection = useCallback(() => {
+    setLastSelection({
+      text: '',
+      from: 0,
+      to: 0,
+      isEmpty: true,
+      wordCount: 0
+    })
+
+    // Clear persisted highlight in editor
+    if (editor) {
+      setPersistedSelection(editor, null, null)
+    }
+  }, [editor])
 
   // Drive file picker modal state
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -295,7 +375,7 @@ function App() {
   }
 
   return (
-    <>
+    <div className="h-full w-full">
       <AppShell
         documentTitle={title}
         fileId={fileId}
@@ -314,7 +394,11 @@ function App() {
             value={content}
             onChange={setContent}
             onEditorReady={handleEditorReady}
+            onSelectionChange={handleSelectionChange}
             fileId={fileId}
+            currentSelection={currentSelection}
+            persistedSelection={lastSelection}
+            onClearSelection={handleClearSelection}
           />
         ) : showWelcomeScreen ? (
           <WelcomeScreen
@@ -338,7 +422,7 @@ function App() {
           }}
         />
       )}
-    </>
+    </div>
   )
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useEditor, EditorContent, type Editor as TipTapEditor } from '@tiptap/react'
+import { useEditor, useEditorState, EditorContent, type Editor as TipTapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import BulletList from '@tiptap/extension-bullet-list'
@@ -14,9 +14,11 @@ import { tables } from 'turndown-plugin-gfm'
 import { tableExtensions } from '../extensions/tableExtensions'
 import { ImageExtension } from '../extensions/imageExtensions'
 import { SlashCommands } from '../extensions/SlashCommands'
+import { PersistedSelectionExtension } from '../extensions/PersistedSelectionExtension'
 import { FormattingBubbleMenu } from './FormattingBubbleMenu'
 import { TableOverlayControls } from './TableOverlayControls'
 import { AIChatSidebar } from './ai/AIChatSidebar'
+import type { EditorSelection } from '../types/editor'
 
 // Initialize Turndown for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -92,7 +94,11 @@ interface EditorProps {
   placeholder?: string
   className?: string
   onEditorReady?: (editor: TipTapEditor) => void
+  onSelectionChange?: (selection: EditorSelection) => void
   fileId?: string | null
+  currentSelection?: EditorSelection
+  persistedSelection?: EditorSelection
+  onClearSelection?: () => void
 }
 
 export function Editor({
@@ -102,6 +108,10 @@ export function Editor({
   placeholder = "Start writing...",
   className = "",
   onEditorReady,
+  onSelectionChange,
+  currentSelection,
+  persistedSelection,
+  onClearSelection,
 }: EditorProps) {
   const isInitialMount = useRef(true)
   const lastExternalValue = useRef(value)
@@ -185,6 +195,7 @@ export function Editor({
       ...tableExtensions,
       ImageExtension,
       SlashCommands,
+      PersistedSelectionExtension,
     ],
     content: initialContent,
     onCreate: ({ editor }) => {
@@ -370,6 +381,47 @@ export function Editor({
     },
   })
 
+  // Track selection changes using TipTap's useEditorState hook (MUST be in same component as useEditor!)
+  const editorSelection = useEditorState({
+    editor,
+    selector: (ctx) => {
+      console.log('[Editor.tsx useEditorState] Selector called, ctx.editor exists?', !!ctx.editor)
+      if (!ctx.editor) {
+        console.log('[Editor.tsx useEditorState] No editor in context')
+        return null
+      }
+      const { from, to, empty } = ctx.editor.state.selection
+      const text = ctx.editor.state.doc.textBetween(from, to, ' ')
+
+      const result = {
+        text,
+        from,
+        to,
+        isEmpty: empty,
+        wordCount: text.trim() ? text.split(/\s+/).filter(Boolean).length : 0
+      }
+
+      console.log('[Editor.tsx useEditorState] Selector returning:', {
+        isEmpty: result.isEmpty,
+        text: result.text.substring(0, 50),
+        from: result.from,
+        to: result.to,
+        wordCount: result.wordCount
+      })
+
+      return result
+    }
+  })
+
+  console.log('[Editor.tsx] useEditorState returned:', editorSelection)
+
+  // Pass selection changes up to parent component
+  useEffect(() => {
+    if (editorSelection && onSelectionChange) {
+      onSelectionChange(editorSelection)
+    }
+  }, [editorSelection, onSelectionChange])
+
   // Notify parent when editor is ready and available
   React.useEffect(() => {
     if (editor) {
@@ -428,7 +480,7 @@ export function Editor({
   return (
     <div className="flex h-full">
       {/* Editor (left side) */}
-      <div className={`wysiwyg-editor flex-1 overflow-auto ${className}`}>
+      <div className={`wysiwyg-editor flex-1 overflow-y-auto ${className}`}>
         <EditorContent editor={editor} />
 
         {editor ? (
@@ -442,7 +494,15 @@ export function Editor({
       </div>
 
       {/* AI Sidebar (right side) */}
-      {editor && <AIChatSidebar editor={editor} fileId={fileId} />}
+      {editor && (
+        <AIChatSidebar
+          editor={editor}
+          fileId={fileId}
+          liveSelection={currentSelection}
+          persistedSelection={persistedSelection}
+          onClearSelection={onClearSelection}
+        />
+      )}
 
       <style>{`
         .wysiwyg-editor .ProseMirror {
@@ -605,6 +665,14 @@ export function Editor({
           .wysiwyg-editor .ProseMirror ::selection {
             background: rgba(59, 130, 246, 0.2) !important;
           }
+        }
+
+        /* Persisted selection highlight (when user clicks AI input) */
+        .wysiwyg-editor .ProseMirror .persisted-selection-highlight {
+          background: rgba(251, 191, 36, 0.2) !important; /* Amber highlight */
+          border-bottom: 2px solid rgba(251, 191, 36, 0.5) !important;
+          border-radius: 2px !important;
+          padding: 2px 0 !important;
         }
 
         .wysiwyg-editor .ProseMirror p.is-editor-empty:first-child::before {
