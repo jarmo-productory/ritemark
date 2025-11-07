@@ -47,11 +47,11 @@ const RATE_LIMIT = {
  * @returns { allowed: boolean, remaining: number, retryAfter?: number }
  */
 async function checkRateLimit(clientIp: string): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
-  const store = getStore(RATE_LIMIT_STORE)
-  const key = `${RATE_LIMIT.keyPrefix}${clientIp}`
-  const now = Date.now()
-
   try {
+    const store = getStore(RATE_LIMIT_STORE)
+    const key = `${RATE_LIMIT.keyPrefix}${clientIp}`
+    const now = Date.now()
+
     // Get current rate limit data
     const data = await store.get(key, { type: 'json' }) as { requests: number[]; } | null
 
@@ -76,8 +76,9 @@ async function checkRateLimit(clientIp: string): Promise<{ allowed: boolean; rem
 
     return { allowed: true, remaining: RATE_LIMIT.maxRequests - requests.length }
   } catch (error) {
-    // On error, allow request but log warning (fail open for availability)
-    console.warn('[refresh-token] Rate limit check failed:', error)
+    // On error (including Blobs not configured), allow request but log warning
+    // This ensures function works even if Netlify Blobs is not enabled
+    console.warn('[refresh-token] Rate limit check failed (Blobs may not be configured):', error)
     return { allowed: true, remaining: RATE_LIMIT.maxRequests }
   }
 }
