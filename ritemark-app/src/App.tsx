@@ -70,6 +70,16 @@ function App() {
         wordCount: currentSelection.wordCount
       })
       setLastSelection(currentSelection)
+    } else if (currentSelection.isEmpty) {
+      // Clear lastSelection when user deselects text
+      console.log('[App.tsx] 🧹 Clearing lastSelection (user deselected)')
+      setLastSelection({
+        text: '',
+        from: 0,
+        to: 0,
+        isEmpty: true,
+        wordCount: 0
+      })
     }
   }, [currentSelection])
 

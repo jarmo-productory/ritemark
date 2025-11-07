@@ -608,12 +608,13 @@ export function Editor({
           color: #1d4ed8 !important;
         }
 
-        .wysiwyg-editor .ProseMirror ::selection {
+        /* Increased specificity to override Vite HMR styles in dev mode */
+        div.wysiwyg-editor .ProseMirror.ProseMirror ::selection {
           background: rgba(59, 130, 246, 0.15) !important;
           border-radius: 2px !important;
         }
 
-        .wysiwyg-editor .ProseMirror ::-moz-selection {
+        div.wysiwyg-editor .ProseMirror.ProseMirror ::-moz-selection {
           background: rgba(59, 130, 246, 0.15) !important;
         }
 
@@ -662,7 +663,7 @@ export function Editor({
 
         /* Enhanced mobile selection */
         @media (max-width: 768px) {
-          .wysiwyg-editor .ProseMirror ::selection {
+          div.wysiwyg-editor .ProseMirror.ProseMirror ::selection {
             background: rgba(59, 130, 246, 0.2) !important;
           }
         }
