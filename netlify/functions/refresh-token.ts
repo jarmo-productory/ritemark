@@ -44,43 +44,39 @@ const RATE_LIMIT = {
  * Uses Netlify Blobs to track request counts per IP address
  * Implements sliding window rate limiting (10 requests per minute)
  *
+ * IMPORTANT: Pass store instance from handler (getStore must be called inside handler)
+ *
+ * @param store - Blob store instance (created inside handler)
+ * @param clientIp - Client IP address
  * @returns { allowed: boolean, remaining: number, retryAfter?: number }
  */
-async function checkRateLimit(clientIp: string): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
-  try {
-    const store = getStore(RATE_LIMIT_STORE)
-    const key = `${RATE_LIMIT.keyPrefix}${clientIp}`
-    const now = Date.now()
+async function checkRateLimit(store: ReturnType<typeof getStore>, clientIp: string): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
+  const key = `${RATE_LIMIT.keyPrefix}${clientIp}`
+  const now = Date.now()
 
-    // Get current rate limit data
-    const data = await store.get(key, { type: 'json' }) as { requests: number[]; } | null
+  // Get current rate limit data
+  const data = await store.get(key, { type: 'json' }) as { requests: number[]; } | null
 
-    // Filter out expired timestamps (outside the time window)
-    const requests = (data?.requests || []).filter((timestamp: number) => now - timestamp < RATE_LIMIT.windowMs)
+  // Filter out expired timestamps (outside the time window)
+  const requests = (data?.requests || []).filter((timestamp: number) => now - timestamp < RATE_LIMIT.windowMs)
 
-    // Check if rate limit exceeded
-    if (requests.length >= RATE_LIMIT.maxRequests) {
-      const oldestRequest = Math.min(...requests)
-      const retryAfter = Math.ceil((oldestRequest + RATE_LIMIT.windowMs - now) / 1000)
+  // Check if rate limit exceeded
+  if (requests.length >= RATE_LIMIT.maxRequests) {
+    const oldestRequest = Math.min(...requests)
+    const retryAfter = Math.ceil((oldestRequest + RATE_LIMIT.windowMs - now) / 1000)
 
-      return { allowed: false, remaining: 0, retryAfter }
-    }
-
-    // Add current request timestamp
-    requests.push(now)
-
-    // Store updated request list with TTL
-    await store.setJSON(key, { requests }, {
-      metadata: { updatedAt: now.toString() }
-    })
-
-    return { allowed: true, remaining: RATE_LIMIT.maxRequests - requests.length }
-  } catch (error) {
-    // On error (including Blobs not configured), allow request but log warning
-    // This ensures function works even if Netlify Blobs is not enabled
-    console.warn('[refresh-token] Rate limit check failed (Blobs may not be configured):', error)
-    return { allowed: true, remaining: RATE_LIMIT.maxRequests }
+    return { allowed: false, remaining: 0, retryAfter }
   }
+
+  // Add current request timestamp
+  requests.push(now)
+
+  // Store updated request list with TTL
+  await store.setJSON(key, { requests }, {
+    metadata: { updatedAt: now.toString() }
+  })
+
+  return { allowed: true, remaining: RATE_LIMIT.maxRequests - requests.length }
 }
 
 /**
@@ -95,11 +91,21 @@ async function checkRateLimit(clientIp: string): Promise<{ allowed: boolean; rem
  */
 export const handler: Handler = async (event: HandlerEvent) => {
   // Sprint 22 Security: Rate limiting check (before any processing)
+  // CRITICAL: getStore() must be called INSIDE handler (Netlify Blobs requirement)
   const clientIp = event.headers['x-forwarded-for']?.split(',')[0].trim() ||
                    event.headers['client-ip'] ||
                    'unknown'
 
-  const rateLimit = await checkRateLimit(clientIp)
+  // Create Blob store inside handler (required for production)
+  let rateLimit: { allowed: boolean; remaining: number; retryAfter?: number }
+  try {
+    const rateLimitStore = getStore(RATE_LIMIT_STORE)
+    rateLimit = await checkRateLimit(rateLimitStore, clientIp)
+  } catch (error) {
+    // Blobs not available - allow request but log warning
+    console.warn('[refresh-token] Blobs unavailable for rate limiting:', error)
+    rateLimit = { allowed: true, remaining: RATE_LIMIT.maxRequests }
+  }
 
   if (!rateLimit.allowed) {
     console.warn(`[refresh-token] Rate limit exceeded for IP: ${clientIp}`)
