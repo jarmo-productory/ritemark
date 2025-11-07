@@ -1,4 +1,4 @@
-import { Sparkles, Info, X, Quote } from 'lucide-react'
+import { Sparkles, X, Quote } from 'lucide-react'
 import type { EditorSelection } from '@/types/editor'
 
 interface SelectionIndicatorProps {

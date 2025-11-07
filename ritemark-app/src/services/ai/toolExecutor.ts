@@ -24,11 +24,10 @@ interface InsertTextArgs {
 
 export class ToolExecutor {
   private editor: Editor
-  private selection: EditorSelection
 
-  constructor(editor: Editor, selection: EditorSelection) {
+  constructor(editor: Editor, _selection: EditorSelection) {
     this.editor = editor
-    this.selection = selection
+    // selection parameter kept for future use, prefixed with _ to indicate intentionally unused
   }
 
   execute(toolCall: ToolCall): boolean {
