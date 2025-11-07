@@ -33,15 +33,42 @@ export function BackendHealthProvider({ children }: BackendHealthProviderProps) 
 
   const recheckHealth = async () => {
     setIsChecking(true)
-    try {
-      const available = await checkBackendHealth()
-      setBackendAvailable(available)
-    } catch (error) {
-      console.error('[BackendHealth] Health check failed:', error)
-      setBackendAvailable(false)
-    } finally {
-      setIsChecking(false)
+    let attempts = 0
+    const maxAttempts = 3
+
+    while (attempts < maxAttempts) {
+      try {
+        console.log(`[BackendHealth] Attempt ${attempts + 1}/${maxAttempts}`)
+        const available = await checkBackendHealth()
+
+        if (available) {
+          console.log('[BackendHealth] ✅ Backend available')
+          setBackendAvailable(true)
+          setIsChecking(false)
+          return
+        }
+
+        console.warn(`[BackendHealth] Attempt ${attempts + 1} returned false`)
+        attempts++
+
+        // Wait 1 second between attempts (except after last attempt)
+        if (attempts < maxAttempts) {
+          console.log('[BackendHealth] Waiting 1s before retry...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      } catch (error) {
+        console.error(`[BackendHealth] Attempt ${attempts + 1} failed:`, error)
+        attempts++
+
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
     }
+
+    console.warn(`[BackendHealth] ❌ Backend unavailable after ${maxAttempts} attempts - falling back to browser-only OAuth`)
+    setBackendAvailable(false)
+    setIsChecking(false)
   }
 
   // Check backend health on mount

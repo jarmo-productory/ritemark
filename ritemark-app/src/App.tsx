@@ -142,18 +142,37 @@ function App() {
       const params = new URLSearchParams(window.location.search)
       const accessToken = params.get('access_token')
       const userId = params.get('user_id')
+      const error = params.get('error')
+
+      console.log('[App] OAuth callback check:', {
+        hasAccessToken: !!accessToken,
+        hasUserId: !!userId,
+        hasError: !!error,
+        url: window.location.href
+      })
+
+      if (error) {
+        console.error('[App] OAuth callback error:', {
+          error,
+          description: params.get('error_description')
+        })
+        return
+      }
 
       if (accessToken && userId) {
+        console.log('[App] Processing backend OAuth callback...')
         try {
           // Sprint 22: Use shared callback handler
           const { oauthCallbackHandler } = await import('./services/auth/OAuthCallbackHandler')
           await oauthCallbackHandler.handleBackendCallback(params)
 
+          console.log('[App] ✅ OAuth callback processed successfully')
+
           // Clean URL (remove tokens from address bar) and reload
           const cleanUrl = window.location.pathname
           window.location.replace(cleanUrl)
         } catch (error) {
-          console.error('[App] Failed to process OAuth callback:', error)
+          console.error('[App] ❌ Failed to process OAuth callback:', error)
         }
       }
     }

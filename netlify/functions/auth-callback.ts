@@ -19,11 +19,11 @@ import type { Handler, HandlerEvent } from '@netlify/functions'
 import { google } from 'googleapis'
 import { getStore } from '@netlify/blobs'
 
-// Environment variables (set in Netlify Dashboard)
+// Environment variables
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 
-// Codex Solution: Fixed redirect URI (registered in Google Console)
+// Fixed redirect URI (registered in Google Console)
 const FIXED_REDIRECT_URI = 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
 
 // Origin allowlist (security: prevent open redirects)

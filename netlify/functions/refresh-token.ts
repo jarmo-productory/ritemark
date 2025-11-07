@@ -119,6 +119,26 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
   }
 
+  // Validate environment variables (critical for debugging production issues)
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error('[refresh-token] ❌ Missing environment variables:', {
+      hasClientId: !!CLIENT_ID,
+      hasClientSecret: !!CLIENT_SECRET,
+      clientIdPreview: CLIENT_ID ? `${CLIENT_ID.substring(0, 20)}...` : 'MISSING'
+    })
+
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        error: 'configuration_error',
+        message: 'Server configuration incomplete - missing OAuth credentials'
+      })
+    }
+  }
+
+  console.log('[refresh-token] ✅ Environment variables validated')
+
   // Security: POST only
   if (event.httpMethod !== 'POST') {
     return {
