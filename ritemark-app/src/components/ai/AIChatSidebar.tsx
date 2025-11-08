@@ -33,12 +33,22 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const previousExpandedRef = useRef(false)
 
   // API key state
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
 
   // Sidebar expand/collapse state
-  const { isExpanded, isAnimating, toggleSidebar } = useAISidebar('collapsed')
+  const { isExpanded, isAnimating, toggleSidebar, expand } = useAISidebar('collapsed')
+
+  // Track if auto-expand hint has been shown
+  const [hasShownAutoExpandHint, setHasShownAutoExpandHint] = useState(() => {
+    try {
+      return localStorage.getItem('ai-sidebar-auto-expand-hint-shown') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   // Check for API key on mount and listen for changes
   useEffect(() => {
@@ -89,6 +99,85 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  // Auto-expand when text is selected (if sidebar is collapsed)
+  useEffect(() => {
+    if (!isExpanded && liveSelection && !liveSelection.isEmpty && hasApiKey) {
+      expand()
+
+      // Show hint on first auto-expand
+      if (!hasShownAutoExpandHint) {
+        console.log('[AIChatSidebar] Auto-expanded on selection - showing hint')
+        // Note: In production, this would show a toast/tooltip
+        // For now, just log and mark as shown
+        try {
+          localStorage.setItem('ai-sidebar-auto-expand-hint-shown', 'true')
+          setHasShownAutoExpandHint(true)
+        } catch (error) {
+          console.warn('[AIChatSidebar] Failed to save auto-expand hint state:', error)
+        }
+      }
+    }
+  }, [liveSelection, isExpanded, hasApiKey, expand, hasShownAutoExpandHint])
+
+  // Keyboard shortcut: Cmd/Ctrl + Shift + A to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Shift + A
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+        e.preventDefault()
+        toggleSidebar()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [toggleSidebar])
+
+  // Focus management: Move focus when expanding/collapsing
+  useEffect(() => {
+    const wasExpanded = previousExpandedRef.current
+    previousExpandedRef.current = isExpanded
+
+    // Expanding: Focus input field after animation
+    if (isExpanded && !wasExpanded && hasApiKey) {
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 350) // After 300ms width transition + 50ms buffer
+    }
+
+    // Collapsing: Return focus to editor after animation
+    if (!isExpanded && wasExpanded) {
+      setTimeout(() => {
+        editor.commands.focus()
+      }, 450) // After collapse animation completes
+    }
+  }, [isExpanded, hasApiKey, editor])
+
+  // Screen reader announcements
+  useEffect(() => {
+    const announce = (message: string) => {
+      const announcement = document.createElement('div')
+      announcement.setAttribute('role', 'status')
+      announcement.setAttribute('aria-live', 'polite')
+      announcement.className = 'sr-only' // Visually hidden (assuming sr-only class exists)
+      announcement.style.position = 'absolute'
+      announcement.style.left = '-10000px'
+      announcement.style.width = '1px'
+      announcement.style.height = '1px'
+      announcement.style.overflow = 'hidden'
+      announcement.textContent = message
+      document.body.appendChild(announcement)
+      setTimeout(() => announcement.remove(), 1000)
+    }
+
+    const wasExpanded = previousExpandedRef.current
+    if (isExpanded && !wasExpanded) {
+      announce('AI Assistant expanded')
+    } else if (!isExpanded && wasExpanded) {
+      announce('AI Assistant collapsed')
+    }
+  }, [isExpanded])
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
@@ -208,7 +297,13 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
 
         {/* Expanded Content - API Key Input */}
         {isExpanded && (
-          <>
+          <div
+            className={cn(
+              "flex flex-col h-full",
+              "transition-opacity duration-200 ease-out",
+              isExpanded ? "opacity-100 delay-50" : "opacity-0"
+            )}
+          >
             {/* Header */}
             <div className="border-b p-4">
               <div className="flex items-center justify-between">
@@ -242,7 +337,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     )
@@ -285,7 +380,13 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
 
       {/* Expanded Content */}
       {isExpanded && (
-        <>
+        <div
+          className={cn(
+            "flex flex-col h-full",
+            "transition-opacity duration-200 ease-out",
+            isExpanded ? "opacity-100 delay-50" : "opacity-0"
+          )}
+        >
           {/* Header */}
           <div className="border-b p-4">
             <div className="flex items-center justify-between">
@@ -403,7 +504,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )
