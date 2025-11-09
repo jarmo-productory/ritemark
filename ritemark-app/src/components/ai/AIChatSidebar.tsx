@@ -202,7 +202,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl + Shift + A
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault()
         toggleSidebar()
       }
