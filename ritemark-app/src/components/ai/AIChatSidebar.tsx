@@ -25,6 +25,84 @@ interface Message {
   toolType?: 'replace' | 'insert' // Tool type for visual indicators
 }
 
+// Shared Header Component
+const SidebarHeader = ({
+  hasApiKey,
+  messagesCount,
+  onToggle,
+  onClearChat
+}: {
+  hasApiKey: boolean
+  messagesCount: number
+  onToggle: () => void
+  onClearChat?: () => void
+}) => (
+  <div className="border-b p-2">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onToggle}
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
+          aria-label={hasApiKey ? "Collapse AI Assistant. Press Ctrl+Shift+A to toggle." : "Collapse AI Assistant"}
+          title="Collapse sidebar"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <div>
+          <h2 className="font-semibold">AI Assistant</h2>
+          <p className="text-sm text-muted-foreground">
+            {hasApiKey ? "Ask me to edit your document" : "Enter your OpenAI API key to get started"}
+          </p>
+        </div>
+      </div>
+      {hasApiKey && messagesCount > 0 && onClearChat && (
+        <button
+          onClick={onClearChat}
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
+          aria-label="Reset chat"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  </div>
+)
+
+// Shared Collapsed Tab Component
+const CollapsedTab = ({
+  hasApiKey,
+  messagesCount,
+  hasSelection,
+  onToggle
+}: {
+  hasApiKey: boolean
+  messagesCount: number
+  hasSelection: boolean
+  onToggle: () => void
+}) => (
+  <button
+    onClick={onToggle}
+    className="w-full h-full flex flex-col items-center py-3 gap-4 cursor-pointer hover:bg-muted/50 transition-colors"
+    aria-label={
+      hasApiKey
+        ? `Expand AI Assistant. ${messagesCount} messages. ${hasSelection ? 'Text selected.' : ''} Press Ctrl+Shift+A to toggle.`
+        : "Expand AI Assistant. No API key configured."
+    }
+    title="Expand AI Assistant (⌃⇧A)"
+  >
+    <div className="w-6 h-6 text-primary">
+      {hasApiKey ? <BrainCircuit /> : <Key />}
+    </div>
+
+    {/* Selection Indicator (when text is selected) */}
+    {hasApiKey && hasSelection && (
+      <div className="w-6 h-6 text-amber-500 animate-pulse">
+        <Sparkles />
+      </div>
+    )}
+  </button>
+)
+
 export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelection, onClearSelection }: AIChatSidebarProps) {
   console.log('[AIChatSidebar] liveSelection:', liveSelection, 'persistedSelection:', persistedSelection)
 
@@ -258,7 +336,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       <div className={cn(
         "h-full border-l bg-background flex items-center justify-center shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-12"
+        isExpanded ? "w-70" : "w-12"
       )}>
         {isExpanded ? (
           <div className="text-muted-foreground text-sm">Loading...</div>
@@ -279,20 +357,16 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       <div className={cn(
         "h-full border-l bg-background flex flex-col shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-12"
+        isExpanded ? "w-70" : "w-12"
       )}>
         {/* Collapsed Tab - No API Key */}
         {!isExpanded && (
-          <button
-            onClick={toggleSidebar}
-            className="w-full h-full flex flex-col items-center py-3 gap-4 cursor-pointer hover:bg-muted/50 transition-colors"
-            aria-label="Expand AI Assistant. No API key configured."
-            title="Expand AI Assistant (⌃⇧A)"
-          >
-            <div className="w-6 h-6 text-muted-foreground">
-              <Key />
-            </div>
-          </button>
+          <CollapsedTab
+            hasApiKey={false}
+            messagesCount={0}
+            hasSelection={false}
+            onToggle={toggleSidebar}
+          />
         )}
 
         {/* Expanded Content - API Key Input */}
@@ -305,28 +379,14 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
             )}
           >
             {/* Header */}
-            <div className="border-b p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleSidebar}
-                    className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
-                    aria-label="Collapse AI Assistant"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <div>
-                    <h2 className="font-semibold">AI Assistant</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Enter your OpenAI API key to get started
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SidebarHeader
+              hasApiKey={false}
+              messagesCount={0}
+              onToggle={toggleSidebar}
+            />
 
             {/* API Key Input */}
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-2">
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">OpenAI API Key</label>
@@ -349,7 +409,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       className={cn(
         "h-full border-l bg-background flex flex-col shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-12"
+        isExpanded ? "w-70" : "w-12"
       )}
       style={{ willChange: isAnimating ? 'width' : 'auto' }}
       role="complementary"
@@ -358,24 +418,12 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
     >
       {/* Collapsed Tab - Chat Ready */}
       {!isExpanded && (
-        <button
-          onClick={toggleSidebar}
-          className="w-full h-full flex flex-col items-center py-3 gap-4 cursor-pointer hover:bg-muted/50 transition-colors"
-          aria-label={`Expand AI Assistant. ${messages.length} messages. ${liveSelection && !liveSelection.isEmpty ? 'Text selected.' : ''} Press Ctrl+Shift+A to toggle.`}
-          title="Expand AI Assistant (⌃⇧A)"
-        >
-          {/* AI Icon */}
-          <div className="w-6 h-6 text-primary">
-            <BrainCircuit />
-          </div>
-
-          {/* Selection Indicator (when text is selected) */}
-          {liveSelection && !liveSelection.isEmpty && (
-            <div className="w-6 h-6 text-amber-500 animate-pulse">
-              <Sparkles />
-            </div>
-          )}
-        </button>
+        <CollapsedTab
+          hasApiKey={true}
+          messagesCount={messages.length}
+          hasSelection={liveSelection ? !liveSelection.isEmpty : false}
+          onToggle={toggleSidebar}
+        />
       )}
 
       {/* Expanded Content */}
@@ -388,39 +436,18 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
           )}
         >
           {/* Header */}
-          <div className="border-b p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleSidebar}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
-                  aria-label="Collapse AI Assistant. Press Ctrl+Shift+A to toggle."
-                  title="Collapse sidebar"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-                <div>
-                  <h2 className="font-semibold">AI Assistant</h2>
-                  <p className="text-sm text-muted-foreground">Ask me to edit your document</p>
-                </div>
-              </div>
-              {messages.length > 0 && (
-                <button
-                  onClick={handleClearChat}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
-                  aria-label="Reset chat"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
+          <SidebarHeader
+            hasApiKey={true}
+            messagesCount={messages.length}
+            onToggle={toggleSidebar}
+            onClearChat={handleClearChat}
+          />
 
           {/* Selection Indicator - Live character-by-character preview */}
           <SelectionIndicator selection={liveSelection} onClearSelection={onClearSelection} />
 
           {/* Messages Area - Scrolls from bottom */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-2 space-y-4">
             {messages.length === 0 && !isLoading && (
               <div className="text-center text-muted-foreground text-sm mt-8">
                 <p>👋 Try commands like:</p>
@@ -482,7 +509,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
           </div>
 
           {/* Input Area */}
-          <div className="border-t p-4">
+          <div className="border-t p-2">
             <div className="flex space-x-2">
               <input
                 ref={inputRef}
