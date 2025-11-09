@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -74,18 +75,38 @@ export function UserAccountInfo() {
   /**
    * Handle setting changes with dot-notation path
    * Example: 'preferences.theme' -> settings.preferences.theme = value
+   *
+   * Sprint 25: Fixed settings initialization when null (browser key mismatch scenario)
+   * If settings are null (deleted due to encryption mismatch), initialize with defaults
    */
   const handleSettingChange = useCallback(
     async (path: string, value: any) => {
-      if (!settings) return
-
       try {
+        // Initialize settings if null (happens after encryption key mismatch)
+        let baseSettings: UserSettings
+        if (!settings) {
+          console.warn('[UserAccountInfo] Settings are null, initializing with defaults')
+          baseSettings = {
+            userId: user?.sub || '',
+            timestamp: Date.now(),
+            version: 1,
+            preferences: {
+              theme: 'system',
+              fontSize: 16,
+              fontFamily: 'Inter',
+              autoSave: true,
+              autoSaveInterval: 3,
+            },
+          }
+        } else {
+          baseSettings = JSON.parse(JSON.stringify(settings)) as UserSettings
+        }
+
         // Parse dot-notation path (e.g., 'preferences.theme')
         const keys = path.split('.')
-        const updatedSettings = JSON.parse(JSON.stringify(settings)) as UserSettings
 
         // Navigate to the nested property and set value
-        let current: any = updatedSettings
+        let current: any = baseSettings
         for (let i = 0; i < keys.length - 1; i++) {
           const key = keys[i]
           if (!current[key]) {
@@ -96,10 +117,10 @@ export function UserAccountInfo() {
         current[keys[keys.length - 1]] = value
 
         // Update timestamp for conflict resolution
-        updatedSettings.timestamp = Date.now()
+        baseSettings.timestamp = Date.now()
 
         // Save settings (triggers sync to Drive AppData)
-        await saveSettings(updatedSettings)
+        await saveSettings(baseSettings)
 
         console.log(`[UserAccountInfo] Setting updated: ${path} =`, value)
       } catch (error) {
@@ -107,7 +128,7 @@ export function UserAccountInfo() {
         alert('Failed to save setting. Please try again.')
       }
     },
-    [settings, saveSettings]
+    [settings, saveSettings, user]
   )
 
   return (
@@ -145,6 +166,9 @@ export function UserAccountInfo() {
         <DialogContent className="max-w-[560px] max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Settings & Account</DialogTitle>
+            <DialogDescription>
+              Manage your preferences, API keys, and account settings
+            </DialogDescription>
           </DialogHeader>
 
           {/* User Profile Section */}

@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { RevisionList } from './RevisionList'
 import { RevisionPreview } from './RevisionPreview'
@@ -146,6 +147,9 @@ export function VersionHistoryModal({
         <DialogContent className="max-w-6xl h-[80vh] p-0 gap-0">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle>Version History</DialogTitle>
+            <DialogDescription>
+              View and restore previous versions of your document
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-1 overflow-hidden">
             <div className="w-80 border-r overflow-y-auto">

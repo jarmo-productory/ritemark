@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { usePicker } from '../../hooks/usePicker'
 import { DriveFileBrowser } from './DriveFileBrowser'
-import { Dialog, DialogContent } from '../ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog'
 import type { DriveFilePickerProps } from '../../types/drive'
 
 /**
@@ -90,6 +90,10 @@ export const DriveFilePicker: React.FC<DriveFilePickerProps> = ({
     return (
       <Dialog open={true}>
         <DialogContent className="border-none bg-transparent shadow-none">
+          <DialogTitle className="sr-only">Loading Google Drive Picker</DialogTitle>
+          <DialogDescription className="sr-only">
+            Preparing the Google Drive file picker interface
+          </DialogDescription>
           <div className="flex flex-col items-center gap-4 text-white">
             <Loader2 className="h-8 w-8 animate-spin" />
             <p className="text-lg">Loading Google Picker...</p>
