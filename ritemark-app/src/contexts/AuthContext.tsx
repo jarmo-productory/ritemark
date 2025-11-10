@@ -32,12 +32,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const isExpired = !expiresAt || expiresAt <= Date.now()
 
         if (isExpired) {
-          console.warn('[AuthContext] Token expired, clearing session')
-          sessionStorage.removeItem('ritemark_user')
-          sessionStorage.removeItem('ritemark_oauth_tokens')
-          sessionStorage.removeItem('ritemark_refresh_token')
-          setUser(null)
-          setUserId(null)
+          console.warn('[AuthContext] Token expired, attempting refresh...')
+
+          // CRITICAL FIX: Don't logout immediately - try to refresh token first!
+          // Restore user state optimistically (will be cleared if refresh fails)
+          setUser(userData)
+
+          // Restore tokens to memory (needed for refresh to work)
+          tokenManagerEncrypted
+            .storeTokens(tokenData)
+            .then(async () => {
+              console.log('[AuthContext] Tokens restored to memory, attempting refresh...')
+
+              // Restore user.sub from localStorage (needed for backend refresh)
+              const { userIdentityManager } = await import('../services/auth/tokenManager')
+              const userInfo = userIdentityManager.getUserInfo()
+              if (userInfo) {
+                setUserId(userInfo.userId)
+              }
+
+              // Attempt token refresh
+              return tokenManagerEncrypted.refreshAccessToken()
+            })
+            .then((result) => {
+              if (result.success) {
+                console.log('[AuthContext] ✅ Token refreshed successfully on page reload')
+                // Token refresh updates memory automatically, no need to update state
+              } else {
+                console.warn('[AuthContext] ❌ Token refresh failed, clearing session')
+                logout()
+              }
+            })
+            .catch((err) => {
+              console.error('[AuthContext] ❌ Token refresh failed:', err)
+              logout()
+            })
         } else {
           console.log('[AuthContext] Valid token found, restoring session')
           setUser(userData)
