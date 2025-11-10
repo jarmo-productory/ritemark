@@ -25,7 +25,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
-import { tokenManager } from '../services/auth/tokenManager'
+import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
 
 /**
  * Token validation check interval (5 minutes)
@@ -68,18 +68,24 @@ export function useTokenValidator(): UseTokenValidatorReturn {
 
   /**
    * Check if token is expired and handle accordingly
+   *
+   * Sprint 26 Fix: Use tokenManagerEncrypted (memory-based) instead of old tokenManager (sessionStorage).
+   * TokenManagerEncrypted automatically handles token refresh in getAccessToken(), so we don't need
+   * to call logout() here. Only logout if the token is null (meaning refresh failed).
    */
-  const validateToken = useCallback(() => {
+  const validateToken = useCallback(async () => {
     // Only check if user is authenticated
     if (!isAuthenticated) {
       return
     }
 
-    // Check token expiration
-    const isExpired = tokenManager.isTokenExpired()
+    // Check if token is still valid by attempting to get it
+    // TokenManagerEncrypted.getAccessToken() will automatically refresh if needed
+    const token = await tokenManagerEncrypted.getAccessToken()
 
-    if (isExpired) {
-      console.warn('[TokenValidator] Access token expired, logging out user')
+    // Only logout if we truly have no token (refresh failed)
+    if (!token) {
+      console.warn('[TokenValidator] No valid access token (refresh failed), logging out user')
 
       // Clear tokens and user session
       logout()
