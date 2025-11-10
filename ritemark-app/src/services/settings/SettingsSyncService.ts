@@ -408,8 +408,18 @@ export class SettingsSyncService {
       // Handle encryption key mismatch (test data from different browser/localhost)
       if (error instanceof Error && error.message.includes('ENCRYPTION_KEY_MISMATCH')) {
         console.warn('[SettingsSync] Settings encrypted with different browser key - deleting incompatible data');
+
         // Delete incompatible encrypted settings to prevent repeated errors
-        await this.deleteFromDrive();
+        try {
+          await this.deleteFromDrive();
+          console.log('[SettingsSync] Successfully deleted incompatible settings from Drive');
+        } catch (deleteError) {
+          console.error('[SettingsSync] Failed to delete incompatible settings:', deleteError);
+          if (deleteError instanceof Error) {
+            reportError(deleteError, 'SettingsSyncService.deleteFromDrive');
+          }
+        }
+
         return null;
       }
 
