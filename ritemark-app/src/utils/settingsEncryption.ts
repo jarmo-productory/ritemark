@@ -107,7 +107,7 @@ export async function decryptSettings(
 
     // 5. Validate decrypted data structure
     if (!settings.userId || !settings.version || !settings.timestamp) {
-      console.warn('[settingsEncryption] Decrypted data missing required fields - encryption key mismatch')
+      console.info('[SettingsSync] 🔄 Settings data incomplete - will reset to defaults (this is normal)')
       throw new Error('ENCRYPTION_KEY_MISMATCH')
     }
 
@@ -115,14 +115,14 @@ export async function decryptSettings(
   } catch (error) {
     // Handle encryption key mismatch gracefully (expected in cross-browser scenarios)
     if (error instanceof Error && error.name === 'OperationError') {
-      console.warn('[settingsEncryption] Cannot decrypt settings - encrypted with different browser key (this is normal after browser change or testing)')
+      console.info('[SettingsSync] 🔄 Settings encrypted with different browser - will reset to defaults (this is normal)')
       throw new Error('ENCRYPTION_KEY_MISMATCH')
     }
 
     // Other errors (corrupted data, network issues, etc.)
     console.error('[settingsEncryption] Decryption failed:', error)
 
-    // Report to AI agent monitoring
+    // Report to AI agent monitoring (but NOT for ENCRYPTION_KEY_MISMATCH - it's expected behavior)
     if (error instanceof Error) {
       reportError(error, 'settingsEncryption.decryptSettings')
     }

@@ -407,25 +407,27 @@ export class SettingsSyncService {
     } catch (error) {
       // Handle encryption key mismatch (test data from different browser/localhost)
       if (error instanceof Error && error.message.includes('ENCRYPTION_KEY_MISMATCH')) {
-        console.warn('[SettingsSync] Settings encrypted with different browser key - deleting incompatible data');
+        console.info('[SettingsSync] 🔄 Resetting settings - browser changed or testing on different device (this is normal)');
 
         // Delete incompatible encrypted settings to prevent repeated errors
         try {
           await this.deleteFromDrive();
-          console.log('[SettingsSync] Successfully deleted incompatible settings from Drive');
+          console.info('[SettingsSync] ✅ Old settings cleared - fresh start with defaults');
         } catch (deleteError) {
           console.error('[SettingsSync] Failed to delete incompatible settings:', deleteError);
+          // ONLY report if deletion fails (rare case - actual error)
           if (deleteError instanceof Error) {
             reportError(deleteError, 'SettingsSyncService.deleteFromDrive');
           }
         }
 
+        // Don't report ENCRYPTION_KEY_MISMATCH - it's expected behavior, not a bug
         return null;
       }
 
       console.error('[SettingsSync] Failed to load from Drive:', error);
 
-      // Report to AI agent monitoring
+      // Report to AI agent monitoring (only for unexpected errors)
       if (error instanceof Error) {
         reportError(error, 'SettingsSyncService.loadFromDrive')
       }
