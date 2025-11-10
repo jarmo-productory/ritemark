@@ -17,7 +17,7 @@
 
 import type { Handler, HandlerEvent } from '@netlify/functions'
 import { google } from 'googleapis'
-import { getStore } from '@netlify/blobs'
+import { getStore, connectLambda } from '@netlify/blobs'
 
 // Environment variables
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
@@ -51,6 +51,9 @@ const REFRESH_TOKEN_TTL = 180 * 24 * 60 * 60 * 1000
  * 5. Redirect to frontend with access token in URL params
  */
 export const handler: Handler = async (event: HandlerEvent) => {
+  // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
+  connectLambda(event)
+
   console.log('[auth-callback] Received OAuth callback')
 
   // Extract and validate state parameter (Codex solution)

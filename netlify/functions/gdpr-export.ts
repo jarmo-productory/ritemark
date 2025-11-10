@@ -15,7 +15,7 @@
  */
 
 import type { Handler, HandlerEvent } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { getStore, connectLambda } from '@netlify/blobs'
 
 // Netlify Blob store for refresh tokens
 const REFRESH_TOKENS_STORE = 'refresh-tokens'
@@ -43,6 +43,9 @@ const maskApiKey = (key: string): string => {
  * 3. Return comprehensive JSON export
  */
 export const handler: Handler = async (event: HandlerEvent) => {
+  // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
+  connectLambda(event)
+
   // Security: POST only
   if (event.httpMethod !== 'POST') {
     return {

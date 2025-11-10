@@ -21,7 +21,7 @@
  */
 
 import type { Handler, HandlerEvent } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { getStore, connectLambda } from '@netlify/blobs'
 import { google } from 'googleapis'
 
 // Environment variables
@@ -67,6 +67,9 @@ const revokeGoogleTokens = async (refreshToken: string): Promise<void> => {
  * - Optionally delete Drive AppData settings (user choice)
  */
 export const handler: Handler = async (event: HandlerEvent) => {
+  // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
+  connectLambda(event)
+
   // Security: POST only
   if (event.httpMethod !== 'POST') {
     return {

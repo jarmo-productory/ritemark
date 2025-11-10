@@ -16,7 +16,7 @@
 
 import type { Handler, HandlerEvent } from '@netlify/functions'
 import { google } from 'googleapis'
-import { getStore } from '@netlify/blobs'
+import { getStore, connectLambda } from '@netlify/blobs'
 
 // Environment variables
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
@@ -90,6 +90,11 @@ async function checkRateLimit(store: ReturnType<typeof getStore>, clientIp: stri
  * 5. Return new access token to frontend
  */
 export const handler: Handler = async (event: HandlerEvent) => {
+  // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
+  // Netlify Functions v1 (Lambda) requires manual environment setup via connectLambda()
+  // Reference: https://answers.netlify.com/t/i-get-an-error-missingblobsenvironmenterror/151648
+  connectLambda(event)
+
   // Sprint 22 Security: Rate limiting check (before any processing)
   // CRITICAL: getStore() must be called INSIDE handler (Netlify Blobs requirement)
   const clientIp = event.headers['x-forwarded-for']?.split(',')[0].trim() ||
