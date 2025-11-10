@@ -15,6 +15,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 import { encryptSettings, decryptSettings } from '../../utils/settingsEncryption';
 import type { UserSettings, EncryptedSettings } from '../../types/settings';
 import { tokenManagerEncrypted } from '../auth/TokenManagerEncrypted';
+import { reportError } from '../../utils/errorReporter';
 
 const DB_NAME = 'ritemark-settings';
 const DB_VERSION = 3; // Sprint 23: Bumped to 3 to fix missing api-keys store
@@ -413,6 +414,12 @@ export class SettingsSyncService {
       }
 
       console.error('[SettingsSync] Failed to load from Drive:', error);
+
+      // Report to AI agent monitoring
+      if (error instanceof Error) {
+        reportError(error, 'SettingsSyncService.loadFromDrive')
+      }
+
       return null;
     }
   }

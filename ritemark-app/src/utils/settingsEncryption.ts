@@ -14,6 +14,7 @@
  */
 
 import type { UserSettings, EncryptedSettings } from '@/types/settings'
+import { reportError } from './errorReporter'
 
 /**
  * IndexedDB database and store names for encryption key storage
@@ -106,7 +107,8 @@ export async function decryptSettings(
 
     // 5. Validate decrypted data structure
     if (!settings.userId || !settings.version || !settings.timestamp) {
-      throw new Error('Decrypted data missing required fields')
+      console.warn('[settingsEncryption] Decrypted data missing required fields - encryption key mismatch')
+      throw new Error('ENCRYPTION_KEY_MISMATCH')
     }
 
     return settings
@@ -119,6 +121,12 @@ export async function decryptSettings(
 
     // Other errors (corrupted data, network issues, etc.)
     console.error('[settingsEncryption] Decryption failed:', error)
+
+    // Report to AI agent monitoring
+    if (error instanceof Error) {
+      reportError(error, 'settingsEncryption.decryptSettings')
+    }
+
     throw new Error(`Failed to decrypt settings: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
