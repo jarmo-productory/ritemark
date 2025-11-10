@@ -53,14 +53,15 @@ class TokenValidator {
    *
    * @param onInvalidToken - Callback to execute when token is invalid (e.g., logout)
    */
-  startValidation(onInvalidToken?: () => void): void {
+  async startValidation(onInvalidToken?: () => void): Promise<void> {
     this.onInvalidToken = onInvalidToken
 
     // Clear any existing interval
     this.stopValidation()
 
-    // Validate immediately on start
-    this.validateToken()
+    // CRITICAL FIX: Await first validation to ensure tokens are in memory
+    // This prevents race condition where validation runs before storeTokens() completes
+    await this.validateToken()
 
     // Then validate periodically
     this.validationInterval = setInterval(() => {

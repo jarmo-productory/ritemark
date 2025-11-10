@@ -115,6 +115,10 @@ export class TokenManagerEncrypted {
 
   /**
    * Get access token from memory
+   *
+   * Sprint 26 Fix: Check if backend is available before attempting token refresh.
+   * Browser-only OAuth (localhost:5173) has NO backend, so refresh will always fail.
+   * Don't attempt refresh if no backend - just return null and let user re-authenticate.
    */
   async getAccessToken(): Promise<string | null> {
     if (!this.accessToken) {
@@ -124,7 +128,19 @@ export class TokenManagerEncrypted {
 
     // Check if token is expired
     if (this.accessTokenExpiry && this.accessTokenExpiry <= Date.now()) {
-      console.log('[TokenManager] Access token expired, attempting refresh');
+      console.log('[TokenManager] Access token expired');
+
+      // Sprint 26 Fix: Check if backend is available before attempting refresh
+      // Browser-only OAuth has no refresh capability - tokens expire in 1 hour
+      const backendAvailable = await this.checkBackendAvailable();
+
+      if (!backendAvailable) {
+        console.warn('[TokenManager] Browser-only OAuth detected - no backend refresh available');
+        console.warn('[TokenManager] User must re-authenticate manually');
+        return null; // Will trigger logout and re-authentication dialog
+      }
+
+      console.log('[TokenManager] Backend available, attempting token refresh');
       const refreshResult = await this.refreshAccessToken();
 
       if (!refreshResult.success) {
@@ -138,6 +154,29 @@ export class TokenManagerEncrypted {
     }
 
     return this.accessToken;
+  }
+
+  /**
+   * Check if backend is available for token refresh
+   *
+   * Sprint 26: Browser-only OAuth (localhost:5173) has no backend.
+   * Don't attempt refresh if backend is unavailable.
+   */
+  private async checkBackendAvailable(): Promise<boolean> {
+    try {
+      // Quick health check to refresh-token endpoint
+      const response = await fetch('/.netlify/functions/refresh-token', {
+        method: 'HEAD', // Lightweight check, no body
+      });
+
+      // Backend is available if we get any valid response (even 401/403)
+      // We just need to know the endpoint exists
+      return response.ok || response.status === 401 || response.status === 403;
+    } catch (error) {
+      // Network error means no backend
+      console.warn('[TokenManager] Backend health check failed:', error);
+      return false;
+    }
   }
 
   /**

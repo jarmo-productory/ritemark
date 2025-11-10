@@ -111,6 +111,14 @@ export function useTokenValidator(): UseTokenValidatorReturn {
 
   /**
    * Set up periodic token validation
+   *
+   * CRITICAL FIX (Sprint 26): Removed immediate validateToken() call to prevent race condition.
+   * The hook's useEffect runs when isAuthenticated becomes true (when setUser() is called in AuthContext),
+   * but this happens BEFORE AuthContext's async storeTokens() completes. If we validate immediately,
+   * we'll find no tokens in memory and logout the user.
+   *
+   * Solution: Only run periodic validation (every 5 min), skip immediate validation on mount.
+   * AuthContext already calls tokenValidator.startValidation() after tokens are stored.
    */
   useEffect(() => {
     // Skip if not authenticated
@@ -118,10 +126,10 @@ export function useTokenValidator(): UseTokenValidatorReturn {
       return
     }
 
-    // Validate immediately on mount
-    validateToken()
+    // REMOVED: Immediate validation on mount (causes race condition)
+    // validateToken() ← This ran before AuthContext's storeTokens() completed!
 
-    // Set up interval for periodic checks
+    // Set up interval for periodic checks only
     const intervalId = setInterval(() => {
       validateToken()
     }, TOKEN_CHECK_INTERVAL)

@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { tokenManager } from '../services/auth/tokenManager'
+import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
 import type { DriveFile, DriveError } from '../types/drive'
 
 /**
@@ -85,7 +85,7 @@ export function useDriveFiles(): UseDriveFilesReturn {
       setError(null)
 
       try {
-        const accessToken = await tokenManager.getAccessToken()
+        const accessToken = await tokenManagerEncrypted.getAccessToken()
         if (!accessToken) {
           throw new Error('Not authenticated - please sign in')
         }
@@ -153,7 +153,7 @@ export function useDriveFiles(): UseDriveFilesReturn {
       setError(null)
 
       try {
-        const accessToken = await tokenManager.getAccessToken()
+        const accessToken = await tokenManagerEncrypted.getAccessToken()
         if (!accessToken) {
           throw new Error('Not authenticated - please sign in')
         }

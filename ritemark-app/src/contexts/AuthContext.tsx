@@ -1,7 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react'
 import type { AuthContextType, GoogleUser } from '../types/auth'
 import { tokenManagerEncrypted } from '../services/auth/TokenManagerEncrypted'
-import { tokenValidator } from '../services/auth/TokenValidator'
+// Sprint 26: Removed tokenValidator import - validation now handled by useTokenValidator hook in App.tsx
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -42,10 +42,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('[AuthContext] Valid token found, restoring session')
           setUser(userData)
 
-          // Restore tokens to tokenManagerEncrypted memory
-          tokenManagerEncrypted.storeTokens(tokenData).catch((err) => {
-            console.error('[AuthContext] Failed to restore tokens:', err)
-          })
+          // CRITICAL: Restore tokens to tokenManagerEncrypted memory FIRST (must complete before validation)
+          tokenManagerEncrypted
+            .storeTokens(tokenData)
+            .then(() => {
+              console.log('[AuthContext] ✅ Tokens restored to memory successfully')
+
+              // Sprint 26 Fix: Removed duplicate TokenValidator service call.
+              // Token validation is now handled by useTokenValidator hook in App.tsx (periodic checks).
+              // The hook's interval starts when isAuthenticated becomes true (after this setUser() call).
+              // No need for duplicate validation here - the hook handles it.
+            })
+            .catch((err) => {
+              console.error('[AuthContext] ❌ Failed to restore tokens to memory:', err)
+              // If token restoration fails, logout immediately
+              logout()
+            })
 
           // Restore user.sub from localStorage
           import('../services/auth/tokenManager').then(({ userIdentityManager }) => {
@@ -54,12 +66,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setUserId(userInfo.userId)
               console.log('[AuthContext] User ID restored:', userInfo.userId)
             }
-          })
-
-          // Sprint 22 Security: Start periodic token validation
-          tokenValidator.startValidation(() => {
-            console.warn('[AuthContext] Token validation failed - logging out')
-            logout()
           })
         }
       } catch (err) {
@@ -104,8 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { userIdentityManager } = await import('../services/auth/tokenManager')
       userIdentityManager.clearUserInfo()
 
-      // Sprint 22 Security: Stop token validation on logout
-      tokenValidator.stopValidation()
+      // Sprint 26: Token validation stopped automatically by useTokenValidator hook when isAuthenticated becomes false
     } finally {
       setIsLoading(false) // Always clear loading state
     }
