@@ -385,9 +385,7 @@ export function Editor({
   const editorSelection = useEditorState({
     editor,
     selector: (ctx) => {
-      console.log('[Editor.tsx useEditorState] Selector called, ctx.editor exists?', !!ctx.editor)
       if (!ctx.editor) {
-        console.log('[Editor.tsx useEditorState] No editor in context')
         return null
       }
       const { from, to, empty } = ctx.editor.state.selection
@@ -401,19 +399,9 @@ export function Editor({
         wordCount: text.trim() ? text.split(/\s+/).filter(Boolean).length : 0
       }
 
-      console.log('[Editor.tsx useEditorState] Selector returning:', {
-        isEmpty: result.isEmpty,
-        text: result.text.substring(0, 50),
-        from: result.from,
-        to: result.to,
-        wordCount: result.wordCount
-      })
-
       return result
     }
   })
-
-  console.log('[Editor.tsx] useEditorState returned:', editorSelection)
 
   // Pass selection changes up to parent component
   useEffect(() => {

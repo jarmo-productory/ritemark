@@ -30,7 +30,6 @@ function App() {
 
   // Stable callback for onEditorReady
   const handleEditorReady = useCallback((editorInstance: TipTapEditor) => {
-    console.log('[App.tsx] 📝 Editor instance received:', editorInstance ? 'YES' : 'NO')
     setEditor(editorInstance)
   }, [])
 
@@ -45,11 +44,6 @@ function App() {
 
   // Handle selection changes from Editor component
   const handleSelectionChange = useCallback((selection: EditorSelection) => {
-    console.log('[App.tsx] 📍 Selection received from Editor:', {
-      isEmpty: selection.isEmpty,
-      text: selection.text.substring(0, 50),
-      wordCount: selection.wordCount
-    })
     setCurrentSelection(selection)
   }, [])
 
@@ -65,14 +59,8 @@ function App() {
   // Update persisted selection whenever currentSelection changes
   useEffect(() => {
     if (!currentSelection.isEmpty && currentSelection.text.trim().length > 0) {
-      console.log('[App.tsx] ✅ PERSISTING selection to lastSelection:', {
-        text: currentSelection.text.substring(0, 50),
-        wordCount: currentSelection.wordCount
-      })
       setLastSelection(currentSelection)
     } else if (currentSelection.isEmpty) {
-      // Clear lastSelection when user deselects text
-      console.log('[App.tsx] 🧹 Clearing lastSelection (user deselected)')
       setLastSelection({
         text: '',
         from: 0,
@@ -85,22 +73,13 @@ function App() {
 
   // Update persisted highlight in editor when lastSelection changes
   useEffect(() => {
-    console.log('[App.tsx] 🔍 useEffect triggered - editor:', !!editor, 'lastSelection:', lastSelection)
-
     if (!editor) {
-      console.log('[App.tsx] ⚠️ No editor instance yet')
       return
     }
 
     if (lastSelection && !lastSelection.isEmpty) {
-      console.log('[App.tsx] 🎨 Setting persisted highlight:', {
-        from: lastSelection.from,
-        to: lastSelection.to,
-        text: lastSelection.text.substring(0, 50)
-      })
       setPersistedSelection(editor, lastSelection.from, lastSelection.to)
     } else {
-      console.log('[App.tsx] 🧹 Clearing persisted highlight')
       setPersistedSelection(editor, null, null)
     }
   }, [lastSelection, editor])

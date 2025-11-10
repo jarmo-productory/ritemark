@@ -104,8 +104,6 @@ const CollapsedTab = ({
 )
 
 export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelection, onClearSelection }: AIChatSidebarProps) {
-  console.log('[AIChatSidebar] liveSelection:', liveSelection, 'persistedSelection:', persistedSelection)
-
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -185,14 +183,11 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
 
       // Show hint on first auto-expand
       if (!hasShownAutoExpandHint) {
-        console.log('[AIChatSidebar] Auto-expanded on selection - showing hint')
-        // Note: In production, this would show a toast/tooltip
-        // For now, just log and mark as shown
         try {
           localStorage.setItem('ai-sidebar-auto-expand-hint-shown', 'true')
           setHasShownAutoExpandHint(true)
-        } catch (error) {
-          console.warn('[AIChatSidebar] Failed to save auto-expand hint state:', error)
+        } catch {
+          /* ignore localStorage errors */
         }
       }
     }

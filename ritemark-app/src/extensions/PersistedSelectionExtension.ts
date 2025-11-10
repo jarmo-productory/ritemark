@@ -20,7 +20,6 @@ export const PersistedSelectionExtension = Extension.create<PersistedSelectionOp
         key: pluginKey,
         state: {
           init() {
-            console.log('[PersistedSelectionExtension] Plugin initialized')
             return DecorationSet.empty
           },
           apply(tr, oldState, _oldEditorState, newEditorState) {
@@ -29,11 +28,9 @@ export const PersistedSelectionExtension = Extension.create<PersistedSelectionOp
 
             if (meta && meta.type === 'setPersistedSelection') {
               const { from, to } = meta
-              console.log('[PersistedSelectionExtension] Meta received:', { from, to })
 
               // Clear decorations if null
               if (from === null || to === null) {
-                console.log('[PersistedSelectionExtension] Clearing decorations')
                 return DecorationSet.empty
               }
 
@@ -44,7 +41,6 @@ export const PersistedSelectionExtension = Extension.create<PersistedSelectionOp
                     class: 'persisted-selection-highlight'
                   })
                   const newDecorations = DecorationSet.create(newEditorState.doc, [decoration])
-                  console.log('[PersistedSelectionExtension] Created decorations in apply:', from, '-', to)
                   return newDecorations
                 } catch (error) {
                   console.error('[PersistedSelectionExtension] Error creating decoration:', error)
@@ -57,7 +53,6 @@ export const PersistedSelectionExtension = Extension.create<PersistedSelectionOp
 
             // Map existing decorations through document changes
             if (tr.docChanged) {
-              console.log('[PersistedSelectionExtension] Doc changed, mapping decorations')
               return oldState.map(tr.mapping, tr.doc)
             }
 
@@ -67,10 +62,7 @@ export const PersistedSelectionExtension = Extension.create<PersistedSelectionOp
         },
         props: {
           decorations(state) {
-            const decorations = pluginKey.getState(state)
-            const count = decorations ? decorations.find().length : 0
-            console.log('[PersistedSelectionExtension] Returning decorations from props, count:', count)
-            return decorations
+            return pluginKey.getState(state)
           }
         }
       })
@@ -80,8 +72,6 @@ export const PersistedSelectionExtension = Extension.create<PersistedSelectionOp
 
 // Helper function to set persisted selection from outside
 export function setPersistedSelection(editor: any, from: number | null, to: number | null) {
-  console.log('[setPersistedSelection] Called with:', { from, to })
-
   if (!editor || !editor.view) {
     console.error('[setPersistedSelection] Editor or view not available')
     return
@@ -95,7 +85,6 @@ export function setPersistedSelection(editor: any, from: number | null, to: numb
     })
 
     editor.view.dispatch(tr)
-    console.log('[setPersistedSelection] Transaction dispatched successfully')
   } catch (error) {
     console.error('[setPersistedSelection] Error dispatching transaction:', error)
   }
