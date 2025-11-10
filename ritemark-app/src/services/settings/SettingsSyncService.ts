@@ -406,7 +406,7 @@ export class SettingsSyncService {
       return settings;
     } catch (error) {
       // Handle encryption key mismatch (test data from different browser/localhost)
-      if (error instanceof Error && error.message === 'ENCRYPTION_KEY_MISMATCH') {
+      if (error instanceof Error && error.message.includes('ENCRYPTION_KEY_MISMATCH')) {
         console.warn('[SettingsSync] Settings encrypted with different browser key - deleting incompatible data');
         // Delete incompatible encrypted settings to prevent repeated errors
         await this.deleteFromDrive();
