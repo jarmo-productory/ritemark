@@ -12,6 +12,7 @@ import type { OAuthTokens, TokenRefreshResult, AuthError } from '../../types/aut
 import { AUTH_ERRORS, OAUTH_SCOPE_VERSION } from '../../types/auth';
 import { encryptToken, decryptToken } from '../../utils/crypto';
 import { openDB, type IDBPDatabase } from 'idb';
+import { reportError } from '../../utils/errorReporter';
 
 const DB_NAME = 'ritemark-tokens';
 const DB_VERSION = 1;
@@ -117,12 +118,22 @@ export class TokenManagerEncrypted {
    */
   async getAccessToken(): Promise<string | null> {
     if (!this.accessToken) {
+      console.warn('[TokenManager] No access token in memory');
       return null;
     }
 
     // Check if token is expired
     if (this.accessTokenExpiry && this.accessTokenExpiry <= Date.now()) {
+      console.log('[TokenManager] Access token expired, attempting refresh');
       const refreshResult = await this.refreshAccessToken();
+
+      if (!refreshResult.success) {
+        reportError(
+          new Error(refreshResult.error?.message || 'Token refresh failed'),
+          'TokenManagerEncrypted.getAccessToken'
+        );
+      }
+
       return refreshResult.success ? refreshResult.tokens?.accessToken || null : null;
     }
 
@@ -150,7 +161,10 @@ export class TokenManagerEncrypted {
 
       return refreshToken;
     } catch (error) {
-      console.error('Failed to retrieve refresh token:', error);
+      console.error('[TokenManager] Failed to retrieve refresh token:', error);
+      if (error instanceof Error) {
+        reportError(error, 'TokenManagerEncrypted.getRefreshToken');
+      }
       return null;
     }
   }
@@ -398,6 +412,13 @@ export class TokenManagerEncrypted {
    * Clear all tokens (synchronous for backward compatibility)
    */
   clearTokens(): void {
+    // Log token clearing event (critical for debugging logout issues)
+    console.warn('[TokenManager] clearTokens() called - user will be logged out');
+
+    // Report to AI monitoring with stack trace to see where it was called from
+    const clearEvent = new Error('Tokens cleared - user logged out');
+    reportError(clearEvent, 'TokenManagerEncrypted.clearTokens');
+
     // Clear memory immediately
     this.accessToken = null;
     this._idToken = null;
@@ -415,10 +436,10 @@ export class TokenManagerEncrypted {
     // Clear IndexedDB asynchronously (fire-and-forget)
     this.initDB().then(db => {
       db.delete(STORE_NAME, 'current').catch(error => {
-        console.error('Failed to clear IndexedDB tokens:', error);
+        console.error('[TokenManager] Failed to clear IndexedDB tokens:', error);
       });
     }).catch(error => {
-      console.error('Failed to init DB for token clearing:', error);
+      console.error('[TokenManager] Failed to init DB for token clearing:', error);
     });
   }
 
