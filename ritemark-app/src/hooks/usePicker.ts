@@ -35,16 +35,19 @@ export interface UsePickerReturn {
 
   /**
    * Show the Google Picker dialog
+   *
+   * Sprint 27: Now async to fetch fresh token before showing picker
+   *
    * @param onFileSelect - Callback when user selects a file (receives DriveFile object)
    * @param onCancel - Optional callback when user cancels the picker
    * @param onError - Optional callback when picker fails to open
-   * @returns boolean - true if picker opened successfully, false otherwise
+   * @returns Promise<boolean> - true if picker opened successfully, false otherwise
    */
   showPicker: (
     onFileSelect: (file: { id: string; name: string; mimeType: string }) => void,
     onCancel?: () => void,
     onError?: (error: string) => void
-  ) => boolean
+  ) => Promise<boolean>
 }
 
 /**
@@ -102,10 +105,12 @@ async function loadPickerAPI(): Promise<void> {
  */
 export function usePicker(): UsePickerReturn {
   const [isPickerReady, setIsPickerReady] = useState(false)
-  const [oauthToken, setOauthToken] = useState<string | null>(null)
 
   /**
    * Initialize Google Picker API on mount (desktop only)
+   *
+   * Sprint 27 Fix: Removed oauthToken state - we fetch fresh token on EVERY picker open
+   * to avoid stale token issues when token expires or gets refreshed.
    */
   useEffect(() => {
     // Only initialize on desktop
@@ -116,16 +121,14 @@ export function usePicker(): UsePickerReturn {
 
     const initPicker = async () => {
       try {
-        // Get OAuth token
+        // Check if user is authenticated (but don't capture token here)
         const token = await tokenManagerEncrypted.getAccessToken()
         if (!token) {
           console.warn('No OAuth token available - user must sign in')
           return
         }
 
-        console.log('[usePicker] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'null')
-
-        setOauthToken(token)
+        console.log('[usePicker] User authenticated, loading Picker API...')
 
         // Load Google Picker API
         await loadPickerAPI()
@@ -143,15 +146,18 @@ export function usePicker(): UsePickerReturn {
 
   /**
    * Show the Google Picker dialog
+   *
+   * Sprint 27 Fix: Fetch fresh token on EVERY picker open to avoid stale token issues.
+   * This ensures that if token was refreshed while picker was idle, we use the new token.
    */
   const showPicker = useCallback(
-    (
+    async (
       onFileSelect: (file: { id: string; name: string; mimeType: string }) => void,
       onCancel?: () => void,
       onError?: (error: string) => void
     ) => {
-      if (!isPickerReady || !oauthToken) {
-        const error = 'Picker not ready - please wait or sign in'
+      if (!isPickerReady) {
+        const error = 'Picker not ready - please wait'
         console.warn(error)
         onError?.(error)
         return false
@@ -165,6 +171,19 @@ export function usePicker(): UsePickerReturn {
       }
 
       try {
+        // Sprint 27 Fix: Get FRESH token right before showing picker
+        // This ensures we always use the latest token (even if it was just refreshed)
+        const freshToken = await tokenManagerEncrypted.getAccessToken()
+
+        if (!freshToken) {
+          const error = 'No valid access token - please sign in'
+          console.warn('[usePicker] No access token available')
+          onError?.(error)
+          return false
+        }
+
+        console.log('[usePicker] Using fresh token for picker:', freshToken.substring(0, 20) + '...')
+
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
         if (!clientId) {
           const error = 'Google Client ID not configured'
@@ -176,14 +195,14 @@ export function usePicker(): UsePickerReturn {
         // Extract project number from client ID (format: 730176557860-xxx.apps.googleusercontent.com)
         const projectNumber = clientId.split('-')[0]
 
-        // Create Picker instance with enableFeature for drive.file scope
+        // Create Picker instance with FRESH token
         const pickerBuilder = new window.google.picker.PickerBuilder()
           .addView(
             new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
               .setMimeTypes('text/markdown,text/plain')
               .setMode(window.google.picker.DocsViewMode.LIST)
           )
-          .setOAuthToken(oauthToken)
+          .setOAuthToken(freshToken)  // ← FRESH TOKEN, not stale state!
           .setAppId(projectNumber) // Use project number, not full client ID
           .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
           .enableFeature(window.google.picker.Feature.MINE_ONLY)
@@ -223,7 +242,7 @@ export function usePicker(): UsePickerReturn {
         return false
       }
     },
-    [isPickerReady, oauthToken]
+    [isPickerReady]  // ← Removed oauthToken dependency - we fetch it fresh each time
   )
 
   return {

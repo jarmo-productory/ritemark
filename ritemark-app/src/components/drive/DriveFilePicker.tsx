@@ -28,8 +28,8 @@ export const DriveFilePicker: React.FC<DriveFilePickerProps> = ({
 
       if (desktopView && isPickerReady) {
         // Desktop: Show Google Picker (opens ANY Drive file)
-        // Wrap the callback to convert partial file object to DriveFile
-        const pickerOpened = showPicker(
+        // Sprint 27 Fix: showPicker is now async (fetches fresh token)
+        showPicker(
           (pickedFile) => {
             console.log('Picker selected file:', pickedFile)
 
@@ -54,12 +54,15 @@ export const DriveFilePicker: React.FC<DriveFilePickerProps> = ({
             alert(`Failed to open file picker: ${error}`)
             onClose()
           }
-        )
-
-        // If picker failed to open, close immediately
-        if (!pickerOpened) {
+        ).then((pickerOpened) => {
+          // If picker failed to open, close immediately
+          if (!pickerOpened) {
+            onClose()
+          }
+        }).catch((error) => {
+          console.error('Failed to open picker:', error)
           onClose()
-        }
+        })
       } else if (!desktopView) {
         // Mobile: Show custom browser (app-created files only)
         setShowCustomBrowser(true)
