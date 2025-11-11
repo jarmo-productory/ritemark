@@ -121,38 +121,57 @@ export class TokenManagerEncrypted {
    * Don't attempt refresh if no backend - just return null and let user re-authenticate.
    */
   async getAccessToken(): Promise<string | null> {
+    console.log('[TokenManager] 🔍 getAccessToken() called', {
+      hasToken: !!this.accessToken,
+      tokenPreview: this.accessToken ? `${this.accessToken.substring(0, 20)}...` : null,
+      expiresAt: this.accessTokenExpiry ? new Date(this.accessTokenExpiry).toISOString() : null,
+      isExpired: this.accessTokenExpiry ? this.accessTokenExpiry <= Date.now() : true,
+      timeUntilExpiryMs: this.accessTokenExpiry ? this.accessTokenExpiry - Date.now() : null
+    });
+
     if (!this.accessToken) {
-      console.warn('[TokenManager] No access token in memory');
+      console.warn('[TokenManager] ❌ No access token in memory');
       return null;
     }
 
     // Check if token is expired
     if (this.accessTokenExpiry && this.accessTokenExpiry <= Date.now()) {
-      console.log('[TokenManager] Access token expired');
+      console.log('[TokenManager] 🔄 Access token expired, checking backend availability...');
 
       // Sprint 26 Fix: Check if backend is available before attempting refresh
       // Browser-only OAuth has no refresh capability - tokens expire in 1 hour
       const backendAvailable = await this.checkBackendAvailable();
 
       if (!backendAvailable) {
-        console.warn('[TokenManager] Browser-only OAuth detected - no backend refresh available');
-        console.warn('[TokenManager] User must re-authenticate manually');
+        console.warn('[TokenManager] ❌ Browser-only OAuth detected - no backend refresh available');
+        console.warn('[TokenManager] 🚪 User must re-authenticate manually');
         return null; // Will trigger logout and re-authentication dialog
       }
 
-      console.log('[TokenManager] Backend available, attempting token refresh');
+      console.log('[TokenManager] ✅ Backend available, attempting token refresh');
       const refreshResult = await this.refreshAccessToken();
 
+      console.log('[TokenManager] 🔍 Token refresh result', {
+        success: refreshResult.success,
+        hasNewToken: !!refreshResult.tokens?.accessToken,
+        error: refreshResult.error?.message || null,
+        newExpiresAt: refreshResult.tokens?.expiresAt ? new Date(refreshResult.tokens.expiresAt).toISOString() : null
+      });
+
       if (!refreshResult.success) {
+        console.error('[TokenManager] ❌ Token refresh failed, reporting error');
         reportError(
           new Error(refreshResult.error?.message || 'Token refresh failed'),
           'TokenManagerEncrypted.getAccessToken'
         );
+      } else {
+        console.log('[TokenManager] ✅ Token refreshed successfully');
       }
 
       return refreshResult.success ? refreshResult.tokens?.accessToken || null : null;
     }
 
+    console.log('[TokenManager] ✅ Returning valid token from memory');
     return this.accessToken;
   }
 
@@ -163,18 +182,32 @@ export class TokenManagerEncrypted {
    * Don't attempt refresh if backend is unavailable.
    */
   private async checkBackendAvailable(): Promise<boolean> {
+    console.log('[TokenManager] 🔍 Checking backend availability...');
+
     try {
       // Quick health check to refresh-token endpoint
       const response = await fetch('/.netlify/functions/refresh-token', {
         method: 'HEAD', // Lightweight check, no body
       });
 
+      const isAvailable = response.ok || response.status === 401 || response.status === 403;
+
+      console.log('[TokenManager] 🔍 Backend health check result', {
+        available: isAvailable,
+        status: response.status,
+        statusText: response.statusText,
+        endpoint: '/.netlify/functions/refresh-token'
+      });
+
       // Backend is available if we get any valid response (even 401/403)
       // We just need to know the endpoint exists
-      return response.ok || response.status === 401 || response.status === 403;
+      return isAvailable;
     } catch (error) {
       // Network error means no backend
-      console.warn('[TokenManager] Backend health check failed:', error);
+      console.warn('[TokenManager] ❌ Backend health check failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
       return false;
     }
   }
@@ -223,6 +256,12 @@ export class TokenManagerEncrypted {
    * Uses Netlify Function for 6-month sessions with server-side refresh tokens
    */
   private async refreshAccessTokenViaBackend(userId: string): Promise<TokenRefreshResult> {
+    console.log('[TokenManager] 🔄 Calling backend refresh endpoint...', {
+      userId: userId,
+      endpoint: '/.netlify/functions/refresh-token',
+      method: 'POST'
+    });
+
     try {
       const response = await fetch('/.netlify/functions/refresh-token', {
         method: 'POST',
@@ -230,12 +269,25 @@ export class TokenManagerEncrypted {
         body: JSON.stringify({ userId }),
       });
 
+      console.log('[TokenManager] 🔍 Backend response received', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[TokenManager] Backend refresh failed:', errorData);
+        console.error('[TokenManager] ❌ Backend refresh failed', {
+          status: response.status,
+          error: errorData.error || 'Unknown error',
+          message: errorData.message || 'No message',
+          errorData: errorData
+        });
 
         // Check if refresh token expired (re-auth required)
         if (errorData.error === 'refresh_token_not_found' || errorData.error === 'refresh_token_expired') {
+          console.warn('[TokenManager] 🚪 Refresh token expired/not found, clearing tokens');
           this.clearTokens();
           return {
             success: false,
@@ -251,6 +303,13 @@ export class TokenManagerEncrypted {
       }
 
       const tokenData = await response.json();
+
+      console.log('[TokenManager] 🔍 Backend returned new token', {
+        hasAccessToken: !!tokenData.access_token,
+        tokenType: tokenData.token_type || 'Bearer',
+        expiresIn: tokenData.expires_in,
+        expiresAt: new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+      });
 
       // Backend returns only access token (refresh token stays server-side)
       const newTokens: OAuthTokens = {
@@ -271,11 +330,15 @@ export class TokenManagerEncrypted {
         this.scheduleTokenRefresh(newTokens.expiresAt);
       }
 
-      console.log('[TokenManager] Backend refresh successful');
+      console.log('[TokenManager] ✅ Backend refresh successful - new token stored in memory');
 
       return { success: true, tokens: newTokens };
     } catch (error) {
-      console.error('[TokenManager] Backend refresh error:', error);
+      console.error('[TokenManager] ❌ Backend refresh error:', {
+        error: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
       return {
         success: false,
         error: this.createAuthError(
@@ -366,34 +429,52 @@ export class TokenManagerEncrypted {
    * Sprint 20: Try backend first, fall back to browser-only
    */
   async refreshAccessToken(): Promise<TokenRefreshResult> {
+    console.log('[TokenManager] 🔄 refreshAccessToken() called - starting token refresh process');
+
     // Check if backend is available
     const { checkBackendHealth } = await import('../../utils/backendHealth');
     const backendAvailable = await checkBackendHealth();
 
+    console.log('[TokenManager] 🔍 Backend health check result', {
+      backendAvailable: backendAvailable,
+      willTryBackend: backendAvailable
+    });
+
     if (backendAvailable) {
       // Try backend refresh first (6-month sessions)
-      console.log('[TokenManager] Backend available, using server-side refresh');
+      console.log('[TokenManager] 🔄 Backend available, using server-side refresh');
 
       // Get user ID for backend refresh
       const { userIdentityManager } = await import('./tokenManager');
       const userInfo = userIdentityManager.getUserInfo();
 
+      console.log('[TokenManager] 🔍 User ID retrieval', {
+        foundUserInfo: !!userInfo,
+        userId: userInfo?.userId || 'NOT FOUND',
+        willProceed: !!userInfo?.userId
+      });
+
       if (userInfo?.userId) {
+        console.log('[TokenManager] 🔄 Attempting backend refresh with userId:', userInfo.userId);
         const result = await this.refreshAccessTokenViaBackend(userInfo.userId);
 
         if (result.success) {
+          console.log('[TokenManager] ✅ Backend refresh succeeded');
           return result;
         }
 
-        console.warn('[TokenManager] Backend refresh failed, falling back to browser-only');
+        console.warn('[TokenManager] ⚠️  Backend refresh failed, falling back to browser-only', {
+          error: result.error?.message
+        });
       } else {
-        console.warn('[TokenManager] No user ID found, falling back to browser-only');
+        console.warn('[TokenManager] ⚠️  No user ID found, falling back to browser-only');
       }
     } else {
-      console.log('[TokenManager] Backend unavailable, using browser-only refresh');
+      console.log('[TokenManager] ⚠️  Backend unavailable, using browser-only refresh');
     }
 
     // Fallback to browser-only refresh (Sprint 19)
+    console.log('[TokenManager] 🔄 Attempting browser-only refresh (fallback)');
     return this.refreshAccessTokenBrowserOnly();
   }
 
