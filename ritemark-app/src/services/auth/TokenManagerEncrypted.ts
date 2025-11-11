@@ -121,14 +121,6 @@ export class TokenManagerEncrypted {
    * Don't attempt refresh if no backend - just return null and let user re-authenticate.
    */
   async getAccessToken(): Promise<string | null> {
-    console.log('[TokenManager] 🔍 getAccessToken() called', {
-      hasToken: !!this.accessToken,
-      tokenPreview: this.accessToken ? `${this.accessToken.substring(0, 20)}...` : null,
-      expiresAt: this.accessTokenExpiry ? new Date(this.accessTokenExpiry).toISOString() : null,
-      isExpired: this.accessTokenExpiry ? this.accessTokenExpiry <= Date.now() : true,
-      timeUntilExpiryMs: this.accessTokenExpiry ? this.accessTokenExpiry - Date.now() : null
-    });
-
     if (!this.accessToken) {
       console.warn('[TokenManager] ❌ No access token in memory');
       return null;
@@ -171,7 +163,7 @@ export class TokenManagerEncrypted {
       return refreshResult.success ? refreshResult.tokens?.accessToken || null : null;
     }
 
-    console.log('[TokenManager] ✅ Returning valid token from memory');
+    // Token is valid - return silently (no log spam)
     return this.accessToken;
   }
 
