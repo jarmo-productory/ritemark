@@ -190,16 +190,19 @@ export class TokenManagerEncrypted {
         method: 'HEAD', // Lightweight check, no body
       });
 
-      const isAvailable = response.ok || response.status === 401 || response.status === 403;
+      // Sprint 27 Fix: 405 Method Not Allowed means endpoint exists but HEAD not supported
+      // This is VALID - backend refresh endpoint exists, it just requires POST
+      const isAvailable = response.ok || response.status === 401 || response.status === 403 || response.status === 405;
 
       console.log('[TokenManager] 🔍 Backend health check result', {
         available: isAvailable,
         status: response.status,
         statusText: response.statusText,
-        endpoint: '/.netlify/functions/refresh-token'
+        endpoint: '/.netlify/functions/refresh-token',
+        interpretation: response.status === 405 ? 'Backend exists (requires POST)' : 'Normal response'
       });
 
-      // Backend is available if we get any valid response (even 401/403)
+      // Backend is available if we get any valid response (even 401/403/405)
       // We just need to know the endpoint exists
       return isAvailable;
     } catch (error) {
