@@ -107,7 +107,7 @@ export async function decryptSettings(
 
     // 5. Validate decrypted data structure
     if (!settings.userId || !settings.version || !settings.timestamp) {
-      console.info('[SettingsSync] 🔄 Settings data incomplete - will reset to defaults (this is normal)')
+      // Sprint 27: Silent fail - caller handles this gracefully
       throw new Error('ENCRYPTION_KEY_MISMATCH')
     }
 
@@ -115,8 +115,14 @@ export async function decryptSettings(
   } catch (error) {
     // Handle encryption key mismatch gracefully (expected in cross-browser scenarios)
     if (error instanceof Error && error.name === 'OperationError') {
-      console.info('[SettingsSync] 🔄 Settings encrypted with different browser - will reset to defaults (this is normal)')
+      // Sprint 27: Suppress noisy console output - this is normal behavior
       throw new Error('ENCRYPTION_KEY_MISMATCH')
+    }
+
+    // Check for incomplete data (also encryption key mismatch scenario)
+    if (error instanceof Error && error.message === 'ENCRYPTION_KEY_MISMATCH') {
+      // Sprint 27: Don't report this - it's expected when browser/device changes
+      throw error
     }
 
     // Other errors (corrupted data, network issues, etc.)
