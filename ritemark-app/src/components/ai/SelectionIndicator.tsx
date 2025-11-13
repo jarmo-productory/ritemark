@@ -21,10 +21,10 @@ export function SelectionIndicator({ selection, onClearSelection }: SelectionInd
   const wordCount = selection.wordCount
 
   return (
-    <div className="border-b bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 shadow-sm max-w-full overflow-hidden">
+    <div className="border-b bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 shadow-sm w-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/50 dark:border-amber-800/50 min-w-0">
-        <div className="flex items-center space-x-2 min-w-0 flex-1">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/50 dark:border-amber-800/50 w-full overflow-hidden">
+        <div className="flex items-center space-x-2 min-w-0 flex-1 overflow-hidden">
           <Quote className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <span className="text-xs font-semibold text-amber-900 dark:text-amber-100 uppercase tracking-wide truncate">
             Selected Text
@@ -42,10 +42,10 @@ export function SelectionIndicator({ selection, onClearSelection }: SelectionInd
       </div>
 
       {/* Rich Preview Card */}
-      <div className="px-3 py-2.5 space-y-2 min-w-0">
+      <div className="px-3 py-2.5 space-y-2 w-full overflow-hidden">
         {/* Preview Text */}
-        <div className="bg-white dark:bg-gray-900 rounded-md border border-amber-200 dark:border-amber-800/50 p-2.5 max-h-32 overflow-y-auto max-w-full min-w-0">
-          <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap break-words">
+        <div className="bg-white dark:bg-gray-900 rounded-md border border-amber-200 dark:border-amber-800/50 p-2.5 max-h-32 overflow-y-auto w-full box-border">
+          <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap break-words w-full overflow-hidden">
             {previewText}
           </p>
         </div>
