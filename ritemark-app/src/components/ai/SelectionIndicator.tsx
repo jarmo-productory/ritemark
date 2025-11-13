@@ -45,7 +45,7 @@ export function SelectionIndicator({ selection, onClearSelection }: SelectionInd
       <div className="px-3 py-2.5 space-y-2 w-full overflow-hidden">
         {/* Preview Text */}
         <div className="bg-white dark:bg-gray-900 rounded-md border border-amber-200 dark:border-amber-800/50 p-2.5 max-h-32 overflow-y-auto w-full box-border">
-          <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap break-words w-full overflow-hidden">
+          <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap break-words w-full overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {previewText}
           </p>
         </div>
