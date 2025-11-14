@@ -10,9 +10,11 @@ interface WelcomeScreenProps {
   onNewDocument: () => void
   onOpenFromDrive: () => void
   onCancel?: () => void
+  isLoading?: boolean
+  loadingMessage?: string
 }
 
-export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: WelcomeScreenProps) {
+export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel, isLoading, loadingMessage }: WelcomeScreenProps) {
   const authContext = useContext(AuthContext)
   const isAuthenticated = authContext?.isAuthenticated ?? false
   const user = authContext?.user
@@ -218,43 +220,56 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-3 mb-6">
-            {isAuthenticated ? (
-              <>
+          {/* Action Buttons or Loading State */}
+          {isLoading ? (
+            // Loading state
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {loadingMessage}
+              </p>
+            </div>
+          ) : (
+            // Action buttons
+            <div className="space-y-3 mb-6">
+              {isAuthenticated ? (
+                <>
+                  <Button
+                    onClick={onNewDocument}
+                    size="lg"
+                    className="w-full gap-3 action-button action-button-primary"
+                  >
+                    <FileText className="h-5 w-5" />
+                    New Document
+                  </Button>
+
+                  <Button
+                    onClick={onOpenFromDrive}
+                    variant="outline"
+                    size="lg"
+                    className="w-full gap-3 action-button action-button-secondary"
+                  >
+                    <FolderOpen className="h-5 w-5" />
+                    Open from Drive
+                  </Button>
+                </>
+              ) : (
                 <Button
-                  onClick={onNewDocument}
+                  onClick={handleSignIn}
                   size="lg"
                   className="w-full gap-3 action-button action-button-primary"
                 >
-                  <FileText className="h-5 w-5" />
-                  New Document
+                  <LogIn className="h-5 w-5" />
+                  Sign in with Google
                 </Button>
-
-                <Button
-                  onClick={onOpenFromDrive}
-                  variant="outline"
-                  size="lg"
-                  className="w-full gap-3 action-button action-button-secondary"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                  Open from Drive
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={handleSignIn}
-                size="lg"
-                className="w-full gap-3 action-button action-button-primary"
-              >
-                <LogIn className="h-5 w-5" />
-                Sign in with Google
-              </Button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Cancel button */}
-          {onCancel && (
+          {onCancel && !isLoading && (
             <div className="mt-8">
               <button
                 onClick={onCancel}

@@ -114,6 +114,9 @@ function App() {
   // Track if WelcomeScreen should be shown (separate from isNewDocument)
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true)
 
+  // Sprint 28: Track auto-open loading state
+  const [isAutoOpening, setIsAutoOpening] = useState(false)
+
   // Sprint 20: Handle OAuth callback from backend
   // Sprint 22: Use shared OAuth callback handler
   useEffect(() => {
@@ -196,7 +199,7 @@ function App() {
     }
 
     trackLastOpenedFile()
-  }, [fileId, title]) // ✅ FIXED - Only depend on fileId and title, not settings!
+  }, [fileId, title])
 
   // Clear document state when user logs out
   useEffect(() => {
@@ -249,12 +252,6 @@ function App() {
       return
     }
 
-    // Only auto-open if:
-    // 1. Feature is enabled
-    // 2. We have a last opened file ID
-    // 3. User is authenticated
-    // 4. No file is currently open
-    // 5. Settings have loaded (not null)
     // Do not attempt auto-open until settings finished loading
     if (settingsLoading) {
       return
@@ -269,6 +266,8 @@ function App() {
     if (shouldAutoOpen) {
       const lastFileId = settings.preferences?.lastOpenedFileId!
 
+      setIsAutoOpening(true)
+
       // Load file content from Drive (same as handleFileSelect)
       const autoLoadFile = async () => {
         try {
@@ -281,13 +280,14 @@ function App() {
           setShowWelcomeScreen(false)
         } catch (error) {
           console.error('[App] Failed to auto-open file:', error)
-          // On error, just show welcome screen
           setShowWelcomeScreen(true)
+        } finally {
+          setIsAutoOpening(false)
         }
       }
 
       autoLoadFile()
-      hasAutoOpened.current = true // Mark as auto-opened to prevent repeats
+      hasAutoOpened.current = true
     }
   }, [isAuthenticated, settingsLoading, settings?.preferences?.autoOpenLastFile, settings?.preferences?.lastOpenedFileId, fileId, loadFile])
 
@@ -417,6 +417,12 @@ function App() {
           <WelcomeScreen
             onNewDocument={handleNewDocument}
             onOpenFromDrive={handleOpenFromDrive}
+            isLoading={settingsLoading || isAutoOpening}
+            loadingMessage={
+              settingsLoading
+                ? "Loading settings..."
+                : "Opening your last file..."
+            }
             // No onCancel prop - WelcomeScreen is modal when no document exists
             // User must take action (New Document or Open from Drive)
           />
