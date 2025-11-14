@@ -28,11 +28,8 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 export async function checkBackendHealth(): Promise<boolean> {
   // Check cache first
   if (cachedHealth !== null && Date.now() - cacheTime < CACHE_TTL) {
-    console.log('[BackendHealth] Using cached result:', cachedHealth)
     return cachedHealth
   }
-
-  console.log('[BackendHealth] Checking /.netlify/functions/refresh-token')
 
   try {
     // HEAD request with 3-second timeout
@@ -46,19 +43,10 @@ export async function checkBackendHealth(): Promise<boolean> {
 
     clearTimeout(timeoutId)
 
-    console.log('[BackendHealth] Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.url,
-      ok: response.ok
-    })
-
     // 405 Method Not Allowed = backend available (expects POST, not HEAD)
     // This is the ONLY valid response - Netlify Function returns 405 for HEAD requests
     // Any other status (including 200 from Vite dev server) means backend unavailable
     const isAvailable = response.status === 405
-
-    console.log('[BackendHealth] Backend available:', isAvailable)
 
     cachedHealth = isAvailable
     cacheTime = Date.now()

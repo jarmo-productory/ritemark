@@ -407,12 +407,11 @@ export class SettingsSyncService {
     } catch (error) {
       // Handle encryption key mismatch (test data from different browser/localhost)
       if (error instanceof Error && error.message.includes('ENCRYPTION_KEY_MISMATCH')) {
-        console.info('[SettingsSync] 🔄 Resetting settings - browser changed or testing on different device (this is normal)');
+        // Silently reset settings - this is expected when switching browsers/devices
 
         // Delete incompatible encrypted settings to prevent repeated errors
         try {
           await this.deleteFromDrive();
-          console.info('[SettingsSync] ✅ Old settings cleared - fresh start with defaults');
         } catch (deleteError) {
           console.error('[SettingsSync] Failed to delete incompatible settings:', deleteError);
           // ONLY report if deletion fails (rare case - actual error)

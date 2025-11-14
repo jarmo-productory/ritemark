@@ -38,7 +38,6 @@ export function BackendHealthProvider({ children }: BackendHealthProviderProps) 
 
     while (attempts < maxAttempts) {
       try {
-        console.log(`[BackendHealth] Attempt ${attempts + 1}/${maxAttempts}`)
         const available = await checkBackendHealth()
 
         if (available) {
@@ -48,16 +47,13 @@ export function BackendHealthProvider({ children }: BackendHealthProviderProps) 
           return
         }
 
-        console.warn(`[BackendHealth] Attempt ${attempts + 1} returned false`)
         attempts++
 
         // Wait 1 second between attempts (except after last attempt)
         if (attempts < maxAttempts) {
-          console.log('[BackendHealth] Waiting 1s before retry...')
           await new Promise(resolve => setTimeout(resolve, 1000))
         }
       } catch (error) {
-        console.error(`[BackendHealth] Attempt ${attempts + 1} failed:`, error)
         attempts++
 
         if (attempts < maxAttempts) {
@@ -66,7 +62,7 @@ export function BackendHealthProvider({ children }: BackendHealthProviderProps) 
       }
     }
 
-    console.warn(`[BackendHealth] ❌ Backend unavailable after ${maxAttempts} attempts - falling back to browser-only OAuth`)
+    console.log('[BackendHealth] Using browser-only OAuth (backend unavailable)')
     setBackendAvailable(false)
     setIsChecking(false)
   }

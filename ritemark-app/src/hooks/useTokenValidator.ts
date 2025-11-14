@@ -134,14 +134,9 @@ export function useTokenValidator(): UseTokenValidatorReturn {
       validateToken()
     }, TOKEN_CHECK_INTERVAL)
 
-    console.log(
-      `[TokenValidator] Started periodic token validation (every ${TOKEN_CHECK_INTERVAL / 1000 / 60} minutes)`
-    )
-
     // Cleanup interval on unmount
     return () => {
       clearInterval(intervalId)
-      console.log('[TokenValidator] Stopped periodic token validation')
     }
   }, [isAuthenticated, validateToken])
 

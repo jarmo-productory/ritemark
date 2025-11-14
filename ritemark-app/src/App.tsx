@@ -123,18 +123,23 @@ function App() {
       const userId = params.get('user_id')
       const error = params.get('error')
 
-      console.log('[App] OAuth callback check:', {
-        hasAccessToken: !!accessToken,
-        hasUserId: !!userId,
-        hasError: !!error,
-        url: window.location.href
-      })
+      // Only log if there's actually an OAuth callback to process
+      if (accessToken || userId || error) {
+        console.log('[App] OAuth callback check:', {
+          hasAccessToken: !!accessToken,
+          hasUserId: !!userId,
+          hasError: !!error
+        })
+      }
 
       if (error) {
-        console.error('[App] OAuth callback error:', {
-          error,
-          description: params.get('error_description')
-        })
+        // Only log actual errors, not state expiration (expected on page reload)
+        if (error !== 'invalid_state') {
+          console.error('[App] OAuth callback error:', {
+            error,
+            description: params.get('error_description')
+          })
+        }
         return
       }
 

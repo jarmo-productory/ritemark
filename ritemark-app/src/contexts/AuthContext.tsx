@@ -22,14 +22,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const storedUser = sessionStorage.getItem('ritemark_user')
     const storedTokens = sessionStorage.getItem('ritemark_oauth_tokens')
 
-    console.log('[AuthContext] 🔍 Session restore started', {
-      timestamp: new Date().toISOString(),
-      hasStoredUser: !!storedUser,
-      hasStoredTokens: !!storedTokens,
-      currentUrl: window.location.href
-    })
-
+    // Only log session restore if there's actually data to restore
     if (storedUser && storedTokens) {
+      console.log('[AuthContext] 🔍 Restoring session')
+
       try {
         const userData = JSON.parse(storedUser) as GoogleUser
         const tokenData = JSON.parse(storedTokens)
@@ -56,19 +52,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const isExpired = !expiresAt || expiresAt <= Date.now()
         const timeUntilExpiry = expiresAt - Date.now()
 
-        console.log('[AuthContext] 🔍 Token expiry check', {
-          expiresAt: new Date(expiresAt).toISOString(),
-          currentTime: new Date().toISOString(),
-          isExpired,
-          timeUntilExpiryMs: timeUntilExpiry,
-          timeUntilExpiryMinutes: Math.floor(timeUntilExpiry / 60000),
-          userEmail: userData.email
-        })
-
         if (isExpired) {
-          console.warn('[AuthContext] 🔄 Token expired, attempting refresh...', {
-            expiredBy: Math.abs(Math.floor(timeUntilExpiry / 60000)) + ' minutes'
-          })
+          console.log('[AuthContext] Token expired, refreshing...')
 
           // CRITICAL FIX: Don't logout immediately - try to refresh token first!
           // Restore user state optimistically (will be cleared if refresh fails)
@@ -78,70 +63,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           tokenManagerEncrypted
             .storeTokens(tokenData)
             .then(async () => {
-              console.log('[AuthContext] 🔄 Tokens restored to memory, attempting refresh...')
-
               // Restore user.sub from localStorage (needed for backend refresh)
               const { userIdentityManager } = await import('../services/auth/tokenManager')
               const userInfo = userIdentityManager.getUserInfo()
-
-              console.log('[AuthContext] 🔍 User ID retrieval', {
-                foundUserId: !!userInfo?.userId,
-                userId: userInfo?.userId || 'NOT FOUND'
-              })
 
               if (userInfo) {
                 setUserId(userInfo.userId)
               }
 
               // Attempt token refresh
-              console.log('[AuthContext] 🔄 Calling refreshAccessToken()...')
               return tokenManagerEncrypted.refreshAccessToken()
             })
             .then((result) => {
-              console.log('[AuthContext] 🔍 Token refresh result received', {
-                success: result.success,
-                hasAccessToken: !!result.tokens?.accessToken,
-                error: result.error?.message || 'none',
-                newExpiresAt: result.tokens?.expiresAt ? new Date(result.tokens.expiresAt).toISOString() : 'N/A'
-              })
-
               if (result.success) {
-                console.log('[AuthContext] ✅ Token refreshed successfully on page reload')
+                console.log('[AuthContext] ✅ Token refreshed successfully')
                 // Token refresh updates memory automatically, no need to update state
               } else {
-                console.warn('[AuthContext] ❌ Token refresh failed, clearing session', {
-                  errorMessage: result.error?.message || 'Unknown error'
-                })
+                console.warn('[AuthContext] Token refresh failed:', result.error?.message)
                 logout()
               }
             })
             .catch((err) => {
-              console.error('[AuthContext] ❌ Token refresh failed with exception:', {
-                error: err,
-                errorMessage: err instanceof Error ? err.message : String(err),
-                errorStack: err instanceof Error ? err.stack : undefined
-              })
+              console.error('[AuthContext] Token refresh exception:', err instanceof Error ? err.message : String(err))
               logout()
             })
         } else {
-          console.log('[AuthContext] ✅ Valid token found, restoring session', {
-            timeUntilExpiryMinutes: Math.floor(timeUntilExpiry / 60000)
-          })
           setUser(userData)
 
           // CRITICAL: Restore tokens to tokenManagerEncrypted memory FIRST (must complete before validation)
           tokenManagerEncrypted
             .storeTokens(tokenData)
             .then(() => {
-              console.log('[AuthContext] ✅ Tokens restored to memory successfully')
-
               // Sprint 26 Fix: Removed duplicate TokenValidator service call.
               // Token validation is now handled by useTokenValidator hook in App.tsx (periodic checks).
               // The hook's interval starts when isAuthenticated becomes true (after this setUser() call).
               // No need for duplicate validation here - the hook handles it.
             })
             .catch((err) => {
-              console.error('[AuthContext] ❌ Failed to restore tokens to memory:', err)
+              console.error('[AuthContext] Failed to restore tokens:', err)
               // If token restoration fails, logout immediately
               logout()
             })
@@ -151,7 +110,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const userInfo = userIdentityManager.getUserInfo()
             if (userInfo) {
               setUserId(userInfo.userId)
-              console.log('[AuthContext] User ID restored:', userInfo.userId)
             }
           })
         }
