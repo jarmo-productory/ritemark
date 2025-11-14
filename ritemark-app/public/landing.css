@@ -71,8 +71,10 @@
 }
 
 .logo-text {
+  font-family: Georgia, 'Times New Roman', serif;
   color: var(--foreground);
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 /* Navigation */
