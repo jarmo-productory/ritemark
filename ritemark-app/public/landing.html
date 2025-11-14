@@ -1007,6 +1007,11 @@
   </script>
 </head>
 <body>
+  <!-- Prevent FOUC: Show page immediately as CSS is already parsed -->
+  <script>
+    document.documentElement.classList.add('loaded');
+  </script>
+
   <!-- Skip to main content (Accessibility) -->
   <a href="#main-content" class="skip-to-main">Skip to main content</a>
 
@@ -1558,12 +1563,6 @@
 
   <!-- Initialize Lucide Icons Immediately -->
   <script>
-    // Prevent FOUC: Show page only after CSS is fully loaded
-    (function() {
-      // Add 'loaded' class immediately when script executes (CSS is already parsed at this point)
-      document.documentElement.classList.add('loaded');
-    })();
-
     // Initialize icons as soon as DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initIcons);
