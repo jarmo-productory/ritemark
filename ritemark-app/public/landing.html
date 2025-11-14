@@ -34,6 +34,21 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
+  <!-- Prevent FOUC (Flash of Unstyled Content) -->
+  <style>
+    /* Hide body until CSS is fully loaded */
+    html {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    html.loaded {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.1s ease-in;
+    }
+  </style>
+
   <!-- Inline Critical CSS (Above-the-Fold Performance) -->
   <style>
     * {
@@ -1543,6 +1558,12 @@
 
   <!-- Initialize Lucide Icons Immediately -->
   <script>
+    // Prevent FOUC: Show page only after CSS is fully loaded
+    (function() {
+      // Add 'loaded' class immediately when script executes (CSS is already parsed at this point)
+      document.documentElement.classList.add('loaded');
+    })();
+
     // Initialize icons as soon as DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initIcons);
