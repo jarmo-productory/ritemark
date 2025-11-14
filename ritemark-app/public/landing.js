@@ -111,36 +111,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Feature details content
   const featureDetails = {
     wysiwyg: {
-      title: 'Edit Like Google Docs',
-      description: 'RiteMark provides a true WYSIWYG editing experience—what you see is what you get. No need to learn markdown syntax or toggle between edit and preview modes.',
+      title: 'Visual Markdown Editing',
+      description: 'Format text visually, export clean markdown. Built for AI workflows, documentation, and content creation. Start writing in 30 seconds—no syntax training required.',
       benefits: [
-        'Visual formatting with toolbar buttons (bold, italic, headings)',
-        'Drag-and-drop image uploads',
-        'Real-time preview without mode switching',
-        'Keyboard shortcuts for power users',
-        'Zero learning curve for non-technical users'
+        'Format with toolbar buttons—bold, italic, headings, lists, tables',
+        'Drag images directly into your document—instant upload',
+        'See final output as you type—what you see is what you export',
+        'Master keyboard shortcuts as you grow—Cmd+B, Cmd+K, slash commands',
+        'Zero barriers—if you can format text, you can create markdown'
       ]
     },
     drive: {
-      title: 'Auto-Save to Google Drive',
-      description: 'Your documents are automatically saved to your own Google Drive account. We never see your content—everything stays private and encrypted in your Drive.',
+      title: 'Your Files, Your Control',
+      description: 'Auto-saves to YOUR Google Drive every 3 seconds. We can\'t read your documents—they live in your Drive, encrypted and private. Revoke access anytime from Google.',
       benefits: [
-        'Auto-save every few seconds',
-        'Access files from any device',
-        'Your Drive storage (15GB free, or upgrade to Google One)',
-        'File versioning and revision history',
-        'Works offline with sync when back online'
+        'Saves every 3 seconds—never lose work from crashes or connection drops',
+        'Access from any device—phone, tablet, desktop, all synced via Drive',
+        'Uses your Google Drive storage—15GB free, or upgrade to Google One for more',
+        'Complete version history—restore any past version with one click',
+        'Works offline—edits sync automatically when connection returns'
       ]
     },
     export: {
-      title: 'Export Clean Markdown',
-      description: 'RiteMark generates clean, standards-compliant markdown that works perfectly with AI tools, GitHub, and developer workflows. One-click export, no manual cleanup.',
+      title: 'Export to AI Tools & GitHub',
+      description: 'One-click markdown export optimized for ChatGPT, Claude, GitHub, and developer workflows. Standard-compliant output—paste directly, no format conversion required.',
       benefits: [
-        'Copy to clipboard for ChatGPT, Claude, or other AI tools',
-        'Download as .md file for GitHub README files',
-        'CommonMark compliant formatting',
-        'Preserves formatting, links, and images',
-        'Export to PDF or HTML (coming soon)'
+        'Copy markdown to clipboard—paste into ChatGPT, Claude, or Gemini instantly',
+        'Download .md files—perfect for GitHub READMEs, documentation, and wikis',
+        'Export to Word (.docx)—share with non-technical stakeholders',
+        'CommonMark standard—works everywhere markdown works',
+        'Preserves all formatting—headings, bold, links, images, tables, code blocks'
       ]
     },
     collab: {
@@ -155,14 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
       ]
     },
     mobile: {
-      title: 'Write Anywhere',
-      description: 'RiteMark works seamlessly across all your devices. Start writing on your phone, continue on your tablet, finish on your desktop—all synced via Google Drive.',
+      title: 'Edit From Any Device',
+      description: 'Start on your phone during commute, finish on desktop at work. All settings and documents sync automatically via Google Drive. No app installation—works in any browser.',
       benefits: [
-        'Responsive design optimized for mobile',
-        'Touch-friendly editing on phones and tablets',
-        'Automatic sync across all devices',
-        'Works in any modern browser',
-        'Progressive Web App (add to home screen)'
+        'Mobile-optimized interface—thumb-friendly toolbar, responsive layout',
+        'Touch gestures—swipe to format, long-press for context menu',
+        'Cross-device sync—preferences, recent files, and editor settings follow you',
+        'Browser-based—no App Store downloads, updates instant and automatic',
+        'Add to home screen—launches like native app, full-screen editing'
       ]
     }
   };

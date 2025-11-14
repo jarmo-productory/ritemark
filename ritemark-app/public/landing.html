@@ -331,7 +331,7 @@
 
     .features-cards {
       display: grid;
-      grid-template-columns: repeat(5, minmax(280px, 1fr));
+      grid-template-columns: repeat(4, minmax(280px, 1fr));
       gap: 20px;
       max-width: 1400px;
       margin: 0 auto;
@@ -912,7 +912,8 @@
 
     @media (max-width: 1200px) {
       .features-cards {
-        grid-template-columns: repeat(5, minmax(260px, 320px));
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
       }
     }
 
@@ -928,45 +929,33 @@
       }
 
       .features {
-        padding: var(--space-16) 0;
+        padding: var(--space-16) var(--space-6);
       }
 
       .features-header {
         margin-bottom: var(--space-8);
-        padding: 0 var(--space-6);
+        padding: 0;
       }
 
       .features-scroll-container {
-        scroll-snap-type: x mandatory;
-        padding: var(--space-6) 0 var(--space-8);
-        position: relative;
+        overflow-x: visible;
+        padding: 0;
+        margin: 0;
       }
 
       .swipe-indicator {
-        display: flex !important;
-      }
-
-      .features-scroll-container {
-        padding-bottom: 80px;
+        display: none !important;
       }
 
       .features-cards {
-        grid-template-columns: repeat(5, calc(85vw - 32px));
+        grid-template-columns: 1fr;
         gap: 16px;
-        padding: 0 var(--space-6);
+        padding: 0;
       }
 
       .feature-card {
-        min-height: 260px;
-        scroll-snap-align: start;
-      }
-
-      /* Show partial next card on mobile */
-      .features-cards::after {
-        content: '';
-        display: block;
-        width: var(--space-6);
-        grid-column: 6;
+        min-height: auto;
+        padding: var(--space-6);
       }
     }
 
@@ -1088,7 +1077,7 @@
   <!-- Features Section (Apple-Inspired Card Design) -->
   <section class="features" id="features">
     <div class="features-header">
-      <h2>Everything you need for visual markdown editing.</h2>
+      <h2>Format visually. Export markdown. Ship faster.</h2>
     </div>
 
     <div class="features-scroll-container" id="features-scroll-container">
@@ -1102,8 +1091,8 @@
           <div class="feature-icon">
             <i data-lucide="edit-3"></i>
           </div>
-          <h3>Start Writing in 30 Seconds</h3>
-          <p>Visual formatting with buttons and shortcuts. No markdown syntax, no tutorial needed. If you can format text, you can use RiteMark.</p>
+          <h3>Writing in 30 Seconds</h3>
+          <p>Format with toolbar buttons—bold, headings, lists. No syntax memorization. See final output as you type. If you can format text, you can create markdown.</p>
           <div class="feature-action" aria-label="Learn more about visual editing">
             <i data-lucide="plus"></i>
           </div>
@@ -1114,8 +1103,8 @@
           <div class="feature-icon">
             <i data-lucide="cloud"></i>
           </div>
-          <h3>Your Documents, Your Control</h3>
-          <p>Auto-saves to YOUR Google Drive every 3 seconds. Access from any device. We never see your files—they're 100% yours.</p>
+          <h3>Files in Your Drive</h3>
+          <p>Saves every 3 seconds to YOUR Google Drive. We can't read your documents—they're encrypted in your account. Access from any device, revoke anytime.</p>
           <div class="feature-action" aria-label="Learn more about cloud storage">
             <i data-lucide="plus"></i>
           </div>
@@ -1126,8 +1115,8 @@
           <div class="feature-icon">
             <i data-lucide="download"></i>
           </div>
-          <h3>Copy to AI Tools Instantly</h3>
-          <p>One-click markdown export for ChatGPT, Claude, and GitHub. Standard-compliant markdown, no format conversion needed.</p>
+          <h3>Export to Anywhere</h3>
+          <p>Copy markdown to ChatGPT, Claude, GitHub. Download as .md or .docx. Standard-compliant output—paste directly, no conversion.</p>
           <div class="feature-action" aria-label="Learn more about markdown export">
             <i data-lucide="plus"></i>
           </div>
@@ -1138,8 +1127,8 @@
           <div class="feature-icon">
             <i data-lucide="smartphone"></i>
           </div>
-          <h3>Edit From Any Device</h3>
-          <p>Start on your phone, finish on desktop. Works in any browser—no app installation needed. Your settings sync automatically.</p>
+          <h3>Works Everywhere</h3>
+          <p>Start on phone, finish on desktop. Browser-based—no app downloads. Settings and files sync via Drive. Add to home screen for native-like experience.</p>
           <div class="feature-action" aria-label="Learn more about mobile support">
             <i data-lucide="plus"></i>
           </div>
@@ -1180,7 +1169,7 @@
           </div>
           <div class="changelog-content">
             <h3>AI Writing Assistant</h3>
-            <p>Integrated OpenAI to help you write faster. Ask the AI to edit your text using natural language. Insert new content, replace text, or rewrite sections—all with your own API key (BYOK).</p>
+            <p>Select text, ask AI to improve it. Insert new paragraphs, rewrite sections, or fix grammar—all with natural language commands. Bring your own OpenAI key (BYOK) for privacy.</p>
           </div>
           <div class="changelog-badge feature-badge">Feature</div>
         </article>
@@ -1195,7 +1184,7 @@
           </div>
           <div class="changelog-content">
             <h3>Enhanced Security & Settings</h3>
-            <p>Unified settings hub with user profile, preferences, and privacy controls. Improved OAuth security with better error messages, token validation, and HTTPS enforcement. GDPR-compliant data export and account deletion.</p>
+            <p>New settings hub for profile, preferences, and privacy. Improved OAuth with token validation and HTTPS enforcement. GDPR-compliant data export and one-click account deletion.</p>
           </div>
           <div class="changelog-badge feature-badge">Feature</div>
         </article>
@@ -1210,7 +1199,7 @@
           </div>
           <div class="changelog-content">
             <h3>Settings Sync Everywhere</h3>
-            <p>Your editor preferences now sync automatically across all devices. Font size, theme, and auto-save settings update in the background every 30 seconds, encrypted and stored in your Google Drive.</p>
+            <p>Editor preferences sync across all devices automatically. Font size, theme, and auto-save update every 30 seconds—encrypted and stored in your Google Drive.</p>
           </div>
           <div class="changelog-badge feature-badge">Feature</div>
         </article>
@@ -1225,7 +1214,7 @@
           </div>
           <div class="changelog-content">
             <h3>Export & Share Features</h3>
-            <p>Copy to clipboard, export to Word (.docx), and download as markdown. Share your work in any format with one-click exporting and preserve formatting across platforms.</p>
+            <p>Copy markdown to clipboard, export to Word (.docx), or download .md files. One-click exporting preserves all formatting—share with anyone, in any format.</p>
           </div>
           <div class="changelog-badge feature-badge">Feature</div>
         </article>
@@ -1240,7 +1229,7 @@
           </div>
           <div class="changelog-content">
             <h3>Version History</h3>
-            <p>Time travel for your documents. View all past versions saved to Google Drive, preview changes side-by-side, and restore any version with one click.</p>
+            <p>Time travel for documents. View every past version saved to Drive, compare changes side-by-side, and restore with one click. Never lose work again.</p>
           </div>
           <div class="changelog-badge feature-badge">Feature</div>
         </article>
@@ -1272,7 +1261,7 @@
             <span class="faq-toggle" aria-hidden="true">+</span>
           </summary>
           <div class="faq-answer">
-            <p>RiteMark is a visual markdown editor for AI-native users. Format with buttons and shortcuts instead of raw syntax, collaborate in real-time, and export clean markdown for ChatGPT, Claude, GitHub, and developer workflows. Start writing in 30 seconds—no markdown knowledge needed.</p>
+            <p>Visual markdown editor for non-technical users. Format text with toolbar buttons, export clean markdown for AI tools and GitHub. No syntax memorization—start writing in 30 seconds.</p>
           </div>
         </details>
 
@@ -1288,7 +1277,7 @@
             <span class="faq-toggle" aria-hidden="true">+</span>
           </summary>
           <div class="faq-answer">
-            <p>Yes. RiteMark uses Google OAuth for authentication and stores your documents in your own Google Drive. We only access files you create or open with RiteMark—we never see your other Drive files. Your content stays private and encrypted.</p>
+            <p>Yes. Documents save to YOUR Google Drive—we can't read them. Only files you create or open with RiteMark are accessible. Revoke access anytime from Google Account settings.</p>
           </div>
         </details>
 
@@ -1304,7 +1293,7 @@
             <span class="faq-toggle" aria-hidden="true">+</span>
           </summary>
           <div class="faq-answer">
-            <p>Yes. RiteMark is free and open-source software. Your documents are stored in your Google Drive (15 GB free tier, or upgrade to Google One for more storage). No hidden fees, no premium tiers.</p>
+            <p>Yes. Free and open-source. Documents use your Google Drive storage (15GB free, or upgrade to Google One). No hidden fees, no premium tiers, no credit card.</p>
           </div>
         </details>
 
@@ -1320,7 +1309,7 @@
             <span class="faq-toggle" aria-hidden="true">+</span>
           </summary>
           <div class="faq-answer">
-            <p>No! RiteMark is designed for non-technical users. You edit visually with formatting buttons, and RiteMark handles the markdown conversion behind the scenes. The only time you see markdown is when you export.</p>
+            <p>No. Edit visually with toolbar buttons—markdown conversion happens automatically. Only see markdown when you export to AI tools or GitHub.</p>
           </div>
         </details>
 
@@ -1336,10 +1325,10 @@
             <span class="faq-toggle" aria-hidden="true">+</span>
           </summary>
           <div class="faq-answer">
-            <p><strong>Zero Syntax Exposure:</strong> You never see markdown syntax while editing. Visual formatting buttons only—markdown appears when you export.</p>
-            <p><strong>Your Files, Your Control:</strong> Documents stored in YOUR Google Drive with minimal permissions. We never see your files—they're 100% yours. Revoke access anytime.</p>
-            <p><strong>AI-First Workflows:</strong> Clean markdown output optimized for ChatGPT, Claude, and developer workflows. One-click copy, no format conversion needed.</p>
-            <p><strong>Open Source Transparency:</strong> 100% auditable code on GitHub. No vendor lock-in, self-hosting option available.</p>
+            <p><strong>Visual editing only:</strong> Format with buttons, export markdown. Never see syntax while writing—perfect for non-technical users.</p>
+            <p><strong>Your Drive, your files:</strong> Documents saved to YOUR Google Drive. We can't read them. Revoke access anytime from Google settings.</p>
+            <p><strong>AI-optimized output:</strong> Copy clean markdown directly to ChatGPT, Claude, or GitHub. No format conversion, no cleanup.</p>
+            <p><strong>Open source:</strong> Full code transparency on GitHub. Self-host if you want. No vendor lock-in.</p>
           </div>
         </details>
       </div>
