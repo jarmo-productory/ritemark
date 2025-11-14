@@ -19,10 +19,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   const [tokenClient, setTokenClient] = useState<{ requestAccessToken: () => void } | null>(null)
   const [accessTokenReceived, setAccessTokenReceived] = useState(false)
 
-  // Sprint 22 Performance: Use global backend health context
   const { backendAvailable } = useBackendHealth()
-
-  // Sprint 22 UX: Error dialog state
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean
     title?: string
@@ -34,7 +31,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
     message: ''
   })
 
-  // Initialize Google OAuth token client (browser-only fallback, Sprint 19)
+  // Initialize Google OAuth token client (browser-only fallback)
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!clientId) return
@@ -47,7 +44,6 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
           callback: async (tokenResponse: { access_token?: string; error?: string; error_description?: string; expires_in?: number; scope?: string; token_type?: string }) => {
             if (tokenResponse.access_token) {
               try {
-                // Sprint 22: Use shared callback handler
                 const { oauthCallbackHandler } = await import('../services/auth/OAuthCallbackHandler')
                 await oauthCallbackHandler.handleBrowserCallback(tokenResponse)
 
@@ -102,68 +98,22 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
   /**
    * Initiate Google OAuth sign-in flow
    *
-   * **OAuth Flow Selection Strategy (Sprint 20)**
-   *
-   * This function implements a dual OAuth flow architecture to solve the
-   * "Google OAuth doesn't support per-PR URLs" problem while maintaining
-   * long-lived sessions in production.
-   *
-   * ## Flow 1: Backend OAuth (Authorization Code Flow)
-   * **When**: Backend available (production + local dev via Netlify CLI)
-   * **How**: Exchanges authorization code for tokens via Netlify Function
-   * **Benefits**:
-   * - 6-month sessions (refresh tokens stored server-side in Netlify Blobs)
-   * - More secure (CLIENT_SECRET never exposed to browser)
-   * - Automatic token refresh without re-authentication
-   *
-   * ## Flow 2: Browser-Only OAuth (Implicit Flow)
-   * **When**: Backend unavailable (preview deploys, offline development)
-   * **How**: Direct token request via Google Identity Services
-   * **Benefits**:
-   * - Works without backend infrastructure
-   * - Enables preview deploy testing
-   * **Limitations**:
-   * - 1-hour sessions only (no refresh token)
-   * - Less secure (tokens only in browser memory)
-   *
-   * ## Preview Deploy Limitation
-   * Google OAuth requires fixed redirect URIs registered in Google Console.
-   * Per-PR URLs (e.g., `deploy-preview-123--ritemark.netlify.app`) cannot
-   * be registered dynamically, so preview deploys fall back to browser-only OAuth.
-   *
-   * ## Environment Detection
-   * Backend availability checked via HEAD request to `/refresh-token` endpoint:
-   * - 405 Method Not Allowed = Netlify Function available ✅
-   * - Network error/timeout = Backend unavailable ❌
-   * - Result cached for 5 minutes (see `backendHealth.ts`)
-   *
-   * ## Security (Sprint 22)
-   * - State parameter with nonce (CSRF protection)
-   * - Timestamp validation (replay attack prevention)
-   * - Origin allowlist (open redirect prevention)
-   * - Rate limiting on token refresh endpoint
-   *
-   * @see https://developers.google.com/identity/protocols/oauth2
-   * @see /netlify/functions/auth-callback.ts (backend OAuth handler)
-   * @see /netlify/functions/refresh-token.ts (token refresh endpoint)
-   * @see /docs/architecture/ADR-004-oauth-flow-selection.md
+   * Dual flow architecture:
+   * - Backend OAuth (authorization code flow) when backend available
+   * - Browser-only OAuth (implicit flow) for preview deploys
    */
   const handleSignIn = () => {
-    // Sprint 22 Security: HTTPS enforcement in production
     const protocol = window.location.protocol
     const host = window.location.hostname
     const isLocalDev = host === 'localhost' || host === '127.0.0.1'
 
-    // Enforce HTTPS in production (graceful redirect, non-blocking)
     if (!isLocalDev && protocol !== 'https:') {
-      console.warn('[WelcomeScreen] OAuth over HTTP detected - redirecting to HTTPS for security')
+      console.warn('[WelcomeScreen] OAuth over HTTP - redirecting to HTTPS')
       window.location.href = `https://${window.location.host}${window.location.pathname}`
       return
     }
 
-    // Sprint 20 Phase 0: Check backend availability
     if (backendAvailable === true) {
-      // Backend available: Use Authorization Code Flow via Netlify Function
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
       if (!clientId) {
         setErrorDialog({
@@ -174,19 +124,11 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
         return
       }
 
-      // Sprint 27: Environment-based redirect URI configuration
-      // Google OAuth requires pre-registered redirect URIs in Google Cloud Console
-      //
-      // VITE_OAUTH_REDIRECT_URI MUST be set in Netlify environment variables:
-      // - Local dev: http://localhost:8888/.netlify/functions/auth-callback (auto-detected)
-      // - Staging: https://ritemark.netlify.app/.netlify/functions/auth-callback
-      // - Production: https://rm.productory.ai/.netlify/functions/auth-callback
-      //
-      // Local dev is auto-detected, all deployed environments MUST set env var
+      // OAuth redirect URI from environment variable (required for deployed environments)
       const redirectUri = import.meta.env.VITE_OAUTH_REDIRECT_URI
 
       if (!redirectUri && !isLocalDev) {
-        console.error('[WelcomeScreen] VITE_OAUTH_REDIRECT_URI not set - OAuth will fail')
+        console.error('[WelcomeScreen] VITE_OAUTH_REDIRECT_URI not set')
         setErrorDialog({
           open: true,
           title: 'Configuration Error',
@@ -200,20 +142,17 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
 
       const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
 
-      // Encode return destination in state (where to redirect after OAuth)
-      const nonce = crypto.randomUUID()  // Generate nonce for CSRF protection
-
-      // Sprint 22 Security: Store nonce in sessionStorage for client-side validation
+      const nonce = crypto.randomUUID()
       sessionStorage.setItem('oauth_nonce', nonce)
 
       const state = {
-        origin: window.location.origin,  // Local dev or production origin
-        returnPath: '/app',              // Ensure the SPA route, not landing page
-        nonce,                           // CSRF protection
-        ts: Date.now()                   // Replay protection
+        origin: window.location.origin,
+        returnPath: '/app',
+        nonce,
+        ts: Date.now()
       }
 
-      // Base64URL encode state (URL-safe, no +, /, =)
+      // Base64URL encode state
       const stateEncoded = btoa(JSON.stringify(state))
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
@@ -224,14 +163,13 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       authUrl.searchParams.set('redirect_uri', fixedRedirectUri)
       authUrl.searchParams.set('response_type', 'code')
       authUrl.searchParams.set('scope', scope)
-      authUrl.searchParams.set('access_type', 'offline') // Get refresh token
-      authUrl.searchParams.set('prompt', 'consent') // Force consent to get refresh token
+      authUrl.searchParams.set('access_type', 'offline')
+      authUrl.searchParams.set('prompt', 'consent')
       authUrl.searchParams.set('state', stateEncoded)
 
       window.location.href = authUrl.toString()
     } else {
-      // Backend unavailable: Fall back to browser-only OAuth (Sprint 19)
-
+      // Backend unavailable: browser-only OAuth fallback
       if (!tokenClient) {
         setErrorDialog({
           open: true,
