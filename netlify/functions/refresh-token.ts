@@ -93,7 +93,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
   // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
   // Netlify Functions v1 (Lambda) requires manual environment setup via connectLambda()
   // Reference: https://answers.netlify.com/t/i-get-an-error-missingblobsenvironmenterror/151648
-  connectLambda(event)
+  connectLambda(event as any)
 
   // Sprint 22 Security: Rate limiting check (before any processing)
   // CRITICAL: getStore() must be called INSIDE handler (Netlify Blobs requirement)

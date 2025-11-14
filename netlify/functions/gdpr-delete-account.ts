@@ -68,7 +68,7 @@ const revokeGoogleTokens = async (refreshToken: string): Promise<void> => {
  */
 export const handler: Handler = async (event: HandlerEvent) => {
   // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
-  connectLambda(event)
+  connectLambda(event as any)
 
   // Security: POST only
   if (event.httpMethod !== 'POST') {
