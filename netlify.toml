@@ -7,6 +7,8 @@
 [build.environment]
   NODE_VERSION = "20"
   HUSKY = "0"
+  # Google OAuth Client IDs are public values, safe to expose in frontend
+  SECRETS_SCAN_OMIT_KEYS = "VITE_GOOGLE_CLIENT_ID"
 
 # Netlify Functions configuration (Sprint 20)
 [functions]
