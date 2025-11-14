@@ -237,8 +237,7 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
     <>
     <Dialog open={true} onOpenChange={(open) => !open && onCancel?.()}>
       <DialogContent
-        className="max-w-md"
-        // Modal mode when onCancel is not provided
+        className="max-w-md border-none shadow-2xl welcome-dialog"
         hideCloseButton={!onCancel}
         onPointerDownOutside={(e) => !onCancel && e.preventDefault()}
         onEscapeKeyDown={(e) => !onCancel && e.preventDefault()}
@@ -247,31 +246,32 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
           <DialogTitle className="sr-only">Welcome to RiteMark</DialogTitle>
         </DialogHeader>
 
-        <div className="text-center">
+        <div className="text-center px-2 py-4">
           {/* Logo */}
-          <div className="mb-8">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-              <span className="text-2xl font-bold text-primary-foreground">RM</span>
+          <div className="mb-10">
+            <div className="logo-container mx-auto mb-6">
+              <div className="logo-mark">
+                <span className="logo-text">RM</span>
+              </div>
             </div>
-            <h1 className="mt-4 text-3xl font-bold text-foreground">RiteMark</h1>
+            <h1 className="brand-title">RiteMark</h1>
 
             {/* Welcome message for authenticated users */}
             {isAuthenticated && user && (
-              <p className="mt-2 text-lg text-muted-foreground">
-                Welcome back, {user.name?.split(' ')[0] || 'User'}!
+              <p className="welcome-message">
+                Welcome back, {user.name?.split(' ')[0] || 'User'}
               </p>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-3 mb-6">
             {isAuthenticated ? (
-              // Authenticated user - show New Document and Open from Drive
               <>
                 <Button
                   onClick={onNewDocument}
                   size="lg"
-                  className="w-full gap-3"
+                  className="w-full gap-3 action-button action-button-primary"
                 >
                   <FileText className="h-5 w-5" />
                   New Document
@@ -281,18 +281,17 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
                   onClick={onOpenFromDrive}
                   variant="outline"
                   size="lg"
-                  className="w-full gap-3"
+                  className="w-full gap-3 action-button action-button-secondary"
                 >
                   <FolderOpen className="h-5 w-5" />
                   Open from Drive
                 </Button>
               </>
             ) : (
-              // Not authenticated - show sign in button
               <Button
                 onClick={handleSignIn}
                 size="lg"
-                className="w-full gap-3"
+                className="w-full gap-3 action-button action-button-primary"
               >
                 <LogIn className="h-5 w-5" />
                 Sign in with Google
@@ -300,12 +299,12 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
             )}
           </div>
 
-          {/* Cancel button - only show when onCancel is provided (dismissible mode) */}
+          {/* Cancel button */}
           {onCancel && (
-            <div className="mt-6">
+            <div className="mt-8">
               <button
                 onClick={onCancel}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="cancel-link"
               >
                 Cancel
               </button>
@@ -315,7 +314,6 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
       </DialogContent>
     </Dialog>
 
-    {/* Sprint 22 UX: Professional error dialog replacing alert() */}
     <AuthErrorDialog
       open={errorDialog.open}
       onClose={() => setErrorDialog({ open: false, message: '' })}
