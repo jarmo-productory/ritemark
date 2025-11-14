@@ -2,12 +2,6 @@ import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-/**
- * Sprint 22 - UX Improvement
- *
- * Professional error dialog replacing browser alert() calls
- * Provides better error presentation with retry/dismiss actions
- */
 
 interface AuthErrorDialogProps {
   open: boolean
