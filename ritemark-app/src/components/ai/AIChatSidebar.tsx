@@ -331,7 +331,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       <div className={cn(
         "h-full border-l bg-background flex items-center justify-center shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-12"
+        isExpanded ? "w-72" : "w-12"
       )}>
         {isExpanded ? (
           <div className="text-muted-foreground text-sm">Loading...</div>
@@ -352,7 +352,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       <div className={cn(
         "h-full border-l bg-background flex flex-col shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-12"
+        isExpanded ? "w-72" : "w-12"
       )}>
         {/* Collapsed Tab - No API Key */}
         {!isExpanded && (
@@ -404,7 +404,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       className={cn(
         "h-full border-l bg-background flex flex-col shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-12"
+        isExpanded ? "w-72" : "w-12"
       )}
       style={{ willChange: isAnimating ? 'width' : 'auto' }}
       role="complementary"
