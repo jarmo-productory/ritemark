@@ -23,12 +23,13 @@ import { getStore, connectLambda } from '@netlify/blobs'
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 
-// Fixed redirect URI (registered in Google Console)
-const FIXED_REDIRECT_URI = 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
+// Fixed redirect URI from environment variable (supports both staging and production)
+const FIXED_REDIRECT_URI = process.env.VITE_OAUTH_REDIRECT_URI || 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
 
 // Origin allowlist (security: prevent open redirects)
 const ALLOWED_ORIGINS = [
-  'https://ritemark.netlify.app',              // Production
+  'https://rm.productory.ai',                  // Production
+  'https://ritemark.netlify.app',              // Staging
   /^https:\/\/deploy-preview-\d+--ritemark\.netlify\.app$/,  // Preview deploys
   'http://localhost:5173',                     // Local dev (Vite)
   'http://localhost:8888'                      // Local dev (Netlify CLI)
@@ -68,7 +69,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     console.log('[auth-callback] State validated:', { origin: state.origin, returnPath: state.returnPath, nonce: state.nonce })
   } catch (stateError) {
     console.error('[auth-callback] State validation failed:', stateError)
-    // Fallback to production URL if state validation fails
+    // Fallback to staging URL if state validation fails
     const fallbackUrl = 'https://ritemark.netlify.app/app'
     return redirect(fallbackUrl, {
       error: 'invalid_state',
