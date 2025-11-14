@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO Meta Tags -->
+  <title>RiteMark - Markdown Editor for People Who Hate Markdown</title>
+  <meta name="description" content="Edit documents like Google Docs. Collaborate in real-time. Export clean markdown for AI tools, GitHub, and developer workflows. No syntax required.">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://ritemark.app">
+
+  <!-- Robots -->
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="RiteMark - Markdown Editor for People Who Hate Markdown">
+  <meta property="og:description" content="Edit like Google Docs, export markdown for AI tools and GitHub. No learning curve.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ritemark.app">
+  <meta property="og:image" content="https://ritemark.app/images/screenshots/app_screen.webp">
+  <meta property="og:site_name" content="RiteMark">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RiteMark - Markdown Editor for People Who Hate Markdown">
+  <meta name="twitter:description" content="Edit like Google Docs, export markdown for AI tools and GitHub.">
+  <meta name="twitter:image" content="https://ritemark.app/images/screenshots/app_screen.webp">
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://unpkg.com https://accounts.google.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <!-- Prevent FOUC (Flash of Unstyled Content) -->
+  <style>
+    /* Hide body until CSS is fully loaded */
+    html {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    html.loaded {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.1s ease-in;
+    }
+  </style>
+
+  <!-- Inline Critical CSS (Above-the-Fold Performance) -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Johnny Ive Minimalist System - Matching Main App */
+      /* Based on shadcn default palette */
+
+      /* Core Colors */
+      --background: hsl(0, 0%, 100%);           /* Pure white */
+      --foreground: hsl(222.2, 84%, 4.9%);      /* Nearly black */
+
+      /* Primary (Dark accent) */
+      --primary: hsl(222.2, 47.4%, 11.2%);      /* Dark blue-black */
+      --primary-foreground: hsl(210, 40%, 98%); /* Off-white */
+
+      /* Secondary (Subtle) */
+      --secondary: hsl(210, 40%, 96%);          /* Very light gray */
+      --secondary-foreground: hsl(222.2, 47.4%, 11.2%);
+
+      /* Muted (Backgrounds) */
+      --muted: hsl(210, 40%, 96%);
+      --muted-foreground: hsl(215.4, 16.3%, 46.9%); /* Medium gray */
+
+      /* Borders & Inputs */
+      --border: hsl(214.3, 31.8%, 91.4%);       /* Light gray */
+      --input: hsl(214.3, 31.8%, 91.4%);
+      --ring: hsl(222.2, 84%, 4.9%);
+
+      /* Legacy color mappings for transition */
+      --gray-50: hsl(210, 40%, 98%);
+      --gray-100: hsl(210, 40%, 96%);
+      --gray-200: hsl(214.3, 31.8%, 91.4%);
+      --gray-500: hsl(215.4, 16.3%, 46.9%);
+      --gray-700: hsl(222.2, 47.4%, 11.2%);
+      --gray-900: hsl(222.2, 84%, 4.9%);
+
+      /* 8pt Spacing System */
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --space-16: 64px;
+      --space-24: 96px;
+
+      /* Typography - Refined minimalism with serif accents */
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+
+      /* Border Radius */
+      --radius: 0.5rem;
+    }
+
+    /* Refined entrance animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--foreground);
+      line-height: 1.6;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Hero Section - Johnny Ive Minimalist */
+    .hero {
+      position: relative;
+      background: var(--background);
+      padding: var(--space-24) var(--space-6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-inner {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-12);
+      align-items: center;
+    }
+
+    @media (min-width: 768px) {
+      .hero-inner {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-16);
+      }
+    }
+
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw + 1rem, 4rem);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      margin-bottom: var(--space-4);
+      animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    }
+
+    .hero p {
+      font-size: clamp(1.125rem, 1vw + 0.5rem, 1.25rem);
+      font-weight: 400;
+      line-height: 1.65;
+      color: var(--muted-foreground);
+      margin-bottom: var(--space-8);
+      max-width: 560px;
+      animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-12);
+      animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+    }
+
+    /* Refined Button System */
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: var(--primary-foreground);
+      padding: 15px 36px;
+      border-radius: 10px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-primary:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.05),
+        0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      color: var(--foreground);
+      padding: 13px 32px;
+      border-radius: var(--radius);
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      font-size: 16px;
+      background: var(--background);
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--foreground);
+      background-color: var(--muted);
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .hero-visual {
+      position: relative;
+      animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+    }
+
+    .hero-visual img {
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hero-visual img:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.05),
+        0 16px 48px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Apple-Inspired Features Section */
+    .features {
+      background: hsl(210, 40%, 98%);
+      padding: var(--space-24) var(--space-6);
+    }
+
+    .features-header {
+      max-width: 1200px;
+      margin: 0 auto var(--space-12);
+      padding: 0 var(--space-6);
+      text-align: center;
+    }
+
+    .features-header h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw + 1rem, 3rem);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+    }
+
+    .features-scroll-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: var(--space-6) var(--space-6) var(--space-8);
+      margin: 0 -var(--space-6);
+      scroll-behavior: smooth;
+    }
+
+    .features-scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .features-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 var(--space-6);
+    }
+
+    .feature-card {
+      background: var(--background);
+      border-radius: 20px;
+      padding: var(--space-8);
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-height: 280px;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--foreground);
+      border-radius: 12px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke-width: 2;
+      color: var(--background);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+      color: var(--foreground);
+      margin: 0;
+    }
+
+    .feature-card p {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--muted-foreground);
+      margin: 0;
+      flex-grow: 1;
+    }
+
+    .feature-action {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--foreground);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      align-self: flex-end;
+      margin-top: auto;
+    }
+
+    .feature-action svg {
+      width: 20px;
+      height: 20px;
+      color: var(--background);
+      stroke-width: 2;
+    }
+
+    .feature-action:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+
+    .feature-action:active {
+      transform: scale(0.95);
+    }
+
+    /* Changelog Section */
+    .changelog {
+      background: var(--background);
+      padding: var(--space-24) var(--space-6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .changelog-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .changelog-header {
+      text-align: center;
+      margin-bottom: var(--space-12);
+    }
+
+    .changelog-header h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw + 1rem, 3rem);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      margin-bottom: var(--space-4);
+    }
+
+    .changelog-header p {
+      font-size: 18px;
+      color: var(--muted-foreground);
+      font-weight: 400;
+    }
+
+    .changelog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .changelog-item {
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: var(--space-6);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: var(--space-6);
+      align-items: start;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+    }
+
+    .changelog-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: var(--foreground);
+    }
+
+    .changelog-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-width: 80px;
+    }
+
+    .changelog-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .changelog-item:hover .changelog-icon {
+      transform: scale(1.05);
+    }
+
+    .feature-icon {
+      background: linear-gradient(135deg, hsl(222.2, 84%, 4.9%) 0%, hsl(222.2, 47.4%, 11.2%) 100%);
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--background);
+      stroke-width: 2;
+    }
+
+    .improvement-icon {
+      background: linear-gradient(135deg, hsl(215.4, 16.3%, 46.9%) 0%, hsl(222.2, 47.4%, 11.2%) 100%);
+    }
+
+    .improvement-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--background);
+      stroke-width: 2;
+    }
+
+    .bugfix-icon {
+      background: linear-gradient(135deg, hsl(210, 40%, 96%) 0%, hsl(214.3, 31.8%, 91.4%) 100%);
+      border: 1px solid var(--border);
+    }
+
+    .bugfix-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--foreground);
+      stroke-width: 2;
+    }
+
+    .changelog-date {
+      font-size: 13px;
+      color: var(--muted-foreground);
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .changelog-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .changelog-content h3 {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+      color: var(--foreground);
+      margin: 0;
+    }
+
+    .changelog-content p {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--muted-foreground);
+      margin: 0;
+    }
+
+    .changelog-badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      align-self: start;
+      transition: transform 0.2s ease;
+    }
+
+    .changelog-item:hover .changelog-badge {
+      transform: scale(1.02);
+    }
+
+    .feature-badge {
+      background: linear-gradient(135deg, hsl(222.2, 84%, 4.9%) 0%, hsl(222.2, 47.4%, 11.2%) 100%);
+      color: var(--background);
+    }
+
+    .improvement-badge {
+      background: var(--muted);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+
+    .bugfix-badge {
+      background: var(--secondary);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+
+    .changelog-footer {
+      margin-top: var(--space-12);
+      text-align: center;
+    }
+
+    .changelog-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: gap 0.2s ease;
+    }
+
+    .changelog-cta:hover {
+      gap: 12px;
+    }
+
+    .changelog-cta svg {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s ease;
+    }
+
+    .changelog-cta:hover svg {
+      transform: translateX(2px);
+    }
+
+    @media (max-width: 768px) {
+      .changelog {
+        padding: var(--space-16) var(--space-6);
+      }
+
+      .changelog-item {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+      }
+
+      .changelog-meta {
+        flex-direction: row;
+        justify-content: flex-start;
+        width: 100%;
+        min-width: unset;
+      }
+
+      .changelog-badge {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: end;
+      }
+
+      .changelog-item {
+        grid-template-areas:
+          "meta badge"
+          "content content";
+      }
+
+      .changelog-meta {
+        grid-area: meta;
+      }
+
+      .changelog-badge {
+        grid-area: badge;
+      }
+
+      .changelog-content {
+        grid-area: content;
+      }
+
+      .changelog-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .changelog-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .changelog-date {
+        font-size: 12px;
+      }
+    }
+
+    /* Feature Modal */
+    .feature-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+
+    .feature-modal.active {
+      display: flex;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .modal-content {
+      position: relative;
+      background: var(--background);
+      border-radius: 20px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 1;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      z-index: 2;
+    }
+
+    .modal-close:hover {
+      background: var(--border);
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+      color: var(--foreground);
+    }
+
+    .modal-body {
+      padding: var(--space-8);
+    }
+
+    .modal-body h3 {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 500;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-4);
+      color: var(--foreground);
+    }
+
+    .modal-body p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--muted-foreground);
+      margin-bottom: var(--space-4);
+    }
+
+    .modal-body ul {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-6) 0;
+    }
+
+    .modal-body li {
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-4);
+    }
+
+    .modal-body li:last-child {
+      border-bottom: none;
+    }
+
+    .modal-body li svg {
+      width: 20px;
+      height: 20px;
+      color: var(--foreground);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Mobile Navigation Menu */
+    .mobile-nav {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
+      transform: translateY(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 999;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      display: block;
+      visibility: hidden;
+    }
+
+    .mobile-nav.active {
+      transform: translateY(0);
+      visibility: visible;
+    }
+
+    .mobile-nav-link,
+    .mobile-nav-cta {
+      display: block;
+      padding: 18px var(--space-6);
+      color: var(--foreground);
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 0.2s ease;
+    }
+
+    .mobile-nav-link:active {
+      background-color: var(--muted);
+    }
+
+    .mobile-nav-link:last-of-type {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mobile-nav-cta {
+      background: var(--foreground);
+      color: var(--background);
+      text-align: center;
+      margin: var(--space-4);
+      border-radius: var(--radius);
+      border: none;
+      font-weight: 600;
+    }
+
+    .mobile-nav-cta:active {
+      opacity: 0.8;
+      background: var(--foreground);
+    }
+
+    @media (min-width: 1024px) {
+      .mobile-nav {
+        display: none;
+      }
+    }
+
+    /* Swipe Indicator (Mobile Only) */
+    .swipe-indicator {
+      display: none;
+      position: absolute;
+      right: 50%;
+      bottom: -60px;
+      transform: translateX(50%);
+      width: 56px;
+      height: 56px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: none;
+      animation: swipe-bounce 2s ease-in-out infinite;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: opacity 0.3s ease;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .swipe-indicator svg {
+      width: 28px;
+      height: 28px;
+      color: white;
+      stroke-width: 3;
+    }
+
+    .swipe-indicator.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes swipe-bounce {
+      0%, 100% {
+        transform: translateX(50%) translateY(0);
+        opacity: 0.9;
+      }
+      50% {
+        transform: translateX(50%) translateY(-8px);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .features-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      /* Hide desktop header actions on mobile */
+      .header-actions {
+        display: none;
+      }
+
+      /* Show hamburger menu on mobile */
+      .mobile-menu-toggle {
+        display: flex;
+      }
+
+      .features {
+        padding: var(--space-16) var(--space-6);
+      }
+
+      .features-header {
+        margin-bottom: var(--space-8);
+        padding: 0;
+      }
+
+      .features-scroll-container {
+        overflow-x: visible;
+        padding: 0;
+        margin: 0;
+      }
+
+      .swipe-indicator {
+        display: none !important;
+      }
+
+      .features-cards {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 0;
+      }
+
+      .feature-card {
+        min-height: auto;
+        padding: var(--space-6);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: var(--space-16) var(--space-6);
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+      }
+
+      .btn-primary, .btn-secondary {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+
+  <!-- External CSS (deferred for performance) -->
+  <link rel="stylesheet" href="/landing.css" media="print" onload="this.media='all'">
+
+  <!-- Schema.org Markup -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RiteMark",
+    "applicationCategory": "BusinessApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "operatingSystem": "Web, iOS, Android",
+    "description": "WYSIWYG markdown editor for people who hate markdown. Edit like Google Docs, export clean markdown for AI tools and GitHub."
+  }
+  </script>
+</head>
+<body>
+  <!-- Header Navbar -->
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <!-- Logo -->
+      <a href="/" class="logo" aria-label="RiteMark - Home">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="currentColor"/>
+          <text x="16" y="22" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="white" text-anchor="middle">RM</text>
+        </svg>
+        <span class="logo-text">RiteMark</span>
+      </a>
+
+      <!-- Navigation -->
+      <nav class="nav" role="navigation" aria-label="Main navigation">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">What's New</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <a href="#security" class="nav-link">Security</a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="header-actions">
+        <a href="/app" class="btn-primary btn-header">Start Writing Free</a>
+      </div>
+
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <span class="hamburger"></span>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    <nav class="mobile-nav" id="mobile-nav" role="navigation" aria-label="Mobile navigation">
+      <a href="#features" class="mobile-nav-link">Features</a>
+      <a href="#how-it-works" class="mobile-nav-link">What's New</a>
+      <a href="#faq" class="mobile-nav-link">FAQ</a>
+      <a href="#security" class="mobile-nav-link">Security</a>
+      <a href="/app" class="mobile-nav-cta">Start Writing Free</a>
+    </nav>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main role="main">
+
+  <!-- Hero Section -->
+  <section class="hero" id="main-content">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <h1>Edit Visually. Export Markdown. No Syntax Required.</h1>
+        <p>Visual markdown editor for AI-native users. Format with buttons, collaborate in real-time, export clean markdown for ChatGPT, Claude, and GitHub.</p>
+        <div class="cta-buttons">
+          <a href="/app" class="btn-primary">Start Editing Now →</a>
+        </div>
+        <p class="trust-signal" style="font-size: 14px; color: var(--muted-foreground); margin-top: 16px;">
+          ✓ Free forever &nbsp;•&nbsp; ✓ No credit card &nbsp;•&nbsp; ✓ Your files in your Google Drive
+        </p>
+      </div>
+      <div class="hero-visual">
+        <img
+          src="/images/screenshots/app_screen.webp"
+          srcset="/images/screenshots/app_screen.webp 600w"
+          sizes="(max-width: 768px) 90vw, 600px"
+          alt="RiteMark visual markdown editor with formatting toolbar and clean document interface"
+          loading="eager"
+          width="600"
+          height="400">
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section (Apple-Inspired Card Design) -->
+  <section class="features" id="features">
+    <div class="features-header">
+      <h2>Format visually. Export markdown. Ship faster.</h2>
+    </div>
+
+    <div class="features-scroll-container" id="features-scroll-container">
+      <!-- Swipe indicator for mobile -->
+      <div class="swipe-indicator" id="swipe-indicator" aria-hidden="true">
+        <i data-lucide="chevron-right"></i>
+      </div>
+      <div class="features-cards">
+        <!-- Feature 1: WYSIWYG Editing -->
+        <article class="feature-card" role="button" tabindex="0" data-feature="wysiwyg">
+          <div class="feature-icon">
+            <i data-lucide="edit-3"></i>
+          </div>
+          <h3>Writing in 30 Seconds</h3>
+          <p>Format with toolbar buttons—bold, headings, lists. No syntax memorization. See final output as you type. If you can format text, you can create markdown.</p>
+          <div class="feature-action" aria-label="Learn more about visual editing">
+            <i data-lucide="plus"></i>
+          </div>
+        </article>
+
+        <!-- Feature 2: Google Drive Integration -->
+        <article class="feature-card" role="button" tabindex="0" data-feature="drive">
+          <div class="feature-icon">
+            <i data-lucide="cloud"></i>
+          </div>
+          <h3>Files in Your Drive</h3>
+          <p>Saves every 3 seconds to YOUR Google Drive. We can't read your documents—they're encrypted in your account. Access from any device, revoke anytime.</p>
+          <div class="feature-action" aria-label="Learn more about cloud storage">
+            <i data-lucide="plus"></i>
+          </div>
+        </article>
+
+        <!-- Feature 3: Markdown Export -->
+        <article class="feature-card" role="button" tabindex="0" data-feature="export">
+          <div class="feature-icon">
+            <i data-lucide="download"></i>
+          </div>
+          <h3>Export to Anywhere</h3>
+          <p>Copy markdown to ChatGPT, Claude, GitHub. Download as .md or .docx. Standard-compliant output—paste directly, no conversion.</p>
+          <div class="feature-action" aria-label="Learn more about markdown export">
+            <i data-lucide="plus"></i>
+          </div>
+        </article>
+
+        <!-- Feature 4: Mobile-First -->
+        <article class="feature-card" role="button" tabindex="0" data-feature="mobile">
+          <div class="feature-icon">
+            <i data-lucide="smartphone"></i>
+          </div>
+          <h3>Works Everywhere</h3>
+          <p>Start on phone, finish on desktop. Browser-based—no app downloads. Settings and files sync via Drive. Add to home screen for native-like experience.</p>
+          <div class="feature-action" aria-label="Learn more about mobile support">
+            <i data-lucide="plus"></i>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Detail Modal -->
+  <div class="feature-modal" id="feature-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Close modal">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic content inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Changelog Section -->
+  <section id="how-it-works" class="changelog">
+    <div class="changelog-inner">
+      <div class="changelog-header">
+        <h2>What's New</h2>
+        <p>Recent updates and improvements to RiteMark</p>
+      </div>
+
+      <div class="changelog-list">
+        <!-- Update 1: AI Writing Assistant (Nov 4) -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="sparkles"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-11-04">Nov 4, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>AI Writing Assistant</h3>
+            <p>Select text, ask AI to improve it. Insert new paragraphs, rewrite sections, or fix grammar—all with natural language commands. Bring your own OpenAI key (BYOK) for privacy.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 2: Enhanced Security & Settings (Nov 3) -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="shield-check"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-11-03">Nov 3, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Enhanced Security & Settings</h3>
+            <p>New settings hub for profile, preferences, and privacy. Improved OAuth with token validation and HTTPS enforcement. GDPR-compliant data export and one-click account deletion.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 3: Settings Sync (Nov 1) -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="refresh-cw"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-11-01">Nov 1, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Settings Sync Everywhere</h3>
+            <p>Editor preferences sync across all devices automatically. Font size, theme, and auto-save update every 30 seconds—encrypted and stored in your Google Drive.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 4: Export & Share Features (Oct 27) -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="download"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-10-27">Oct 27, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Export & Share Features</h3>
+            <p>Copy markdown to clipboard, export to Word (.docx), or download .md files. One-click exporting preserves all formatting—share with anyone, in any format.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+
+        <!-- Update 5: Version History (Oct 26) -->
+        <article class="changelog-item">
+          <div class="changelog-meta">
+            <div class="changelog-icon feature-icon">
+              <i data-lucide="clock"></i>
+            </div>
+            <time class="changelog-date" datetime="2025-10-26">Oct 26, 2025</time>
+          </div>
+          <div class="changelog-content">
+            <h3>Version History</h3>
+            <p>Time travel for documents. View every past version saved to Drive, compare changes side-by-side, and restore with one click. Never lose work again.</p>
+          </div>
+          <div class="changelog-badge feature-badge">Feature</div>
+        </article>
+      </div>
+
+      <div class="changelog-footer">
+        <a href="https://github.com/jarmo-productory/ritemark/blob/main/docs/user-guide/changelog.md" target="_blank" rel="noopener noreferrer" class="btn-secondary changelog-cta">
+          <span>View All Updates</span>
+          <i data-lucide="external-link"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <div class="faq-container">
+        <!-- FAQ 1 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="help-circle"></i>
+              </div>
+              <span>What is RiteMark?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>Visual markdown editor for non-technical users. Format text with toolbar buttons, export clean markdown for AI tools and GitHub. No syntax memorization—start writing in 30 seconds.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 2 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="shield"></i>
+              </div>
+              <span>Is my data secure?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>Yes. Documents save to YOUR Google Drive—we can't read them. Only files you create or open with RiteMark are accessible. Revoke access anytime from Google Account settings.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 3 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="sparkles"></i>
+              </div>
+              <span>Is RiteMark free?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>Yes. Free and open-source. Documents use your Google Drive storage (15GB free, or upgrade to Google One). No hidden fees, no premium tiers, no credit card.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 4 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="code"></i>
+              </div>
+              <span>Do I need to know markdown?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>No. Edit visually with toolbar buttons—markdown conversion happens automatically. Only see markdown when you export to AI tools or GitHub.</p>
+          </div>
+        </details>
+
+        <!-- FAQ 5 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <div class="faq-question-content">
+              <div class="faq-icon">
+                <i data-lucide="git-compare"></i>
+              </div>
+              <span>What makes RiteMark unique?</span>
+            </div>
+            <span class="faq-toggle" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p><strong>Visual editing only:</strong> Format with buttons, export markdown. Never see syntax while writing—perfect for non-technical users.</p>
+            <p><strong>Your Drive, your files:</strong> Documents saved to YOUR Google Drive. We can't read them. Revoke access anytime from Google settings.</p>
+            <p><strong>AI-optimized output:</strong> Copy clean markdown directly to ChatGPT, Claude, or GitHub. No format conversion, no cleanup.</p>
+            <p><strong>Open source:</strong> Full code transparency on GitHub. Self-host if you want. No vendor lock-in.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security & Privacy Section -->
+  <section class="security" id="security">
+    <div class="container">
+      <div class="security-header">
+        <h2 class="section-title">Security & Privacy First</h2>
+        <p class="section-subtitle">Your data stays yours. Complete transparency on how we protect your privacy.</p>
+      </div>
+
+      <div class="security-grid">
+        <!-- Security Card 1: Google OAuth2 -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3>Google OAuth2 Authentication</h3>
+          <p>No passwords to manage. Sign in securely with your Google account using industry-standard OAuth2 protocol.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>No password storage on our servers</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Secure token-based authentication</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Automatic session expiration</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 2: Zero Data Collection -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="eye-off"></i>
+          </div>
+          <h3>Zero Data Collection</h3>
+          <p>We don't collect, store, or analyze your documents. Your content exists only in your Google Drive.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>No server-side document storage</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No analytics or tracking scripts</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No third-party data sharing</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 3: Minimal Permissions -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="lock"></i>
+          </div>
+          <h3>Minimal Google Drive Permissions</h3>
+          <p>We only request access to files you create or open with RiteMark. We cannot see your other Drive files.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Per-file access (drive.file scope)</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No full Drive access requested</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Revoke access anytime from Google</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 4: Open Source -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="github"></i>
+          </div>
+          <h3>100% Open Source</h3>
+          <p>Full source code transparency. Anyone can audit our security practices and verify our privacy claims.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Inspect all source code on GitHub</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Community security audits</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Self-hosting option available</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 5: GDPR Ready -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="globe"></i>
+          </div>
+          <h3>GDPR-Ready by Design</h3>
+          <p>Built with European privacy standards in mind. Your data sovereignty is guaranteed.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Data stays in your Google Drive</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Right to deletion (revoke OAuth)</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>No cross-border data transfers</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Security Card 6: Only Google Drive API -->
+        <article class="security-card">
+          <div class="security-icon">
+            <i data-lucide="cloud"></i>
+          </div>
+          <h3>Only Google Drive API</h3>
+          <p>We use exclusively Google's official Drive API. No third-party cloud services or data processors.</p>
+          <ul class="security-checklist">
+            <li>
+              <i data-lucide="check"></i>
+              <span>Google-grade encryption at rest</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>TLS encryption in transit</span>
+            </li>
+            <li>
+              <i data-lucide="check"></i>
+              <span>Google's infrastructure security</span>
+            </li>
+          </ul>
+        </article>
+      </div>
+
+      <!-- Trust Badges -->
+      <div class="security-badges">
+        <div class="security-badge-item">
+          <i data-lucide="shield-check"></i>
+          <span>OAuth2 Certified</span>
+        </div>
+        <div class="security-badge-item">
+          <i data-lucide="globe"></i>
+          <span>GDPR Compliant</span>
+        </div>
+        <div class="security-badge-item">
+          <i data-lucide="github"></i>
+          <span>Open Source</span>
+        </div>
+      </div>
+
+      <!-- Security Contact -->
+      <div class="security-footer">
+        <p>Security questions? Email us at <a href="mailto:jarmo@productory.eu">jarmo@productory.eu</a></p>
+      </div>
+    </div>
+  </section>
+
+  </main>
+  <!-- End Main Content Wrapper -->
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>RiteMark</h4>
+          <p>Write visually. Export markdown. No learning curve.</p>
+          <p style="margin-top: 1rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.5);">Built by <a href="https://www.productory.ai" target="_blank" rel="noopener noreferrer" style="color: rgba(255, 255, 255, 0.7); text-decoration: none;">Productory Services OÜ</a></p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="/app">Try Now</a></li>
+            <li><a href="https://github.com/jarmo-productory/ritemark" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="/privacy.html">Privacy Policy</a></li>
+            <li><a href="/terms.html">Terms of Service</a></li>
+            <li><a href="mailto:jarmo@productory.eu">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Community</h4>
+          <ul>
+            <li><a href="https://github.com/jarmo-productory/ritemark/issues" target="_blank" rel="noopener noreferrer">Report Issues</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Productory Services OÜ. Open-source software.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Minimal JavaScript (deferred) -->
+  <script src="/landing.js" defer></script>
+
+  <!-- Initialize Lucide Icons Immediately -->
+  <script>
+    // Initialize icons as soon as DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initIcons);
+    } else {
+      initIcons();
+    }
+
+    function initIcons() {
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      } else {
+        // Retry after a short delay if lucide hasn't loaded yet
+        setTimeout(initIcons, 100);
+      }
+    }
+  </script>
+</body>
+</html>
