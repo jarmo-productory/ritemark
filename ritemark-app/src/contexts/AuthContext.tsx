@@ -50,7 +50,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Validate token expiry
         const isExpired = !expiresAt || expiresAt <= Date.now()
-        const timeUntilExpiry = expiresAt - Date.now()
 
         if (isExpired) {
           console.log('[AuthContext] Token expired, refreshing...')
