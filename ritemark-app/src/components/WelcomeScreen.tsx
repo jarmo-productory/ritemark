@@ -174,20 +174,29 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
         return
       }
 
-      // Sprint 27: Environment-based redirect URI for staging/production separation
+      // Sprint 27: Environment-based redirect URI configuration
       // Google OAuth requires pre-registered redirect URIs in Google Cloud Console
       //
-      // Configuration via VITE_OAUTH_REDIRECT_URI environment variable:
-      // - Local dev: http://localhost:8888/.netlify/functions/auth-callback
+      // VITE_OAUTH_REDIRECT_URI MUST be set in Netlify environment variables:
+      // - Local dev: http://localhost:8888/.netlify/functions/auth-callback (auto-detected)
       // - Staging: https://ritemark.netlify.app/.netlify/functions/auth-callback
       // - Production: https://rm.productory.ai/.netlify/functions/auth-callback
       //
-      // Fallback hierarchy: env var → local dev → staging (safe default)
-      const fixedRedirectUri = import.meta.env.VITE_OAUTH_REDIRECT_URI ||
-        (isLocalDev
-          ? 'http://localhost:8888/.netlify/functions/auth-callback'
-          : 'https://ritemark.netlify.app/.netlify/functions/auth-callback' // Staging fallback
-        )
+      // Local dev is auto-detected, all deployed environments MUST set env var
+      const redirectUri = import.meta.env.VITE_OAUTH_REDIRECT_URI
+
+      if (!redirectUri && !isLocalDev) {
+        console.error('[WelcomeScreen] VITE_OAUTH_REDIRECT_URI not set - OAuth will fail')
+        setErrorDialog({
+          open: true,
+          title: 'Configuration Error',
+          message: 'OAuth redirect URI not configured. Please contact support.',
+          onRetry: () => setErrorDialog({ open: false, message: '' })
+        })
+        return
+      }
+
+      const fixedRedirectUri = redirectUri || 'http://localhost:8888/.netlify/functions/auth-callback'
 
       const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
 
