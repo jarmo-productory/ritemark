@@ -174,13 +174,20 @@ export function WelcomeScreen({ onNewDocument, onOpenFromDrive, onCancel }: Welc
         return
       }
 
-      // Codex Solution: Use a single fixed redirect URI (production Function)
-      // Carry the current environment (origin) in a signed state parameter.
-      // For local dev via `netlify dev`, allow localhost callback as an additional authorized URI.
-      // NOTE: Preview deploys will NOT have working OAuth (Google doesn't support per-PR URLs)
-      const fixedRedirectUri = isLocalDev
-        ? 'http://localhost:8888/.netlify/functions/auth-callback'
-        : 'https://ritemark.netlify.app/.netlify/functions/auth-callback'
+      // Sprint 27: Environment-based redirect URI for staging/production separation
+      // Google OAuth requires pre-registered redirect URIs in Google Cloud Console
+      //
+      // Configuration via VITE_OAUTH_REDIRECT_URI environment variable:
+      // - Local dev: http://localhost:8888/.netlify/functions/auth-callback
+      // - Staging: https://ritemark.netlify.app/.netlify/functions/auth-callback
+      // - Production: https://rm.productory.ai/.netlify/functions/auth-callback
+      //
+      // Fallback hierarchy: env var → local dev → staging (safe default)
+      const fixedRedirectUri = import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+        (isLocalDev
+          ? 'http://localhost:8888/.netlify/functions/auth-callback'
+          : 'https://ritemark.netlify.app/.netlify/functions/auth-callback' // Staging fallback
+        )
 
       const scope = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
 
