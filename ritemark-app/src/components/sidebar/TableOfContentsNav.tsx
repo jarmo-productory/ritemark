@@ -184,6 +184,8 @@ export function TableOfContentsNav({ editor, content }: TableOfContentsNavProps)
   // FALLBACK: Update headings when content changes (handles destroyed editor case)
   useEffect(() => {
     if (!content) {
+      // Explicitly clear headings when content is empty (e.g., new document)
+      setHeadings([])
       return
     }
 
