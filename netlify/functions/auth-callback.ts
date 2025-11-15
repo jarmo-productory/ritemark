@@ -53,7 +53,7 @@ const REFRESH_TOKEN_TTL = 180 * 24 * 60 * 60 * 1000
  */
 export const handler: Handler = async (event: HandlerEvent) => {
   // 🔧 CRITICAL FIX (Sprint 26): Initialize Netlify Blobs for Lambda compatibility mode
-  connectLambda(event)
+  connectLambda(event as any)
 
   console.log('[auth-callback] Received OAuth callback')
 
