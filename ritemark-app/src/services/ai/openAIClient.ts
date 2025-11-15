@@ -29,6 +29,48 @@ export interface AICommandResult {
   success: boolean
   message?: string
   error?: string
+  controller?: AbortController
+}
+
+/**
+ * User intent detection for chat vs edit modes
+ * Analyzes user message to determine if they want to discuss or edit
+ */
+export type UserIntent = 'discussion' | 'edit'
+
+/**
+ * Analyze user intent from message content
+ * Returns 'discussion' for brainstorming/questions, 'edit' for document changes
+ * Defaults to 'discussion' if ambiguous (safer - prevents unwanted edits)
+ */
+export function analyzeIntent(message: string): UserIntent {
+  const discussionKeywords = [
+    'what do you think', 'help me brainstorm', 'should i', 'how can i',
+    'explain', 'why', 'what if', 'tell me about', 'thoughts on',
+    'can you help', 'any ideas', 'suggestions for', 'what about',
+    'how would you', 'do you think', 'is it good', 'feedback on'
+  ]
+
+  const editKeywords = [
+    'replace', 'add', 'insert', 'delete', 'fix', 'change', 'update',
+    'write', 'create', 'remove', 'modify', 'rewrite', 'rephrase',
+    'make it', 'turn this into', 'convert', 'transform'
+  ]
+
+  const messageLower = message.toLowerCase()
+
+  // Check for discussion keywords first (higher priority)
+  if (discussionKeywords.some(kw => messageLower.includes(kw))) {
+    return 'discussion'
+  }
+
+  // Check for edit keywords
+  if (editKeywords.some(kw => messageLower.includes(kw))) {
+    return 'edit'
+  }
+
+  // Default to discussion if ambiguous (safer - prevents unwanted edits)
+  return 'discussion'
 }
 
 /**
@@ -125,6 +167,54 @@ const insertTextTool: OpenAI.ChatCompletionTool = {
 }
 
 /**
+ * Tool specification for findAndReplaceAll
+ * Allows AI to replace ALL occurrences of a term with intelligent case preservation
+ */
+const findAndReplaceAllTool: OpenAI.ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'findAndReplaceAll',
+    description: 'Find ALL occurrences of a term and replace with new text, preserving case when possible. Use this for bulk renaming/replacement operations.',
+    parameters: {
+      type: 'object',
+      properties: {
+        searchPattern: {
+          type: 'string',
+          description: 'Text pattern to find (case-insensitive by default)'
+        },
+        replacement: {
+          type: 'string',
+          description: 'Replacement text'
+        },
+        options: {
+          type: 'object',
+          properties: {
+            matchCase: {
+              type: 'boolean',
+              description: 'Case-sensitive matching (default: false)'
+            },
+            wholeWord: {
+              type: 'boolean',
+              description: 'Match whole words only - prevents replacing "user" in "username" (default: false)'
+            },
+            preserveCase: {
+              type: 'boolean',
+              description: 'Preserve original case in replacement - "User" → "Customer", "user" → "customer", "USER" → "CUSTOMER" (default: true)'
+            },
+            scope: {
+              type: 'string',
+              enum: ['document', 'selection'],
+              description: 'Search in full document or current selection (default: document)'
+            }
+          }
+        }
+      },
+      required: ['searchPattern', 'replacement']
+    }
+  }
+}
+
+/**
  * Initialize OpenAI client with API key from encrypted storage
  * Note: No .env.local fallback to prevent unexpected billing
  * Note: dangerouslyAllowBrowser: true is required for client-side usage
@@ -159,6 +249,7 @@ export interface ConversationMessage {
  * @param editor - TipTap editor instance for document manipulation
  * @param selection - Current editor selection context (REQUIRED)
  * @param conversationHistory - Previous messages for context (optional)
+ * @param options - Optional configuration for streaming
  * @returns Result indicating success/failure with optional message
  *
  * @example
@@ -168,12 +259,22 @@ export interface ConversationMessage {
  * } else {
  *   console.error(result.error) // "Text 'hello' not found in document"
  * }
+ *
+ * @example Streaming
+ * const result = await executeCommand("write an intro", editor, selection, [], {
+ *   stream: true,
+ *   onStream: (chunk) => console.log(chunk)
+ * })
  */
 export async function executeCommand(
   prompt: string,
   editor: Editor,
   selection: EditorSelection,
-  conversationHistory: ConversationMessage[] = []
+  conversationHistory: ConversationMessage[] = [],
+  options?: {
+    stream?: boolean
+    onStream?: (chunk: string) => void
+  }
 ): Promise<AICommandResult> {
   // Validate API key
   const openai = await createOpenAIClient()
@@ -241,8 +342,15 @@ ${plainText}
    - Examples: "## Heading", "**bold text**", "*italic*", "- list item", "> quote"
    - The editor automatically renders markdown - you don't need a separate formatting tool
 
+3. **findAndReplaceAll** - Replace ALL occurrences of a term (bulk operations)
+   - Use for renaming concepts: "replace all 'user' with 'customer'"
+   - Preserves case by default: "User" → "Customer", "user" → "customer", "USER" → "CUSTOMER"
+   - Options: matchCase (case-sensitive), wholeWord (avoid partial matches), preserveCase (default: true)
+   - Returns count of replacements made
+
 **Your Task**: Choose the appropriate tool based on user intent:
-- Use **replaceText** when modifying existing text (e.g., "replace X with Y", "fix this", "improve that")
+- Use **replaceText** when modifying a single occurrence (e.g., "fix this typo", "change that sentence")
+- Use **findAndReplaceAll** when replacing multiple occurrences (e.g., "replace all X with Y", "rename X to Y throughout")
 - Use **insertText** when adding new content (e.g., "add examples", "write conclusion", "insert summary")
 - For insertText: ALWAYS include markdown formatting (headings, bold, lists, etc.)
 
@@ -267,16 +375,22 @@ ${plainText}
         }
       ]
 
+      // Detect user intent (discussion vs edit)
+      const userIntent = analyzeIntent(prompt)
+      console.log(`[OpenAI] Detected intent: ${userIntent}`)
+
       console.log(`[OpenAI] Sending request with ${messages.length} messages (${conversationHistory.length} history)`)
       const startTime = Date.now()
 
-      // Call OpenAI API with function calling
+      // Call OpenAI API with conditional tools based on intent
       const response = await openai.chat.completions.create(
         {
           model: 'gpt-5-mini',
           messages,
-          tools: [replaceTextTool, insertTextTool],
-          tool_choice: 'auto'
+          // Discussion mode: No tools (pure conversation)
+          // Edit mode: Provide editing tools
+          tools: userIntent === 'discussion' ? undefined : [replaceTextTool, insertTextTool, findAndReplaceAllTool],
+          tool_choice: userIntent === 'discussion' ? undefined : 'auto'
         },
         {
           signal: controller.signal
@@ -287,7 +401,17 @@ ${plainText}
       const duration = Date.now() - startTime
       console.log(`[OpenAI] Response received in ${duration}ms`)
 
-      // Extract tool call from response
+      // Discussion mode: Return AI's text response directly
+      if (userIntent === 'discussion') {
+        const aiMessage = response.choices[0]?.message?.content
+        return {
+          success: true,
+          controller,
+          message: aiMessage || 'No response from AI'
+        }
+      }
+
+      // Edit mode: Extract and execute tool call
       const toolCall = response.choices[0]?.message?.tool_calls?.[0]
 
       if (!toolCall) {
@@ -295,6 +419,7 @@ ${plainText}
         const aiMessage = response.choices[0]?.message?.content
         return {
           success: false,
+          controller: controller,
           error: aiMessage || "I didn't understand that command. Try something like 'replace hello with goodbye'."
         }
       }
@@ -311,6 +436,7 @@ ${plainText}
         console.error('Failed to parse tool call arguments:', parseError)
         return {
           success: false,
+          controller,
           error: 'Failed to parse AI response. Please try again.'
         }
       }
@@ -324,6 +450,7 @@ ${plainText}
         if (!args.searchText || !args.newText) {
           return {
             success: false,
+          controller,
             error: 'Invalid tool arguments: missing searchText or newText'
           }
         }
@@ -334,6 +461,7 @@ ${plainText}
         if (!position) {
           return {
             success: false,
+          controller,
             error: `Text "${args.searchText}" not found in document`
           }
         }
@@ -351,11 +479,13 @@ ${plainText}
         if (success) {
           return {
             success: true,
+          controller,
             message: `Replaced "${args.searchText}" with "${args.newText}"`
           }
         } else {
           return {
             success: false,
+          controller,
             error: `Failed to replace text. Make sure "${args.searchText}" exists in the document.`
           }
         }
@@ -367,6 +497,7 @@ ${plainText}
         if (!args.position || !args.content) {
           return {
             success: false,
+          controller,
             error: 'Invalid tool arguments: missing position or content'
           }
         }
@@ -390,12 +521,64 @@ ${plainText}
 
           return {
             success: true,
+          controller,
             message
           }
         } else {
           return {
             success: false,
+          controller,
             error: 'Failed to insert text. Please try again.'
+          }
+        }
+      }
+
+      // Handle findAndReplaceAll tool
+      if (toolName === 'findAndReplaceAll') {
+        // Validate findAndReplaceAll arguments
+        if (!args.searchPattern || !args.replacement) {
+          return {
+            success: false,
+          controller,
+            error: 'Invalid tool arguments: missing searchPattern or replacement'
+          }
+        }
+
+        // Execute findAndReplaceAll via ToolExecutor
+        const result = executor.execute({
+          tool: 'findAndReplaceAll',
+          arguments: args
+        })
+
+        // Type guard: result can be boolean or ToolExecutionResult
+        if (typeof result === 'boolean') {
+          if (result) {
+            return {
+              success: true,
+              controller,
+              message: `Replaced occurrence(s) of "${args.searchPattern}"`
+            }
+          } else {
+            return {
+              success: false,
+              controller,
+              error: `Failed to replace text. Pattern "${args.searchPattern}" not found in document.`
+            }
+          }
+        }
+
+        // result is ToolExecutionResult
+        if (result.success) {
+          return {
+            success: true,
+            controller,
+            message: result.message || `Replaced ${result.count || 0} occurrence(s) of "${args.searchPattern}"`
+          }
+        } else {
+          return {
+            success: false,
+            controller,
+            error: result.error || `Failed to replace text. Pattern "${args.searchPattern}" not found in document.`
           }
         }
       }
@@ -403,6 +586,7 @@ ${plainText}
       // Unknown tool
       return {
         success: false,
+          controller,
         error: `Unknown tool: ${toolName}`
       }
     } catch (error) {
@@ -412,7 +596,8 @@ ${plainText}
       if (error instanceof Error && error.name === 'AbortError') {
         return {
           success: false,
-          error: 'Request timed out after 90 seconds. The AI may be processing a complex request. Please try a simpler command or try again.'
+          controller,
+          error: 'Request cancelled. You can try again or modify your command.',
         }
       }
 
