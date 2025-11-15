@@ -34,16 +34,20 @@
 - Better error handling with retry
 - Network status indicator
 
-### Phase 3: Enhanced UX (Nice-to-Have)
-- Token usage display
-- Cost estimation
-- Message actions (copy, regenerate)
+### Phase 3: Intelligent AI Capabilities (High-Value)
+- A. Smart find-and-replace (bulk operations, case preservation)
+- B. Context-aware formatting insertion
+- C. Conversational mode (chat vs edit detection)
+- D. Web search integration (DuckDuckGo client-side)
+- E. Multi-step workflow management (persistent state)
 
 ## ✅ Success Criteria
 
 - [ ] Streaming responses working smoothly
 - [ ] Users can cancel requests
-- [ ] Token costs visible
+- [ ] Smart find-and-replace with bulk operations
+- [ ] Conversational mode (chat vs edit) working
+- [ ] Web search integration functional
 - [ ] No regressions in functionality
 
 **Timeline**: 2-3 weeks (streaming priority in week 1)
