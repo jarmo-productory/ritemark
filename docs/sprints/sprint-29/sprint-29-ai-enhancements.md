@@ -166,46 +166,382 @@ for await (const chunk of stream) {
 
 ---
 
-### Phase 3: Enhanced Conversation UX
+### Phase 3: Intelligent AI Capabilities (The Real Vision)
 
-**Goal**: Improve visibility into AI operations
+**Goal**: Transform AI from simple text replacement to intelligent co-author
 
-**Features:**
-1. **Typing Indicators**
-   - "AI is thinking..." while waiting
-   - Animated dots or spinner
-   - Shows model being used
+#### A. Smart Find-and-Replace Tool
 
-2. **Token Usage Display**
-   ```typescript
-   // OpenAI returns usage in response
-   const response = await openai.chat.completions.create({...})
+**Problem**: Current `replaceText` only replaces one occurrence
+**Solution**: New `findAndReplaceAll` tool with smart matching
 
-   console.log({
-     prompt_tokens: response.usage.prompt_tokens,
-     completion_tokens: response.usage.completion_tokens,
-     total_tokens: response.usage.total_tokens
-   })
+```typescript
+{
+  name: 'findAndReplaceAll',
+  description: 'Find all occurrences of a term/pattern and replace intelligently',
+  parameters: {
+    searchPattern: {
+      type: 'string',
+      description: 'Term to find (e.g., "user", "customer", "old brand name")'
+    },
+    replacement: {
+      type: 'string',
+      description: 'New term to replace with'
+    },
+    options: {
+      matchCase: boolean,  // Case-sensitive matching
+      wholeWord: boolean,  // Match whole words only
+      preserveCase: boolean,  // "User" → "Customer", "user" → "customer"
+      scope: 'document' | 'selection'  // Where to replace
+    }
+  }
+}
+```
 
-   // Show in UI: "Used 245 tokens (~$0.001)"
-   ```
-
-3. **Cost Estimation**
-   - GPT-4o pricing: $2.50/1M input, $10/1M output
-   - Show running cost per conversation
-   - Warning if approaching limits
-
-4. **Message Actions**
-   - Copy message content
-   - Regenerate response
-   - Edit and resubmit
+**Example:**
+- User: "Replace all instances of 'customer' with 'user'"
+- AI: Calls `findAndReplaceAll("customer", "user", { preserveCase: true })`
+- Result: "Customer" → "User", "customer" → "user", "CUSTOMER" → "USER"
 
 **Benefits:**
-- ✅ Transparency (users see token costs)
-- ✅ Control (regenerate, edit)
-- ✅ Better understanding of AI behavior
+- ✅ Bulk replacements (not one-by-one)
+- ✅ Smart case handling
+- ✅ Whole-word matching (avoid "customer" → "usertomer")
 
-**Complexity**: Low
+**Complexity**: Medium
+
+---
+
+#### B. Context-Aware Formatting from AI
+
+**Problem**: AI needs to understand document structure better
+**Solution**: Enhanced `insertText` with smart formatting detection
+
+```typescript
+{
+  name: 'insertFormattedContent',
+  description: 'Insert content with intelligent formatting based on context',
+  parameters: {
+    content: string,  // Raw content from AI
+    position: { ... },
+    formatting: {
+      autoDetectStyle: boolean,  // Match surrounding text style
+      preserveIndentation: boolean,  // Match parent list/section indent
+      smartHeadingLevel: boolean,  // Auto-adjust heading level based on context
+    }
+  }
+}
+```
+
+**Smart Behaviors:**
+- Inserting into a list? Auto-format as list item
+- Inserting after H2? Make new content H3 (not H2)
+- Inserting into code block? Preserve formatting
+- Detect document language (markdown, plain text) and adapt
+
+**Benefits:**
+- ✅ AI-generated content matches document style
+- ✅ Less manual formatting after insertion
+- ✅ Context-aware intelligence
+
+**Complexity**: Medium-High
+
+---
+
+#### C. Conversational Mode (Co-Author, Not Editor)
+
+**Problem**: AI always tries to edit document, even when user just wants to brainstorm
+**Solution**: Dual-mode AI - "Edit Mode" vs "Chat Mode"
+
+**Implementation:**
+```typescript
+// Detect user intent from conversation
+const userIntent = analyzeIntent(userMessage)
+
+if (userIntent === 'discussion') {
+  // Chat mode: Just respond, don't use tools
+  response = await openai.chat.completions.create({
+    messages: [...history, userMessage],
+    tools: [],  // No tools = pure conversation
+  })
+} else {
+  // Edit mode: Use tools to modify document
+  response = await openai.chat.completions.create({
+    messages: [...history, userMessage],
+    tools: [replaceText, insertText, findAndReplace, ...],
+  })
+}
+```
+
+**User Signals for Chat Mode:**
+- "What do you think about..."
+- "Help me brainstorm..."
+- "Should I..."
+- "How can I improve..."
+- "Explain this concept..."
+
+**User Signals for Edit Mode:**
+- "Replace..."
+- "Add a section about..."
+- "Fix the grammar..."
+- "Insert..."
+
+**UI Enhancement:**
+```typescript
+// Mode toggle in sidebar
+<div className="mode-selector">
+  <button className={mode === 'chat' ? 'active' : ''}>
+    💬 Chat Mode (Co-author)
+  </button>
+  <button className={mode === 'edit' ? 'active' : ''}>
+    ✏️ Edit Mode (Modify document)
+  </button>
+</div>
+```
+
+**Benefits:**
+- ✅ Users can brainstorm without AI changing document
+- ✅ Better for outlining, planning, discussing ideas
+- ✅ Clear separation of concerns
+
+**Complexity**: Low-Medium
+
+---
+
+#### D. Web Search Integration (Client-Side)
+
+**Problem**: AI knowledge cutoff limits research capabilities
+**Solution**: Integrate free client-side web search APIs
+
+**Options:**
+
+**1. DuckDuckGo Instant Answer API (Free, No API Key)**
+```typescript
+// Client-side fetch (CORS-friendly)
+const searchQuery = encodeURIComponent("latest React 19 features")
+const response = await fetch(
+  `https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1`
+)
+const results = await response.json()
+
+// Send results to OpenAI as context
+const aiResponse = await openai.chat.completions.create({
+  messages: [
+    { role: 'system', content: `Web search results: ${JSON.stringify(results)}` },
+    { role: 'user', content: userMessage }
+  ]
+})
+```
+
+**2. Brave Search API (Free Tier: 2000 queries/month)**
+```typescript
+// Requires API key (user provides, like OpenAI key)
+const response = await fetch(
+  `https://api.search.brave.com/res/v1/web/search?q=${query}`,
+  {
+    headers: {
+      'X-Subscription-Token': await searchAPIKeyManager.getKey()
+    }
+  }
+)
+```
+
+**3. SerpAPI (Free Tier: 100 searches/month)**
+```typescript
+// Requires API key
+const response = await fetch(
+  `https://serpapi.com/search.json?q=${query}&api_key=${apiKey}`
+)
+```
+
+**AI Tool Definition:**
+```typescript
+{
+  name: 'webSearch',
+  description: 'Search the web for current information, facts, or research',
+  parameters: {
+    query: {
+      type: 'string',
+      description: 'Search query (e.g., "React 19 new features", "AI trends 2025")'
+    },
+    numResults: {
+      type: 'number',
+      default: 5,
+      description: 'Number of results to return (1-10)'
+    }
+  }
+}
+```
+
+**User Experience:**
+- User: "Research latest trends in AI writing assistants"
+- AI: Calls `webSearch("AI writing assistants 2025")`
+- AI: Receives top 5 results with summaries
+- AI: Synthesizes research into answer
+
+**Benefits:**
+- ✅ Current information (beyond knowledge cutoff)
+- ✅ Research capabilities
+- ✅ Fact-checking
+- ✅ Client-side (no server needed)
+
+**Complexity**: Medium (DuckDuckGo = Low, Brave/SerpAPI = Medium)
+
+**Recommendation**: Start with DuckDuckGo (free, no key), add Brave as optional upgrade
+
+---
+
+#### E. Multi-Step Process Memory & Workflow Management
+
+**Problem**: Each message is isolated, AI forgets the plan
+**Solution**: Persistent workflow state with step tracking
+
+**Architecture:**
+```typescript
+interface WorkflowState {
+  id: string
+  plan: string[]  // e.g., ["Outline", "Research", "Draft intro", "Write body", "Conclusion"]
+  currentStep: number
+  stepResults: Map<number, string>  // What was accomplished in each step
+  conversationHistory: Message[]
+  metadata: {
+    goal: string  // Overall objective
+    startedAt: Date
+    estimatedSteps: number
+  }
+}
+
+// Store in IndexedDB (persist across page reloads)
+const workflowDB = await openDB('ritemark-workflows', 1, {
+  upgrade(db) {
+    db.createObjectStore('workflows', { keyPath: 'id' })
+  }
+})
+```
+
+**User Experience:**
+
+**Step 1: Define Process**
+```
+User: "Help me write a blog post about AI assistants. Break it into steps."
+
+AI: "I'll help you write this in 5 steps:
+1. Brainstorm key points and outline
+2. Research current trends (web search)
+3. Draft introduction
+4. Write main sections
+5. Write conclusion and polish
+
+Ready to start with step 1?"
+
+[Workflow created with 5 steps]
+```
+
+**Step 2-5: Execute Steps**
+```
+User: "Yes, let's start"
+
+AI: "📍 Step 1/5: Brainstorming
+Let's identify your key points. What's your main argument about AI assistants?"
+
+User: [provides input]
+
+AI: [Creates outline, saves to stepResults[1]]
+
+"✅ Step 1 complete! Here's your outline:
+- Intro
+- Current state of AI
+- Benefits
+- Challenges
+- Future
+
+Ready for step 2 (Research)?"
+```
+
+**Step N: Resume After Break**
+```
+[User closes browser, returns next day]
+
+AI: "👋 Welcome back! We're on step 3/5 of your blog post about AI assistants.
+Previous steps completed:
+✅ Step 1: Outline created
+✅ Step 2: Research completed (5 sources)
+
+Ready to continue with step 3 (Draft intro)?"
+```
+
+**Implementation:**
+```typescript
+// System message includes workflow context
+const systemMessage = workflowState ? `
+You are helping with a multi-step workflow.
+
+WORKFLOW PLAN:
+${workflowState.plan.map((step, i) =>
+  `${i + 1}. ${step} ${i < workflowState.currentStep ? '✅' : i === workflowState.currentStep ? '🔄' : '⏳'}`
+).join('\n')}
+
+CURRENT STEP: ${workflowState.currentStep + 1}/${workflowState.plan.length}
+STEP GOAL: ${workflowState.plan[workflowState.currentStep]}
+
+PREVIOUS RESULTS:
+${Array.from(workflowState.stepResults.entries()).map(([step, result]) =>
+  `Step ${step + 1}: ${result.substring(0, 200)}...`
+).join('\n')}
+
+Your task: Guide the user through the current step. When complete, ask if they're ready for the next step.
+` : 'You are a helpful writing assistant.'
+
+// Save workflow state after each message
+await workflowDB.put('workflows', workflowState)
+```
+
+**UI Enhancements:**
+```typescript
+// Workflow progress indicator
+<div className="workflow-progress">
+  <h3>Blog Post Progress</h3>
+  <div className="steps">
+    {plan.map((step, i) => (
+      <div key={i} className={i === currentStep ? 'active' : i < currentStep ? 'complete' : ''}>
+        {i < currentStep ? '✅' : i === currentStep ? '🔄' : '⏳'} {step}
+      </div>
+    ))}
+  </div>
+  <button onClick={() => saveWorkflow()}>💾 Save Progress</button>
+  <button onClick={() => endWorkflow()}>✅ Complete Workflow</button>
+</div>
+```
+
+**Benefits:**
+- ✅ Multi-step processes don't lose context
+- ✅ Users can pause and resume
+- ✅ AI remembers the plan and previous steps
+- ✅ Great for long-form content creation
+- ✅ Guides users through complex writing tasks
+
+**Complexity**: High (but high value)
+
+---
+
+### Phase 3 Summary (The Real Vision)
+
+| Feature | Priority | Complexity | Impact |
+|---------|----------|------------|--------|
+| A. Smart Find-and-Replace | HIGH | Medium | High |
+| B. Context-Aware Formatting | MEDIUM | Medium-High | Medium |
+| C. Conversational Mode | HIGH | Low-Medium | High |
+| D. Web Search Integration | MEDIUM | Medium | High |
+| E. Multi-Step Workflows | HIGH | High | Very High |
+
+**Recommended Implementation Order:**
+1. **C. Conversational Mode** (Quick win, high impact)
+2. **A. Smart Find-and-Replace** (Fixes current limitation)
+3. **D. Web Search** (DuckDuckGo first, easy)
+4. **E. Multi-Step Workflows** (Most complex, highest value)
+5. **B. Context-Aware Formatting** (Enhancement, lower priority)
+
+**Total Estimated Time**: 3-4 weeks for all Phase 3 features
 
 ---
 
