@@ -251,21 +251,49 @@ for await (const chunk of stream) {
 #### C. Conversational Mode (Co-Author, Not Editor)
 
 **Problem**: AI always tries to edit document, even when user just wants to brainstorm
-**Solution**: Dual-mode AI - "Edit Mode" vs "Chat Mode"
+**Solution**: Automatic intent detection - AI chooses to chat or edit based on user's message
 
 **Implementation:**
 ```typescript
-// Detect user intent from conversation
+// Analyze user intent automatically
+function analyzeIntent(message: string): 'discussion' | 'edit' {
+  const discussionKeywords = [
+    'what do you think', 'help me brainstorm', 'should i', 'how can i',
+    'explain', 'why', 'what if', 'tell me about', 'thoughts on'
+  ]
+
+  const editKeywords = [
+    'replace', 'add', 'insert', 'delete', 'fix', 'change', 'update',
+    'write', 'create', 'remove', 'modify'
+  ]
+
+  const messageLower = message.toLowerCase()
+
+  // Check for discussion signals
+  if (discussionKeywords.some(kw => messageLower.includes(kw))) {
+    return 'discussion'
+  }
+
+  // Check for edit signals
+  if (editKeywords.some(kw => messageLower.includes(kw))) {
+    return 'edit'
+  }
+
+  // Default to discussion if ambiguous (safer)
+  return 'discussion'
+}
+
+// Use intent to decide tool availability
 const userIntent = analyzeIntent(userMessage)
 
 if (userIntent === 'discussion') {
-  // Chat mode: Just respond, don't use tools
+  // Chat mode: No document editing tools
   response = await openai.chat.completions.create({
     messages: [...history, userMessage],
-    tools: [],  // No tools = pure conversation
+    tools: [],  // Pure conversation
   })
 } else {
-  // Edit mode: Use tools to modify document
+  // Edit mode: Full tool access
   response = await openai.chat.completions.create({
     messages: [...history, userMessage],
     tools: [replaceText, insertText, findAndReplace, ...],
@@ -273,36 +301,34 @@ if (userIntent === 'discussion') {
 }
 ```
 
-**User Signals for Chat Mode:**
+**User Signals for Chat Mode (Discussion):**
 - "What do you think about..."
 - "Help me brainstorm..."
 - "Should I..."
 - "How can I improve..."
 - "Explain this concept..."
+- "Why..."
+- "What if..."
 
 **User Signals for Edit Mode:**
 - "Replace..."
 - "Add a section about..."
 - "Fix the grammar..."
 - "Insert..."
+- "Change... to..."
+- "Delete..."
 
-**UI Enhancement:**
-```typescript
-// Mode toggle in sidebar
-<div className="mode-selector">
-  <button className={mode === 'chat' ? 'active' : ''}>
-    💬 Chat Mode (Co-author)
-  </button>
-  <button className={mode === 'edit' ? 'active' : ''}>
-    ✏️ Edit Mode (Modify document)
-  </button>
-</div>
-```
+**No UI Changes Needed:**
+- ✅ Mode is detected automatically from user's message
+- ✅ No extra buttons or mode toggles
+- ✅ Seamless user experience
+- ✅ AI shows thinking/discussion icon (💬) in chat mode vs edit icon (✏️) in edit mode
 
 **Benefits:**
 - ✅ Users can brainstorm without AI changing document
 - ✅ Better for outlining, planning, discussing ideas
 - ✅ Clear separation of concerns
+- ✅ Zero user friction - works automatically
 
 **Complexity**: Low-Medium
 
