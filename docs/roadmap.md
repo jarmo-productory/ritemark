@@ -444,10 +444,17 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 
 #### **Phase 3: Framework Migration (Sprint 29+)**
 
-**Sprint 29**: Vercel AI SDK Migration
-- **Goal**: Replace direct OpenAI SDK with Vercel AI SDK
-- **Timeline**: 2-3 days
-- **Deliverable**: Streaming UI, same features with better UX
+**Sprint 29**: Vercel AI SDK Migration Research 🎯 IN PROGRESS
+- **Goal**: Research and plan migration from direct OpenAI calls to Vercel AI SDK
+- **Timeline**: Research-only sprint (no implementation)
+- **Focus**: Current state audit, SDK evaluation, migration strategy
+- **Scope**: Migration of existing AI chat functionality ONLY (no new features)
+- **Deliverables**:
+  - [ ] Current AI implementation audit (baseline documentation)
+  - [ ] Vercel AI SDK feature evaluation (capabilities vs requirements)
+  - [ ] Migration plan (incremental rollout strategy, 4-sprint timeline)
+  - [ ] Go/No-Go decision with justification
+- **See**: `/docs/sprints/sprint-29/` for research documentation
 
 **Sprint 30+**: Feature Expansion
 - More tools (find, delete, rewrite, etc.)
@@ -480,9 +487,9 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 29 🎯 Ready to start (Vercel AI SDK Migration)
+**Current Sprint**: Sprint 29 🎯 IN PROGRESS (Vercel AI SDK Migration Research)
 **Last Completed**: Sprint 28 ✅ Auto-Open Loading State (November 15, 2025)
-**Last Updated**: November 15, 2025 - Sprint 28 completed with loading state for auto-restore, v1.28.0 deployed to production
+**Last Updated**: January 15, 2025 - Sprint 29 research phase started, focusing on Vercel AI SDK migration planning
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
