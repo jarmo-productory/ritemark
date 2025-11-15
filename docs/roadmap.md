@@ -429,14 +429,27 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 - **Timeline**: 3-4 days
 - **Deliverable**: Add `insertText` and `applyFormatting` tools
 
-#### **Phase 3: Framework Migration (Sprint 28+)**
+**Sprint 28**: Auto-Open Loading State ✅ COMPLETED
+- **Goal**: Show loading spinner during "Pick up where you left off" auto-restore
+- **Timeline**: 1 day (November 15, 2025)
+- **Status**: ✅ Production deployed (v1.28.0)
+- **Deliverables**:
+  - ✅ Loading state with spinner instead of action buttons
+  - ✅ Clear message: "Opening your last file..."
+  - ✅ Prevents confusing UX during auto-restore
+  - ✅ Production code cleanup (all debug logs removed)
+- **Merge**: November 15, 2025 (commit: 079a93c)
+- **Release**: v1.28.0 deployed to production (rm.productory.ai)
+- **See**: `/docs/sprints/sprint-28/` for complete documentation
 
-**Sprint 28**: Vercel AI SDK Migration
+#### **Phase 3: Framework Migration (Sprint 29+)**
+
+**Sprint 29**: Vercel AI SDK Migration
 - **Goal**: Replace direct OpenAI SDK with Vercel AI SDK
 - **Timeline**: 2-3 days
 - **Deliverable**: Streaming UI, same features with better UX
 
-**Sprint 29+**: Feature Expansion
+**Sprint 30+**: Feature Expansion
 - More tools (find, delete, rewrite, etc.)
 - Advanced UX (command palette, inline suggestions)
 - Model comparison (Claude vs GPT-4)
@@ -467,9 +480,9 @@ Bridge the gap between technical markdown editors (too complex) and collaborativ
 ---
 
 **AI Development Principle**: Ultra-small increments, maximum learning, continuous validation
-**Current Sprint**: Sprint 25 🎯 Ready to start
-**Last Completed**: Sprint 24 ✅ insertText Tool + Viewport Layout (November 4, 2025)
-**Last Updated**: November 4, 2025 - Sprint 24 completed with insertText tool, markdown formatting, and viewport-locked layout
+**Current Sprint**: Sprint 29 🎯 Ready to start (Vercel AI SDK Migration)
+**Last Completed**: Sprint 28 ✅ Auto-Open Loading State (November 15, 2025)
+**Last Updated**: November 15, 2025 - Sprint 28 completed with loading state for auto-restore, v1.28.0 deployed to production
 
 ## 🎉 MILESTONE ACHIEVEMENTS
 
