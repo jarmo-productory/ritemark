@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Editor } from '@tiptap/react'
-import { executeCommand, type ConversationMessage } from '@/services/ai/openAIClient'
+import { executeCommand, type ConversationMessage, analyzeIntent } from '@/services/ai/openAIClient'
 import { apiKeyManager, API_KEY_CHANGED_EVENT, type APIKeyChangedEvent } from '@/services/ai/apiKeyManager'
 import { APIKeyInput } from '@/components/settings/APIKeyInput'
 import { SelectionIndicator } from '@/components/ai/SelectionIndicator'
-import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles } from 'lucide-react'
+import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles, MessageCircle, Edit3, X } from 'lucide-react'
 import type { EditorSelection } from '@/types/editor'
 import { useAISidebar, resetAISidebarState } from '@/components/hooks/use-ai-sidebar'
 import { cn } from '@/lib/utils'
@@ -23,6 +23,7 @@ interface Message {
   content: string
   timestamp: Date
   toolType?: 'replace' | 'insert' // Tool type for visual indicators
+  userIntent?: 'discussion' | 'edit' // User intent for mode indicators
 }
 
 // Shared Header Component
@@ -107,6 +108,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [activeController, setActiveController] = useState<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const previousExpandedRef = useRef(false)
@@ -257,12 +259,16 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
 
     const userMessageContent = input.trim()
 
+    // Detect user intent for mode indicator
+    const userIntent = analyzeIntent(userMessageContent)
+
     // Add user message to history immediately
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
       content: userMessageContent,
-      timestamp: new Date()
+      timestamp: new Date(),
+      userIntent
     }
     setMessages(prev => [...prev, userMessage])
 
@@ -284,6 +290,11 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       history
     )
 
+    // Store controller for cancellation
+    if (result.controller) {
+      setActiveController(result.controller)
+    }
+
     // Detect tool type from message content
     let toolType: 'replace' | 'insert' | undefined
     if (result.success && result.message) {
@@ -302,10 +313,20 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
         ? (result.message || 'Success')
         : (result.error || 'An error occurred'),
       timestamp: new Date(),
-      toolType
+      toolType,
+      userIntent
     }
     setMessages(prev => [...prev, aiMessage])
     setIsLoading(false)
+    setActiveController(null)
+  }
+
+  const handleCancel = () => {
+    if (activeController) {
+      activeController.abort()
+      setActiveController(null)
+      setIsLoading(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -464,6 +485,23 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
                       : 'bg-muted text-foreground'
                   }`}
                 >
+                  {/* Show mode indicator for user messages */}
+                  {message.role === 'user' && message.userIntent && (
+                    <div className="flex items-center gap-1.5 mb-1 opacity-70">
+                      {message.userIntent === 'discussion' ? (
+                        <>
+                          <MessageCircle className="w-3 h-3" />
+                          <span className="text-xs font-medium">Chat</span>
+                        </>
+                      ) : (
+                        <>
+                          <Edit3 className="w-3 h-3" />
+                          <span className="text-xs font-medium">Edit</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {/* Show tool icon for assistant messages with tool type */}
                   {message.role === 'assistant' && message.toolType && (
                     <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
@@ -481,6 +519,15 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
                       )}
                     </div>
                   )}
+
+                  {/* Show mode indicator for assistant messages in discussion mode */}
+                  {message.role === 'assistant' && !message.toolType && message.userIntent === 'discussion' && (
+                    <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
+                      <MessageCircle className="w-3 h-3" />
+                      <span className="text-xs font-medium">Chat</span>
+                    </div>
+                  )}
+
                   {message.content}
                 </div>
               </div>
@@ -496,6 +543,17 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
                 </div>
+                {/* Cancel Button */}
+                {activeController && (
+                  <button
+                    onClick={handleCancel}
+                    className="ml-2 p-2 text-muted-foreground hover:text-destructive transition-colors rounded-md hover:bg-destructive/10"
+                    aria-label="Cancel AI request"
+                    title="Cancel request"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             )}
 

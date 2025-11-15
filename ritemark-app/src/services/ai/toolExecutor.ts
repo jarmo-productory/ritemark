@@ -8,6 +8,13 @@ export interface ToolCall {
   arguments: Record<string, any>
 }
 
+export interface ToolExecutionResult {
+  success: boolean
+  message?: string
+  error?: string
+  count?: number
+}
+
 interface ReplaceTextArgs {
   from: number
   to: number
@@ -22,20 +29,63 @@ interface InsertTextArgs {
   content: string
 }
 
-export class ToolExecutor {
-  private editor: Editor
+interface FindAndReplaceAllArgs {
+  searchPattern: string
+  replacement: string
+  options?: {
+    matchCase?: boolean
+    wholeWord?: boolean
+    preserveCase?: boolean
+    scope?: 'document' | 'selection'
+  }
+}
 
-  constructor(editor: Editor, _selection: EditorSelection) {
-    this.editor = editor
-    // selection parameter kept for future use, prefixed with _ to indicate intentionally unused
+/**
+ * Preserve case from original text in replacement
+ * Examples:
+ * - "User" + "customer" → "Customer" (capitalize first)
+ * - "user" + "customer" → "customer" (lowercase)
+ * - "USER" + "customer" → "CUSTOMER" (uppercase)
+ */
+function preserveCase(original: string, replacement: string): string {
+  if (!original || !replacement) return replacement
+
+  // All uppercase
+  if (original === original.toUpperCase() && original !== original.toLowerCase()) {
+    return replacement.toUpperCase()
   }
 
-  execute(toolCall: ToolCall): boolean {
+  // All lowercase
+  if (original === original.toLowerCase()) {
+    return replacement.toLowerCase()
+  }
+
+  // First letter uppercase (Title Case)
+  if (original[0] === original[0].toUpperCase()) {
+    return replacement[0].toUpperCase() + replacement.slice(1).toLowerCase()
+  }
+
+  // Default: return replacement as-is
+  return replacement.toLowerCase()
+}
+
+export class ToolExecutor {
+  private editor: Editor
+  private selection: EditorSelection
+
+  constructor(editor: Editor, selection: EditorSelection) {
+    this.editor = editor
+    this.selection = selection
+  }
+
+  execute(toolCall: ToolCall): boolean | ToolExecutionResult {
     switch (toolCall.tool) {
       case 'replaceText':
         return this.replaceText(toolCall.arguments as ReplaceTextArgs)
       case 'insertText':
         return this.insertText(toolCall.arguments as InsertTextArgs)
+      case 'findAndReplaceAll':
+        return this.findAndReplaceAll(toolCall.arguments as FindAndReplaceAllArgs)
       default:
         console.error(`Unknown tool: ${toolCall.tool}`)
         return false
@@ -136,4 +186,126 @@ export class ToolExecutor {
 
     return success
   }
+
+  private findAndReplaceAll(args: FindAndReplaceAllArgs): ToolExecutionResult {
+    const { searchPattern, replacement, options = {} } = args
+    const {
+      matchCase = false,
+      wholeWord = false,
+      preserveCase: shouldPreserveCase = true,
+      scope = 'document'
+    } = options
+
+    console.log(`[findAndReplaceAll] Searching for "${searchPattern}", replacing with "${replacement}"`, {
+      matchCase,
+      wholeWord,
+      preserveCase: shouldPreserveCase,
+      scope
+    })
+
+    // Get search range based on scope
+    let searchFrom = 0
+    let searchTo = this.editor.state.doc.content.size
+
+    if (scope === 'selection' && !this.selection.isEmpty) {
+      searchFrom = this.selection.from
+      searchTo = this.selection.to
+      console.log(`[findAndReplaceAll] Searching within selection: ${searchFrom}-${searchTo}`)
+    }
+
+    // Get document text for searching
+    const docText = this.editor.state.doc.textBetween(searchFrom, searchTo, '\n')
+
+    // Build regex pattern
+    let pattern = searchPattern
+    if (wholeWord) {
+      // Word boundary regex: \b doesn't work well with non-ASCII, so use more robust pattern
+      pattern = `(?:^|\\s|[^\\w])${escapeRegex(searchPattern)}(?=$|\\s|[^\\w])`
+    } else {
+      pattern = escapeRegex(searchPattern)
+    }
+
+    const flags = matchCase ? 'g' : 'gi'
+    let regex: RegExp
+    try {
+      regex = new RegExp(pattern, flags)
+    } catch (e) {
+      console.error('[findAndReplaceAll] Invalid regex pattern:', e)
+      return {
+        success: false,
+        error: `Invalid search pattern: ${searchPattern}`
+      }
+    }
+
+    // Find all matches
+    const matches: Array<{ from: number; to: number; text: string }> = []
+    let match: RegExpExecArray | null
+
+    while ((match = regex.exec(docText)) !== null) {
+      const matchText = match[0]
+      const matchStart = match.index
+      const matchEnd = matchStart + matchText.length
+
+      // Convert relative position to absolute document position
+      const absFrom = searchFrom + matchStart
+      const absTo = searchFrom + matchEnd
+
+      matches.push({
+        from: absFrom,
+        to: absTo,
+        text: matchText
+      })
+
+      console.log(`[findAndReplaceAll] Found match at ${absFrom}-${absTo}: "${matchText}"`)
+    }
+
+    if (matches.length === 0) {
+      return {
+        success: false,
+        error: `Pattern "${searchPattern}" not found in ${scope}`,
+        count: 0
+      }
+    }
+
+    console.log(`[findAndReplaceAll] Found ${matches.length} matches, replacing...`)
+
+    // Replace all matches in reverse order (to maintain positions)
+    let successCount = 0
+    const chain = this.editor.chain().focus()
+
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const match = matches[i]
+      const replacementText = shouldPreserveCase
+        ? preserveCase(match.text, replacement)
+        : replacement
+
+      console.log(`[findAndReplaceAll] Replacing "${match.text}" with "${replacementText}" at ${match.from}-${match.to}`)
+
+      chain.insertContentAt({ from: match.from, to: match.to }, replacementText)
+      successCount++
+    }
+
+    const success = chain.run()
+
+    if (success) {
+      return {
+        success: true,
+        message: `Replaced ${successCount} occurrence(s) of "${searchPattern}" with "${replacement}"`,
+        count: successCount
+      }
+    } else {
+      return {
+        success: false,
+        error: 'Failed to execute replacements',
+        count: 0
+      }
+    }
+  }
+}
+
+/**
+ * Escape special regex characters
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
