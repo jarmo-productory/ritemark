@@ -52,9 +52,18 @@ export function analyzeIntent(message: string): UserIntent {
   ]
 
   const editKeywords = [
+    // English
     'replace', 'add', 'insert', 'delete', 'fix', 'change', 'update',
     'write', 'create', 'remove', 'modify', 'rewrite', 'rephrase',
-    'make it', 'turn this into', 'convert', 'transform'
+    'make it', 'turn this into', 'convert', 'transform',
+    // Estonian
+    'asenda', 'lisa', 'kustuta', 'paranda', 'muuda', 'kirjuta', 'eemalda',
+    // Swedish
+    'ersätt', 'lägg till', 'ta bort', 'ändra', 'skriv',
+    // German
+    'ersetzen', 'hinzufügen', 'löschen', 'ändern', 'schreiben',
+    // Patterns (language-agnostic)
+    '-->', '→', '=>', 'to '  // Common replacement patterns
   ]
 
   const messageLower = message.toLowerCase()
