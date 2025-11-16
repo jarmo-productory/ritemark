@@ -18,6 +18,8 @@ import { PersistedSelectionExtension } from '../extensions/PersistedSelectionExt
 import { FormattingBubbleMenu } from './FormattingBubbleMenu'
 import { TableOverlayControls } from './TableOverlayControls'
 import { AIChatSidebar } from './ai/AIChatSidebar'
+import TipsModal from './TipsModal'
+import { useOnboarding } from '../hooks/useOnboarding'
 import type { EditorSelection } from '../types/editor'
 
 // Initialize Turndown for HTML to Markdown conversion
@@ -117,6 +119,12 @@ export function Editor({
   const lastExternalValue = useRef(value)
   const lastOnChangeValue = useRef<string>('')
 
+  // Tips modal state (for optional shortcuts guide)
+  const {
+    showTipsModal,
+    closeTipsModal,
+  } = useOnboarding()
+
   // Convert initial markdown to HTML (only runs once on mount)
   const [initialContent] = useState(() => {
     if (!value || !value.trim()) return ''
@@ -181,7 +189,7 @@ export function Editor({
         },
       }),
       Placeholder.configure({
-        placeholder: placeholder,
+        placeholder: "Start writing... Try / for commands, # for headings",
       }),
       Link.configure({
         openOnClick: false,
@@ -479,6 +487,9 @@ export function Editor({
         ) : (
           <div style={{ display: 'none' }}>Editor not ready</div>
         )}
+
+        {/* Tips Modal: Optional comprehensive shortcuts guide */}
+        {showTipsModal && <TipsModal onClose={closeTipsModal} />}
       </div>
 
       {/* AI Sidebar (right side) */}

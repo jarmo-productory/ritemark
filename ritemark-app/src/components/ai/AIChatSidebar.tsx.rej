@@ -1,0 +1,9 @@
+@@ -4,7 +4,7 @@
+ import { apiKeyManager, API_KEY_CHANGED_EVENT, type APIKeyChangedEvent } from '@/services/ai/apiKeyManager'
+ import { APIKeyInput } from '@/components/settings/APIKeyInput'
+ import { SelectionIndicator } from '@/components/ai/SelectionIndicator'
+-import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles } from 'lucide-react'
++import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles, X } from 'lucide-react'
+ import type { EditorSelection } from '@/types/editor'
+ import { useAISidebar, resetAISidebarState } from '@/components/hooks/use-ai-sidebar'
+ import { cn } from '@/lib/utils'
