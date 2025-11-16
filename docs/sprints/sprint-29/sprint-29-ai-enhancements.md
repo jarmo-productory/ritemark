@@ -248,89 +248,267 @@ for await (const chunk of stream) {
 
 ---
 
-#### C. Conversational Mode (Co-Author, Not Editor)
+#### C. Widget Plugin Architecture (Interactive AI Tools)
 
-**Problem**: AI always tries to edit document, even when user just wants to brainstorm
-**Solution**: Automatic intent detection - AI chooses to chat or edit based on user's message
+**🎯 CRITICAL ARCHITECTURAL PIVOT: LLM for Intent, Widgets for Execution**
 
-**Implementation:**
+**Problem Statement:**
+1. ❌ **Intent detection with keywords is wrong approach** - Brittle, fails on edge cases
+2. ❌ **Immediate tool execution is bad UX** - No preview, no control, scary for users
+3. ✅ **LLMs are excellent at intent detection** - Use `tool_choice: 'auto'` always
+4. ✅ **LLMs are terrible at precise execution** - Character-level operations fail
+
+**The Right Pattern:**
+```
+User Message
+    ↓
+LLM with tools (tool_choice: 'auto')
+    ↓
+LLM decides: "User wants to replace 'user' with 'customer'"
+    ↓
+Instead of executing immediately...
+    ↓
+Show Interactive Widget (React component)
+    ↓
+Widget shows preview: "Found 47 matches, will replace..."
+    ↓
+User controls execution: [Replace All] [Preview Changes] [Cancel]
+    ↓
+Deterministic algorithm executes replacements
+```
+
+**Architecture:**
+
+**1. LLM Layer (Intent Detection)**
 ```typescript
-// Analyze user intent automatically
-function analyzeIntent(message: string): 'discussion' | 'edit' {
-  const discussionKeywords = [
-    'what do you think', 'help me brainstorm', 'should i', 'how can i',
-    'explain', 'why', 'what if', 'tell me about', 'thoughts on'
-  ]
+// ALWAYS provide tools, let LLM decide
+const response = await openai.chat.completions.create({
+  messages: [...history, userMessage],
+  tools: [
+    findAndReplaceWidget,  // ← Returns widget config, not immediate execution
+    insertTextWidget,
+    formatTextWidget,
+    // ... more widgets
+  ],
+  tool_choice: 'auto'  // ← ALWAYS auto, never conditional
+})
 
-  const editKeywords = [
-    'replace', 'add', 'insert', 'delete', 'fix', 'change', 'update',
-    'write', 'create', 'remove', 'modify'
-  ]
+// LLM calls tool with parameters
+if (response.tool_calls?.[0]?.name === 'findAndReplaceWidget') {
+  const args = JSON.parse(response.tool_calls[0].function.arguments)
+  // args = { searchPattern: "user", replacement: "customer", options: {...} }
 
-  const messageLower = message.toLowerCase()
-
-  // Check for discussion signals
-  if (discussionKeywords.some(kw => messageLower.includes(kw))) {
-    return 'discussion'
+  // Don't execute immediately! Show widget instead
+  return {
+    type: 'widget',
+    widgetName: 'FindAndReplaceWidget',
+    params: args
   }
-
-  // Check for edit signals
-  if (editKeywords.some(kw => messageLower.includes(kw))) {
-    return 'edit'
-  }
-
-  // Default to discussion if ambiguous (safer)
-  return 'discussion'
-}
-
-// Use intent to decide tool availability
-const userIntent = analyzeIntent(userMessage)
-
-if (userIntent === 'discussion') {
-  // Chat mode: No document editing tools
-  response = await openai.chat.completions.create({
-    messages: [...history, userMessage],
-    tools: [],  // Pure conversation
-  })
-} else {
-  // Edit mode: Full tool access
-  response = await openai.chat.completions.create({
-    messages: [...history, userMessage],
-    tools: [replaceText, insertText, findAndReplace, ...],
-  })
 }
 ```
 
-**User Signals for Chat Mode (Discussion):**
-- "What do you think about..."
-- "Help me brainstorm..."
-- "Should I..."
-- "How can I improve..."
-- "Explain this concept..."
-- "Why..."
-- "What if..."
+**2. Widget Layer (User Interface + Preview)**
+```typescript
+// services/ai/widgets/FindAndReplaceWidget.tsx
+interface FindAndReplaceWidgetProps {
+  searchPattern: string
+  replacement: string
+  options: {
+    matchCase: boolean
+    wholeWord: boolean
+    preserveCase: boolean
+    scope: 'document' | 'selection'
+  }
+  editor: Editor
+}
 
-**User Signals for Edit Mode:**
-- "Replace..."
-- "Add a section about..."
-- "Fix the grammar..."
-- "Insert..."
-- "Change... to..."
-- "Delete..."
+export function FindAndReplaceWidget({ searchPattern, replacement, options, editor }: Props) {
+  // Deterministic algorithm finds matches
+  const matches = findMatches(editor, searchPattern, options)
 
-**No UI Changes Needed:**
-- ✅ Mode is detected automatically from user's message
-- ✅ No extra buttons or mode toggles
-- ✅ Seamless user experience
-- ✅ AI shows thinking/discussion icon (💬) in chat mode vs edit icon (✏️) in edit mode
+  return (
+    <div className="widget find-replace">
+      <h3>Replace "{searchPattern}" with "{replacement}"</h3>
+      <p>Found {matches.length} matches</p>
+
+      {/* Preview section */}
+      <div className="preview">
+        {matches.slice(0, 5).map(match => (
+          <div key={match.position}>
+            <span className="before">{match.before}</span>
+            <span className="highlight">{match.text}</span>
+            <span className="after">{match.after}</span>
+            →
+            <span className="replacement">{match.replacementPreview}</span>
+          </div>
+        ))}
+        {matches.length > 5 && <p>...and {matches.length - 5} more</p>}
+      </div>
+
+      {/* User controls */}
+      <div className="actions">
+        <button onClick={() => executeReplacements(matches)}>
+          Replace All ({matches.length})
+        </button>
+        <button onClick={() => showFullPreview()}>
+          Preview All Changes
+        </button>
+        <button onClick={() => closeWidget()}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+**3. Execution Layer (Deterministic Algorithm)**
+```typescript
+// services/ai/widgets/algorithms/findAndReplace.ts
+
+/**
+ * Deterministic find-and-replace algorithm
+ * NO LLM involvement - precise, predictable, testable
+ */
+export function findMatches(
+  editor: Editor,
+  searchPattern: string,
+  options: FindReplaceOptions
+): Match[] {
+  const text = editor.getText()
+  const matches: Match[] = []
+
+  // Build regex based on options
+  const flags = options.matchCase ? 'g' : 'gi'
+  const pattern = options.wholeWord
+    ? new RegExp(`\\b${escapeRegex(searchPattern)}\\b`, flags)
+    : new RegExp(escapeRegex(searchPattern), flags)
+
+  // Find all matches
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    matches.push({
+      position: match.index,
+      text: match[0],
+      before: text.slice(Math.max(0, match.index - 20), match.index),
+      after: text.slice(match.index + match[0].length, match.index + match[0].length + 20),
+      replacementPreview: options.preserveCase
+        ? preserveCase(match[0], replacement)
+        : replacement
+    })
+  }
+
+  return matches
+}
+
+export function executeReplacements(editor: Editor, matches: Match[], replacement: string) {
+  // Execute replacements from end to start (preserves positions)
+  const sortedMatches = [...matches].sort((a, b) => b.position - a.position)
+
+  editor.chain()
+    .focus()
+    .command(({ tr }) => {
+      sortedMatches.forEach(match => {
+        tr.delete(match.position, match.position + match.text.length)
+        tr.insert(match.position, replacement)
+      })
+      return true
+    })
+    .run()
+}
+```
+
+**Why This Architecture is Correct:**
+
+**✅ LLM Strengths (Intent Detection):**
+- "Replace all instances of customer with user" → Extract: search="customer", replace="user"
+- "Change the name to lowercase" → Extract: operation="lowercase"
+- "Fix the grammar in this paragraph" → Operation="grammar-fix", scope="paragraph"
+
+**✅ Widget Strengths (User Control):**
+- Preview before execution (no surprises)
+- User can cancel or modify
+- Interactive controls (replace all, replace one-by-one, skip)
+- Clear visual feedback
+
+**✅ Algorithm Strengths (Precise Execution):**
+- Deterministic (same input = same output)
+- Testable (unit tests for edge cases)
+- Fast (no LLM latency)
+- Reliable (no hallucinations)
+
+**❌ What We're Avoiding (Anti-Patterns):**
+- Keyword-based intent detection (brittle, fails on "replace the old text")
+- Conditional tool availability (loses context, confuses LLM)
+- Immediate execution without preview (scary, no undo)
+- LLM doing character-level operations (imprecise, error-prone)
+
+**File Structure:**
+```
+src/services/ai/
+├── widgets/
+│   ├── FindAndReplaceWidget.tsx        # UI component
+│   ├── InsertTextWidget.tsx            # UI component
+│   ├── FormatTextWidget.tsx            # UI component
+│   ├── WidgetRenderer.tsx              # Widget container
+│   └── algorithms/
+│       ├── findAndReplace.ts           # Deterministic logic
+│       ├── insertText.ts
+│       └── formatText.ts
+├── tools/
+│   ├── findAndReplaceTool.ts           # OpenAI tool definition
+│   ├── insertTextTool.ts
+│   └── formatTextTool.ts
+└── openAIClient.ts                     # Main client
+```
+
+**Integration with Chat:**
+```typescript
+// AIChatSidebar.tsx
+const handleSend = async () => {
+  const result = await executeCommand(userMessage, editor, selection, history)
+
+  if (result.type === 'widget') {
+    // Show widget instead of executing immediately
+    setActiveWidget({
+      name: result.widgetName,
+      params: result.params
+    })
+  } else if (result.type === 'message') {
+    // Regular chat message
+    addMessage(result.content)
+  }
+}
+
+// In JSX
+{activeWidget && (
+  <WidgetRenderer
+    widget={activeWidget.name}
+    params={activeWidget.params}
+    editor={editor}
+    onClose={() => setActiveWidget(null)}
+  />
+)}
+```
 
 **Benefits:**
-- ✅ Users can brainstorm without AI changing document
-- ✅ Better for outlining, planning, discussing ideas
-- ✅ Clear separation of concerns
-- ✅ Zero user friction - works automatically
+- ✅ **User Control**: Preview before execution, can cancel
+- ✅ **Extensibility**: Easy to add new widgets (table editor, image uploader, etc.)
+- ✅ **Reliability**: Deterministic algorithms, no LLM unpredictability
+- ✅ **Better UX**: Interactive components vs. black-box execution
+- ✅ **Testability**: Widget logic can be unit tested
+- ✅ **Clear Separation**: LLM for what, widgets for how
 
-**Complexity**: Low-Medium
+**Future Widget Examples:**
+- `TableEditorWidget` - Visual table manipulation
+- `ImageUploaderWidget` - Drag-and-drop image insertion
+- `LinkPreviewWidget` - Show link metadata before inserting
+- `CodeFormatterWidget` - Format code blocks with language selection
+- `ChartBuilderWidget` - Interactive chart/diagram creation
+
+**Complexity**: Medium-High (but correct architecture for long-term)
+
+**See Also**: `/docs/architecture/ADR-005-widget-plugin-architecture.md`
 
 ---
 
@@ -552,20 +730,31 @@ await workflowDB.put('workflows', workflowState)
 
 ### Phase 3 Summary (The Real Vision)
 
-| Feature | Priority | Complexity | Impact |
-|---------|----------|------------|--------|
-| A. Smart Find-and-Replace | HIGH | Medium | High |
-| B. Context-Aware Formatting | MEDIUM | Medium-High | Medium |
-| C. Conversational Mode | HIGH | Low-Medium | High |
-| D. Web Search Integration | MEDIUM | Medium | High |
-| E. Multi-Step Workflows | HIGH | High | Very High |
+| Feature | Priority | Complexity | Impact | Architecture Approach |
+|---------|----------|------------|--------|----------------------|
+| A. Smart Find-and-Replace | HIGH | Medium | High | Widget Plugin |
+| B. Context-Aware Formatting | MEDIUM | Medium-High | Medium | Widget Plugin |
+| C. Widget Plugin Architecture | **CRITICAL** | Medium-High | Very High | **Foundation for A, B, D** |
+| D. Web Search Integration | MEDIUM | Medium | High | Traditional Tool (no widget) |
+| E. Multi-Step Workflows | HIGH | High | Very High | State Management Layer |
 
-**Recommended Implementation Order:**
-1. **C. Conversational Mode** (Quick win, high impact)
-2. **A. Smart Find-and-Replace** (Fixes current limitation)
-3. **D. Web Search** (DuckDuckGo first, easy)
-4. **E. Multi-Step Workflows** (Most complex, highest value)
-5. **B. Context-Aware Formatting** (Enhancement, lower priority)
+**🎯 UPDATED Implementation Order (Widget-First Approach):**
+1. **C. Widget Plugin Architecture** (Foundation - MUST build first)
+   - Core widget system: `WidgetRenderer`, widget lifecycle
+   - First widget: `FindAndReplaceWidget` (proves architecture)
+   - Deterministic algorithm layer
+2. **A. Smart Find-and-Replace** (Now just a widget implementation)
+   - Add advanced options (case preservation, whole word, etc.)
+   - Extend algorithm for complex patterns
+3. **B. Context-Aware Formatting** (Second widget)
+   - `FormatTextWidget` with style detection
+   - Smart heading level, list formatting
+4. **D. Web Search** (Traditional tool, no widget needed)
+   - DuckDuckGo integration
+   - Results passed to LLM as context
+5. **E. Multi-Step Workflows** (Complex state management)
+   - Workflow state persistence
+   - Step tracking and resumption
 
 **Total Estimated Time**: 3-4 weeks for all Phase 3 features
 

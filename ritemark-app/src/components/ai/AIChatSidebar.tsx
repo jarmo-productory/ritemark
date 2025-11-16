@@ -4,6 +4,8 @@ import { executeCommand, type ConversationMessage } from '@/services/ai/openAICl
 import { apiKeyManager, API_KEY_CHANGED_EVENT, type APIKeyChangedEvent } from '@/services/ai/apiKeyManager'
 import { APIKeyInput } from '@/components/settings/APIKeyInput'
 import { SelectionIndicator } from '@/components/ai/SelectionIndicator'
+import { WidgetRenderer } from '@/services/ai/widgets'
+import type { ChatWidget, WidgetResult } from '@/services/ai/widgets'
 import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles } from 'lucide-react'
 import type { EditorSelection } from '@/types/editor'
 import { useAISidebar, resetAISidebarState } from '@/components/hooks/use-ai-sidebar'
@@ -23,6 +25,7 @@ interface Message {
   content: string
   timestamp: Date
   toolType?: 'replace' | 'insert' // Tool type for visual indicators
+  widget?: ChatWidget  // Interactive widget (instead of immediate execution)
 }
 
 // Shared Header Component
@@ -284,7 +287,22 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       history
     )
 
-    // Detect tool type from message content
+    // Check if result contains a widget
+    if (result.widget) {
+      // Add widget message to chat
+      const widgetMessage: Message = {
+        id: `widget-${Date.now()}`,
+        role: 'assistant',
+        content: '', // Content will be the widget UI
+        timestamp: new Date(),
+        widget: result.widget
+      }
+      setMessages(prev => [...prev, widgetMessage])
+      setIsLoading(false)
+      return
+    }
+
+    // Detect tool type from message content (legacy tools)
     let toolType: 'replace' | 'insert' | undefined
     if (result.success && result.message) {
       if (result.message.startsWith('Replaced')) {
@@ -294,7 +312,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       }
     }
 
-    // Add AI response to history
+    // Add AI response to history (text or error)
     const aiMessage: Message = {
       id: `ai-${Date.now()}`,
       role: 'assistant',
@@ -323,6 +341,37 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   const handleKeySaved = () => {
     // Event system will update hasApiKey state automatically
     // No need to manually call setHasApiKey(true)
+  }
+
+  // Handle widget completion
+  const handleWidgetComplete = async (widgetId: string, result: WidgetResult) => {
+    // Remove widget message
+    setMessages(prev => prev.filter(msg => msg.widget?.id !== widgetId))
+
+    // Add result message
+    const resultMessage: Message = {
+      id: `result-${Date.now()}`,
+      role: 'assistant',
+      content: result.message,
+      timestamp: new Date(),
+      toolType: 'replace' // FindReplace is always a replace operation
+    }
+    setMessages(prev => [...prev, resultMessage])
+  }
+
+  // Handle widget cancellation
+  const handleWidgetCancel = (widgetId: string) => {
+    // Remove widget message
+    setMessages(prev => prev.filter(msg => msg.widget?.id !== widgetId))
+
+    // Optionally add a cancellation message
+    const cancelMessage: Message = {
+      id: `cancel-${Date.now()}`,
+      role: 'assistant',
+      content: 'Operation cancelled',
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, cancelMessage])
   }
 
   // Show loading state while checking for API key
@@ -438,9 +487,6 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
             onClearChat={handleClearChat}
           />
 
-          {/* Selection Indicator - Live character-by-character preview */}
-          <SelectionIndicator selection={liveSelection} onClearSelection={onClearSelection} />
-
           {/* Messages Area - Scrolls from bottom */}
           <div className="flex-1 overflow-y-auto p-2 space-y-4">
             {messages.length === 0 && !isLoading && (
@@ -457,32 +503,44 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
                 key={message.id}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground'
-                  }`}
-                >
-                  {/* Show tool icon for assistant messages with tool type */}
-                  {message.role === 'assistant' && message.toolType && (
-                    <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
-                      {message.toolType === 'replace' && (
-                        <>
-                          <Replace className="w-3 h-3" />
-                          <span className="text-xs font-medium">Replace</span>
-                        </>
-                      )}
-                      {message.toolType === 'insert' && (
-                        <>
-                          <FilePlus className="w-3 h-3" />
-                          <span className="text-xs font-medium">Insert</span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {message.content}
-                </div>
+                {/* Widget message - render widget instead of text */}
+                {message.widget ? (
+                  <div className="w-full max-w-[90%]">
+                    <WidgetRenderer
+                      widget={message.widget}
+                      onComplete={(result) => handleWidgetComplete(message.widget!.id, result)}
+                      onCancel={() => handleWidgetCancel(message.widget!.id)}
+                    />
+                  </div>
+                ) : (
+                  /* Normal text message */
+                  <div
+                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                      message.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground'
+                    }`}
+                  >
+                    {/* Show tool icon for assistant messages with tool type */}
+                    {message.role === 'assistant' && message.toolType && (
+                      <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
+                        {message.toolType === 'replace' && (
+                          <>
+                            <Replace className="w-3 h-3" />
+                            <span className="text-xs font-medium">Replace</span>
+                          </>
+                        )}
+                        {message.toolType === 'insert' && (
+                          <>
+                            <FilePlus className="w-3 h-3" />
+                            <span className="text-xs font-medium">Insert</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {message.content}
+                  </div>
+                )}
               </div>
             ))}
 
@@ -502,6 +560,9 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
             {/* Auto-scroll anchor */}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Selection Indicator - Shows selected text context above prompt */}
+          <SelectionIndicator selection={liveSelection} onClearSelection={onClearSelection} />
 
           {/* Input Area */}
           <div className="border-t p-2">
