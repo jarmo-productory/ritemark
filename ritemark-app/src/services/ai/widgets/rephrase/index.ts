@@ -6,6 +6,7 @@
 
 import type { WidgetPlugin } from '../core/types'
 import { RephraseWidget } from './RephraseWidget'
+import type { RephraseArgs } from './types'
 
 export const rephraseWidgetPlugin: WidgetPlugin = {
   metadata: {
@@ -16,7 +17,7 @@ export const rephraseWidgetPlugin: WidgetPlugin = {
   },
   factory: (editor, args) => {
     // Don't call initialize here - WidgetRenderer will do it
-    return new RephraseWidget(editor, args)
+    return new RephraseWidget(editor, args as RephraseArgs)
   }
 }
 

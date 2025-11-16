@@ -5,7 +5,7 @@
  * Handles widget lifecycle, state management, and user interactions.
  */
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import type { ChatWidget, WidgetPreview, WidgetResult, WidgetState } from './types'
 import { RephraseWidgetUI } from '../rephrase/RephraseWidgetUI'
 import type { RephraseWidget } from '../rephrase/RephraseWidget'

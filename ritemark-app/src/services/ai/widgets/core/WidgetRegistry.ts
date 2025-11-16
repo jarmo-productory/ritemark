@@ -5,7 +5,7 @@
  * Maps OpenAI tool names to widget factories.
  */
 
-import type { WidgetPlugin, WidgetMetadata, WidgetFactory } from './types'
+import type { WidgetPlugin, WidgetMetadata } from './types'
 
 /**
  * Global widget registry

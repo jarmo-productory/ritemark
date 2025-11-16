@@ -32,7 +32,7 @@ export class RephraseWidget implements ChatWidget {
     this.args = args
   }
 
-  async initialize(args: unknown): Promise<WidgetPreview> {
+  async initialize(_args: unknown): Promise<WidgetPreview> {
     this.state = 'initializing'
 
     try {
