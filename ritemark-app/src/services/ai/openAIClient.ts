@@ -344,7 +344,6 @@ Respond conversationally (NO TOOLS) when user:
         }
       ]
 
-      console.log(`[OpenAI] Sending request with ${messages.length} messages (${conversationHistory.length} history)`)
       const startTime = Date.now()
 
       // Call OpenAI API with function calling
@@ -362,8 +361,6 @@ Respond conversationally (NO TOOLS) when user:
       )
 
       clearTimeout(timeoutId)
-      const duration = Date.now() - startTime
-      console.log(`[OpenAI] Response received in ${duration}ms`)
 
       // Extract tool call from response
       const toolCall = response.choices[0]?.message?.tool_calls?.[0]
@@ -385,7 +382,6 @@ Respond conversationally (NO TOOLS) when user:
         const functionCall = toolCall as any
         toolName = functionCall.function.name
         args = JSON.parse(functionCall.function.arguments)
-        console.log(`[OpenAI] Tool called: ${toolName}`, args)
       } catch (parseError) {
         console.error('Failed to parse tool call arguments:', parseError)
         return {
@@ -397,7 +393,6 @@ Respond conversationally (NO TOOLS) when user:
       // Check if this tool has a widget
       const widgetPlugin = widgetRegistry.findByToolName(toolName)
       if (widgetPlugin) {
-        console.log(`[OpenAI] Creating widget for tool: ${toolName}`)
         // Create widget instead of executing immediately
         const widget = widgetPlugin.factory(editor, args)
         return {

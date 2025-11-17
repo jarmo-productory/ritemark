@@ -62,9 +62,6 @@ export class ToolExecutor {
   private insertText(args: InsertTextArgs): boolean {
     let insertPosition: number
 
-    // Debug: Log the position object to see what OpenAI is sending
-    console.log('[insertText] Position object from OpenAI:', JSON.stringify(args.position))
-
     // Fallback: If no type specified, default to 'selection' (most common case)
     if (!args.position.type) {
       console.warn('[insertText] No position type specified, defaulting to "selection"')
@@ -121,7 +118,6 @@ export class ToolExecutor {
     let htmlContent: string
     try {
       htmlContent = marked(args.content, { breaks: true, gfm: true }) as string
-      console.log(`[insertText] Converted markdown to HTML (${args.content.length} → ${htmlContent.length} chars)`)
     } catch (error) {
       console.error('[insertText] Markdown conversion error:', error)
       // Fallback to raw content if markdown parsing fails
@@ -135,11 +131,7 @@ export class ToolExecutor {
       .insertContentAt(insertPosition, htmlContent)
       .run()
 
-    if (success) {
-      console.log(
-        `[insertText] Inserted ${htmlContent.length} chars at position ${insertPosition} (${args.position.type})`
-      )
-    } else {
+    if (!success) {
       console.error('[insertText] TipTap command failed')
     }
 
