@@ -72,6 +72,9 @@ export interface ChatWidget {
   // Display mode (inline in sidebar or modal dialog)
   displayMode?: WidgetDisplayMode
 
+  // Action label for execute button (e.g., "Replace All", "Apply", "Insert")
+  actionLabel?: string
+
   // Initialize widget (load preview)
   initialize(args: unknown): Promise<WidgetPreview>
 

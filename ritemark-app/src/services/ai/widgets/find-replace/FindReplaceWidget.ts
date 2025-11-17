@@ -14,6 +14,7 @@ export class FindReplaceWidget implements ChatWidget {
   // Widget metadata
   id: string
   type = 'Find & Replace'
+  actionLabel = 'Replace All'
 
   // Widget state
   state: WidgetState = 'initializing'

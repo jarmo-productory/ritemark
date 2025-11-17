@@ -5,6 +5,37 @@ All notable user-facing changes to RiteMark will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0] - 2025-11-17
+
+### ✨ Added
+- **Streaming AI Responses**: AI responses now appear progressively as they're generated, letting you see the AI's thinking in real-time instead of waiting for the full response
+- **Cancel AI Generation**: New pause button (■) lets you stop AI requests mid-generation - no more waiting for unwanted responses
+- **Smart Loading Feedback**: During AI processing, you'll see helpful status updates:
+  - First 2 seconds: "Analyzing..."
+  - After that: "Processing... 3s", "Processing... 4s..." (reduces waiting anxiety)
+- **Find & Replace Widget**: AI-powered find and replace now shows a preview before making changes, with sample matches and occurrence count
+
+### 🎨 Improved
+- Better button labels for non-technical users:
+  - "Replace All (5)" instead of "Execute (5)"
+  - "Replace All..." instead of "Executing..."
+  - Subtle pause button design (ChatGPT-style)
+- Cleaner cancellation messages: Simple "Stopped" instead of technical error messages
+- Smoother streaming with 50ms UI update buffering (prevents janky rendering)
+
+### 🐛 Fixed
+- Eliminated "Request was aborted" technical errors when cancelling AI requests
+- Fixed duplicate cancellation messages in chat
+- Improved error handling for network interruptions during streaming
+
+### 🔧 Technical
+- OpenAI streaming API integration with tool call buffering
+- AbortController for request cancellation
+- Progressive message rendering with React state management
+- Elapsed time tracking for UX feedback
+
+---
+
 ## [1.28.0] - 2025-11-15
 
 ### ✨ Added

@@ -164,10 +164,10 @@ export function WidgetRenderer({ widget, onComplete, onCancel }: WidgetRendererP
           disabled={state === 'executing' || preview?.count === 0}
         >
           {state === 'executing'
-            ? 'Executing...'
+            ? `${widget.actionLabel || 'Processing'}...`
             : preview?.count
-              ? `Execute (${preview.count})`
-              : 'Execute'}
+              ? `${widget.actionLabel || 'Apply'} (${preview.count})`
+              : widget.actionLabel || 'Apply'}
         </button>
       </div>
     </div>

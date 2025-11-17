@@ -34,6 +34,81 @@ export interface AICommandResult {
 }
 
 /**
+ * Partial tool call being buffered during streaming
+ */
+interface PartialToolCall {
+  name: string
+  arguments: string
+}
+
+/**
+ * Tool call buffer for reconstructing complete tool calls from stream chunks
+ */
+class ToolCallBuffer {
+  private calls: Map<number, PartialToolCall> = new Map()
+
+  /**
+   * Add a chunk to the buffer
+   */
+  addChunk(chunk: any): void {
+    const index = chunk.index ?? 0
+    const existing = this.calls.get(index) || { name: '', arguments: '' }
+
+    // Merge function name chunks
+    if (chunk.function?.name) {
+      existing.name += chunk.function.name
+    }
+
+    // Merge argument chunks
+    if (chunk.function?.arguments) {
+      existing.arguments += chunk.function.arguments
+    }
+
+    this.calls.set(index, existing)
+  }
+
+  /**
+   * Check if we have at least one complete tool call
+   */
+  hasToolCalls(): boolean {
+    return this.calls.size > 0
+  }
+
+  /**
+   * Get the first complete tool call (assumes only one tool call per response)
+   */
+  getFirstToolCall(): { name: string; arguments: any } | null {
+    if (this.calls.size === 0) return null
+
+    const firstCall = this.calls.get(0)
+    if (!firstCall || !firstCall.name) return null
+
+    try {
+      // Parse buffered JSON arguments
+      const parsedArgs = firstCall.arguments ? JSON.parse(firstCall.arguments) : {}
+      return {
+        name: firstCall.name,
+        arguments: parsedArgs
+      }
+    } catch (error) {
+      console.error('[ToolCallBuffer] Failed to parse tool arguments:', {
+        name: firstCall.name,
+        arguments: firstCall.arguments,
+        error
+      })
+      return null
+    }
+  }
+
+  /**
+   * Get raw buffered data for debugging
+   */
+  getRawBuffer(): Map<number, PartialToolCall> {
+    return this.calls
+  }
+}
+
+/**
  * Tool specification for rephraseText
  * AI-powered text rephrasing with modal preview
  */
@@ -207,6 +282,8 @@ export interface ConversationMessage {
  * @param editor - TipTap editor instance for document manipulation
  * @param selection - Current editor selection context (REQUIRED)
  * @param conversationHistory - Previous messages for context (optional)
+ * @param onStreamUpdate - Optional callback for progressive content updates during streaming
+ * @param abortSignal - Optional AbortSignal for cancellation support
  * @returns Result indicating success/failure with optional message
  *
  * @example
@@ -221,7 +298,9 @@ export async function executeCommand(
   prompt: string,
   editor: Editor,
   selection: EditorSelection,
-  conversationHistory: ConversationMessage[] = []
+  conversationHistory: ConversationMessage[] = [],
+  onStreamUpdate?: (content: string) => void,
+  abortSignal?: AbortSignal
 ): Promise<AICommandResult> {
   // Validate API key
   const openai = await createOpenAIClient()
@@ -329,9 +408,17 @@ Respond conversationally (NO TOOLS) when user:
 - Never create a separate formatting tool - markdown handles all styling`
     }
 
-    // Create AbortController for timeout
+    // Create AbortController for timeout and cancellation
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout (longer for complex operations)
+
+    // If external abort signal provided, forward abort to our controller
+    if (abortSignal) {
+      abortSignal.addEventListener('abort', () => {
+        console.log('[OpenAI] Request cancelled by user')
+        controller.abort()
+      })
+    }
 
     try {
       // Build messages array: system + conversation history + current prompt
@@ -346,49 +433,90 @@ Respond conversationally (NO TOOLS) when user:
 
       const startTime = Date.now()
 
-      // Call OpenAI API with function calling
+      console.log('[OpenAI] Starting streaming request...', {
+        model: 'gpt-5-nano',
+        messageCount: messages.length,
+        toolCount: 3
+      })
+
+      // Call OpenAI API with streaming enabled
       // Using gpt-5-nano (fastest model) for quick intent detection and tool selection
-      const response = await openai.chat.completions.create(
+      const stream = await openai.chat.completions.create(
         {
           model: 'gpt-5-nano',
           messages,
           tools: [rephraseTextTool, findAndReplaceAllTool, insertTextTool],
-          tool_choice: 'auto'
+          tool_choice: 'auto',
+          stream: true, // Enable streaming
+          stream_options: { include_usage: true }
         },
         {
           signal: controller.signal
         }
       )
 
+      // Process stream chunks
+      const toolCallBuffer = new ToolCallBuffer()
+      let contentBuffer = ''
+      let lastUpdateTime = Date.now()
+      const UPDATE_INTERVAL_MS = 50 // Update UI every 50ms for smooth rendering
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta
+
+        // Progressive content updates (conversational responses)
+        if (delta?.content) {
+          contentBuffer += delta.content
+
+          // Throttle UI updates to avoid janky rendering
+          const now = Date.now()
+          if (onStreamUpdate && now - lastUpdateTime >= UPDATE_INTERVAL_MS) {
+            onStreamUpdate(contentBuffer)
+            lastUpdateTime = now
+          }
+        }
+
+        // Buffer tool call chunks
+        if (delta?.tool_calls && delta.tool_calls.length > 0) {
+          for (const toolCallChunk of delta.tool_calls) {
+            toolCallBuffer.addChunk(toolCallChunk)
+          }
+        }
+      }
+
+      // Flush final content update
+      if (onStreamUpdate && contentBuffer) {
+        onStreamUpdate(contentBuffer)
+      }
+
       clearTimeout(timeoutId)
 
-      // Extract tool call from response
-      const toolCall = response.choices[0]?.message?.tool_calls?.[0]
+      const elapsedTime = Date.now() - startTime
+      console.log('[OpenAI] Stream completed', {
+        elapsedMs: elapsedTime,
+        hasToolCalls: toolCallBuffer.hasToolCalls(),
+        hasContent: contentBuffer.length > 0
+      })
+
+      // Check if we have a tool call
+      const toolCall = toolCallBuffer.getFirstToolCall()
 
       if (!toolCall) {
         // AI chose to respond conversationally (brainstorming/discussion mode)
-        const aiMessage = response.choices[0]?.message?.content
         return {
           success: true,
-          message: aiMessage || "I can help you brainstorm ideas or edit your document. What would you like to do?"
+          message: contentBuffer || "I can help you brainstorm ideas or edit your document. What would you like to do?"
         }
       }
 
-      // Parse tool call (extract tool name and arguments)
-      let toolName: string
-      let args: any
-      try {
-        // Type assertion for tool call (OpenAI SDK type issue)
-        const functionCall = toolCall as any
-        toolName = functionCall.function.name
-        args = JSON.parse(functionCall.function.arguments)
-      } catch (parseError) {
-        console.error('Failed to parse tool call arguments:', parseError)
-        return {
-          success: false,
-          error: 'Failed to parse AI response. Please try again.'
-        }
-      }
+      // Extract tool name and arguments from buffered tool call
+      const toolName = toolCall.name
+      const args = toolCall.arguments
+
+      console.log('[OpenAI] Tool call received', {
+        toolName,
+        argsPreview: JSON.stringify(args).substring(0, 100)
+      })
 
       // Check if this tool has a widget
       const widgetPlugin = widgetRegistry.findByToolName(toolName)
@@ -451,11 +579,55 @@ Respond conversationally (NO TOOLS) when user:
     } catch (error) {
       clearTimeout(timeoutId)
 
-      // Handle abort timeout
-      if (error instanceof Error && error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Request timed out after 90 seconds. The AI may be processing a complex request. Please try a simpler command or try again.'
+      // Handle abort signal (timeout or user cancellation)
+      // Check message first (most reliable for OpenAI SDK errors)
+      const errorMessage = (error as any)?.message?.toLowerCase() || ''
+      const errorName = (error as any)?.name || ''
+      const constructorName = (error as any)?.constructor?.name || ''
+
+      const isAbortError =
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('abort') ||
+        errorName === 'AbortError' ||
+        errorName === 'APIUserAbortError' ||
+        constructorName === 'APIUserAbortError'
+
+      if (isAbortError) {
+        // Check if it was user cancellation or timeout
+        if (abortSignal?.aborted) {
+          console.log('[OpenAI] Request stopped by user')
+          // Return empty error - UI will show "Stopped"
+          return {
+            success: false,
+            error: '__USER_STOPPED__'  // Special marker for UI
+          }
+        } else {
+          console.log('[OpenAI] Request timed out after 90 seconds')
+          return {
+            success: false,
+            error: 'Request timed out (90s). Please try a simpler command.'
+          }
+        }
+      }
+
+      // Handle streaming errors
+      if (error instanceof Error) {
+        // Network interruption mid-stream
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          console.error('[OpenAI] Network error during streaming:', error)
+          return {
+            success: false,
+            error: 'Connection lost during streaming. Please check your network and try again.'
+          }
+        }
+
+        // Stream parsing errors
+        if (error.message.includes('parse') || error.message.includes('JSON')) {
+          console.error('[OpenAI] Stream parsing error:', error)
+          return {
+            success: false,
+            error: 'Invalid response from AI. Please try again.'
+          }
         }
       }
 
@@ -464,6 +636,7 @@ Respond conversationally (NO TOOLS) when user:
   } catch (error: any) {
     // Handle OpenAI API errors
     if (error?.status === 401) {
+      console.error('[OpenAI] Authentication error:', error)
       return {
         success: false,
         error: 'Invalid API key. Please check your API key in Settings → General.'
@@ -471,6 +644,7 @@ Respond conversationally (NO TOOLS) when user:
     }
 
     if (error?.status === 429) {
+      console.error('[OpenAI] Rate limit error:', error)
       return {
         success: false,
         error: 'Rate limit exceeded. Please try again in a moment.'
@@ -478,6 +652,7 @@ Respond conversationally (NO TOOLS) when user:
     }
 
     if (error?.status === 500 || error?.status === 502 || error?.status === 503) {
+      console.error('[OpenAI] Service unavailable:', error)
       return {
         success: false,
         error: 'OpenAI service is temporarily unavailable. Please try again later.'
@@ -485,7 +660,11 @@ Respond conversationally (NO TOOLS) when user:
     }
 
     // Network or unknown errors
-    console.error('OpenAI API error:', error)
+    console.error('[OpenAI] Unexpected error:', {
+      message: error?.message,
+      status: error?.status,
+      error
+    })
     return {
       success: false,
       error: error?.message || 'An unexpected error occurred. Please try again.'

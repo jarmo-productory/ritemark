@@ -6,7 +6,7 @@ import { APIKeyInput } from '@/components/settings/APIKeyInput'
 import { SelectionIndicator } from '@/components/ai/SelectionIndicator'
 import { WidgetRenderer } from '@/services/ai/widgets'
 import type { ChatWidget, WidgetResult } from '@/services/ai/widgets'
-import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles } from 'lucide-react'
+import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles, Square } from 'lucide-react'
 import type { EditorSelection } from '@/types/editor'
 import { useAISidebar, resetAISidebarState } from '@/components/hooks/use-ai-sidebar'
 import { cn } from '@/lib/utils'
@@ -114,6 +114,15 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   const inputRef = useRef<HTMLInputElement>(null)
   const previousExpandedRef = useRef(false)
 
+  // Streaming state management
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingMessage, setStreamingMessage] = useState('')
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Elapsed time tracking for UX feedback
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   // API key state
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
 
@@ -174,10 +183,10 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
     resetAISidebarState()
   }, [fileId])
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or streaming updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isLoading])
+  }, [messages, isLoading, streamingMessage])
 
   // Auto-expand when text is selected (if sidebar is collapsed)
   useEffect(() => {
@@ -256,7 +265,7 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
   }, [isExpanded])
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return
+    if (!input.trim() || isLoading || isStreaming) return
 
     const userMessageContent = input.trim()
 
@@ -272,6 +281,18 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
     // Clear input immediately
     setInput('')
     setIsLoading(true)
+    setIsStreaming(true)
+    setStreamingMessage('')
+
+    // Start elapsed time tracking for UX feedback
+    setElapsedSeconds(0)
+    elapsedTimerRef.current = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1)
+    }, 1000)
+
+    // Create AbortController for cancellation
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     // Build conversation history (exclude tool metadata)
     const history: ConversationMessage[] = messages.map(msg => ({
@@ -279,50 +300,166 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
       content: msg.content
     }))
 
-    // Execute AI command with persisted selection context and conversation history
-    const result = await executeCommand(
-      userMessageContent,
-      editor,
-      persistedSelection || { text: '', from: 0, to: 0, isEmpty: true, wordCount: 0 },
-      history
-    )
+    // Buffered streaming updates (update UI every 50ms to avoid excessive re-renders)
+    let buffer = ''
+    let lastUpdate = Date.now()
+    const BUFFER_UPDATE_MS = 50
 
-    // Check if result contains a widget
-    if (result.widget) {
-      // Add widget message to chat
-      const widgetMessage: Message = {
-        id: `widget-${Date.now()}`,
+    const handleStreamUpdate = (content: string) => {
+      buffer += content
+      const now = Date.now()
+
+      if (now - lastUpdate >= BUFFER_UPDATE_MS) {
+        setStreamingMessage(prev => prev + buffer)
+        buffer = ''
+        lastUpdate = now
+      }
+    }
+
+    // Flush remaining buffer before completion
+    const flushBuffer = () => {
+      if (buffer) {
+        setStreamingMessage(prev => prev + buffer)
+        buffer = ''
+      }
+    }
+
+    try {
+      // Execute AI command with persisted selection context and conversation history
+      const result = await executeCommand(
+        userMessageContent,
+        editor,
+        persistedSelection || { text: '', from: 0, to: 0, isEmpty: true, wordCount: 0 },
+        history,
+        handleStreamUpdate,
+        controller.signal
+      )
+
+      // Flush any remaining buffered content
+      flushBuffer()
+
+      // Clear streaming state and timer
+      setIsStreaming(false)
+      setStreamingMessage('')
+      abortControllerRef.current = null
+      if (elapsedTimerRef.current) {
+        clearInterval(elapsedTimerRef.current)
+        elapsedTimerRef.current = null
+      }
+
+      // Check if result contains a widget
+      if (result.widget) {
+        // Add widget message to chat
+        const widgetMessage: Message = {
+          id: `widget-${Date.now()}`,
+          role: 'assistant',
+          content: '', // Content will be the widget UI
+          timestamp: new Date(),
+          widget: result.widget
+        }
+        setMessages(prev => [...prev, widgetMessage])
+        setIsLoading(false)
+        return
+      }
+
+      // Check if user stopped the request
+      if (!result.success && result.error === '__USER_STOPPED__') {
+        const cancelMessage: Message = {
+          id: `cancel-${Date.now()}`,
+          role: 'assistant',
+          content: 'Stopped',
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, cancelMessage])
+        setIsLoading(false)
+        return
+      }
+
+      // Detect tool type from message content (legacy tools)
+      let toolType: 'replace' | 'insert' | undefined
+      if (result.success && result.message) {
+        if (result.message.startsWith('Replaced')) {
+          toolType = 'replace'
+        } else if (result.message.startsWith('Inserted')) {
+          toolType = 'insert'
+        }
+      }
+
+      // Add AI response to history (text or error)
+      const aiMessage: Message = {
+        id: `ai-${Date.now()}`,
         role: 'assistant',
-        content: '', // Content will be the widget UI
+        content: result.success
+          ? (result.message || 'Success')
+          : (result.error || 'An error occurred'),
         timestamp: new Date(),
-        widget: result.widget
+        toolType
       }
-      setMessages(prev => [...prev, widgetMessage])
+      setMessages(prev => [...prev, aiMessage])
       setIsLoading(false)
-      return
-    }
+    } catch (error: any) {
+      // Clear timer in all error cases
+      if (elapsedTimerRef.current) {
+        clearInterval(elapsedTimerRef.current)
+        elapsedTimerRef.current = null
+      }
 
-    // Detect tool type from message content (legacy tools)
-    let toolType: 'replace' | 'insert' | undefined
-    if (result.success && result.message) {
-      if (result.message.startsWith('Replaced')) {
-        toolType = 'replace'
-      } else if (result.message.startsWith('Inserted')) {
-        toolType = 'insert'
+      // Handle cancellation (user stopped generation)
+      const isAbort = error?.name === 'AbortError' ||
+                      error?.name === 'APIUserAbortError' ||
+                      error?.message?.toLowerCase().includes('cancelled') ||
+                      error?.message?.toLowerCase().includes('aborted') ||
+                      error?.message?.includes('__USER_STOPPED__')
+
+      if (isAbort) {
+        setIsStreaming(false)
+        setStreamingMessage('')
+        abortControllerRef.current = null
+
+        // Simple, non-technical message
+        const cancelMessage: Message = {
+          id: `cancel-${Date.now()}`,
+          role: 'assistant',
+          content: 'Stopped',
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, cancelMessage])
+        setIsLoading(false)
+      } else {
+        // Handle other errors
+        setIsStreaming(false)
+        setStreamingMessage('')
+        abortControllerRef.current = null
+
+        const errorMessage: Message = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: error?.message || 'An unexpected error occurred',
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, errorMessage])
+        setIsLoading(false)
       }
     }
+  }
 
-    // Add AI response to history (text or error)
-    const aiMessage: Message = {
-      id: `ai-${Date.now()}`,
-      role: 'assistant',
-      content: result.success
-        ? (result.message || 'Success')
-        : (result.error || 'An error occurred'),
-      timestamp: new Date(),
-      toolType
+  const handleCancel = () => {
+    console.log('[AIChatSidebar] User stopped generation')
+
+    // Abort the request
+    abortControllerRef.current?.abort()
+
+    // Clear streaming state and timer
+    setIsStreaming(false)
+    setStreamingMessage('')
+    abortControllerRef.current = null
+    if (elapsedTimerRef.current) {
+      clearInterval(elapsedTimerRef.current)
+      elapsedTimerRef.current = null
     }
-    setMessages(prev => [...prev, aiMessage])
+
+    // Don't add message here - let the error handler show the user-friendly message
+    // Re-enable input
     setIsLoading(false)
   }
 
@@ -544,14 +681,27 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
               </div>
             ))}
 
-            {/* Loading State */}
-            {isLoading && (
+            {/* Streaming Message */}
+            {isStreaming && streamingMessage && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg px-4 py-2">
+                <div className="bg-muted text-foreground rounded-lg px-4 py-2 max-w-[80%]">
+                  {streamingMessage}
+                  <span className="inline-block w-1 h-4 bg-primary ml-1 animate-pulse" />
+                </div>
+              </div>
+            )}
+
+            {/* Loading State - Show when loading (even if streaming with no content) */}
+            {isLoading && !streamingMessage && (
+              <div className="flex justify-start">
+                <div className="bg-muted text-muted-foreground rounded-lg px-4 py-2">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.2s]" />
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.4s]" />
+                    <span className="ml-2 text-sm">
+                      {elapsedSeconds < 2 ? 'Analyzing...' : `Processing... ${elapsedSeconds}s`}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -575,16 +725,27 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
                 onKeyDown={handleKeyDown}
                 placeholder="Type a command... (e.g., 'replace hello with goodbye')"
                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={isLoading}
+                disabled={isLoading || isStreaming}
               />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                aria-label="Send message"
-              >
-                <SendHorizontal className="w-5 h-5" />
-              </button>
+              {isStreaming ? (
+                <button
+                  onClick={handleCancel}
+                  className="border border-border bg-background text-muted-foreground p-2 rounded-md hover:bg-muted transition-colors"
+                  aria-label="Stop generating"
+                  title="Stop generating"
+                >
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading}
+                  className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Send message"
+                >
+                  <SendHorizontal className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
