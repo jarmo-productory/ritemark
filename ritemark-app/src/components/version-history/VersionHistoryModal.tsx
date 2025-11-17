@@ -25,7 +25,7 @@ interface VersionHistoryModalProps {
   isOpen: boolean
   onClose: () => void
   fileId: string
-  accessToken: string
+  getAccessToken: () => Promise<string | null>
   onRestore?: (revisionId: string) => Promise<void>
 }
 
@@ -33,7 +33,7 @@ export function VersionHistoryModal({
   isOpen,
   onClose,
   fileId,
-  accessToken,
+  getAccessToken,
   onRestore,
 }: VersionHistoryModalProps) {
   const [revisions, setRevisions] = useState<DriveRevision[]>([])
@@ -44,7 +44,7 @@ export function VersionHistoryModal({
   const [revisionToRestore, setRevisionToRestore] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isOpen || !fileId || !accessToken) {
+    if (!isOpen || !fileId || !getAccessToken) {
       return
     }
 
@@ -55,6 +55,12 @@ export function VersionHistoryModal({
       setError(null)
 
       try {
+        // Fetch fresh access token (handles expiration/refresh automatically)
+        const accessToken = await getAccessToken()
+        if (!accessToken) {
+          throw new Error('Authentication required')
+        }
+
         const response = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}/revisions?fields=revisions(id,modifiedTime,lastModifyingUser,size)`,
           {
@@ -96,7 +102,7 @@ export function VersionHistoryModal({
     return () => {
       isMounted = false
     }
-  }, [isOpen, fileId, accessToken])
+  }, [isOpen, fileId, getAccessToken])
 
   const handleRestoreRequest = (revisionId: string) => {
     setRevisionToRestore(revisionId)
@@ -166,7 +172,7 @@ export function VersionHistoryModal({
               <RevisionPreview
                 fileId={fileId}
                 revisionId={selectedRevisionId}
-                accessToken={accessToken}
+                getAccessToken={getAccessToken}
                 onRestore={handleRestoreRequest}
               />
             </div>
