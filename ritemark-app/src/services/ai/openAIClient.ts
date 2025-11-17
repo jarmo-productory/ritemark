@@ -3,8 +3,9 @@ import { Editor } from '@tiptap/react'
 import TurndownService from 'turndown'
 import { tables } from 'turndown-plugin-gfm'
 import { ToolExecutor } from './toolExecutor'
-import { findTextInDocument } from './textSearch'
 import { apiKeyManager } from './apiKeyManager'
+import { widgetRegistry } from './widgets'
+import type { ChatWidget } from './widgets'
 import type { EditorSelection } from '@/types/editor'
 
 /**
@@ -29,30 +30,152 @@ export interface AICommandResult {
   success: boolean
   message?: string
   error?: string
+  widget?: ChatWidget  // Widget to display (instead of immediate execution)
 }
 
 /**
- * Tool specification for OpenAI function calling
- * Defines the replaceText tool that the AI can invoke
+ * Partial tool call being buffered during streaming
  */
-const replaceTextTool: OpenAI.ChatCompletionTool = {
+interface PartialToolCall {
+  name: string
+  arguments: string
+}
+
+/**
+ * Tool call buffer for reconstructing complete tool calls from stream chunks
+ */
+class ToolCallBuffer {
+  private calls: Map<number, PartialToolCall> = new Map()
+
+  /**
+   * Add a chunk to the buffer
+   */
+  addChunk(chunk: any): void {
+    const index = chunk.index ?? 0
+    const existing = this.calls.get(index) || { name: '', arguments: '' }
+
+    // Merge function name chunks
+    if (chunk.function?.name) {
+      existing.name += chunk.function.name
+    }
+
+    // Merge argument chunks
+    if (chunk.function?.arguments) {
+      existing.arguments += chunk.function.arguments
+    }
+
+    this.calls.set(index, existing)
+  }
+
+  /**
+   * Check if we have at least one complete tool call
+   */
+  hasToolCalls(): boolean {
+    return this.calls.size > 0
+  }
+
+  /**
+   * Get the first complete tool call (assumes only one tool call per response)
+   */
+  getFirstToolCall(): { name: string; arguments: any } | null {
+    if (this.calls.size === 0) return null
+
+    const firstCall = this.calls.get(0)
+    if (!firstCall || !firstCall.name) return null
+
+    try {
+      // Parse buffered JSON arguments
+      const parsedArgs = firstCall.arguments ? JSON.parse(firstCall.arguments) : {}
+      return {
+        name: firstCall.name,
+        arguments: parsedArgs
+      }
+    } catch (error) {
+      console.error('[ToolCallBuffer] Failed to parse tool arguments:', {
+        name: firstCall.name,
+        arguments: firstCall.arguments,
+        error
+      })
+      return null
+    }
+  }
+
+  /**
+   * Get raw buffered data for debugging
+   */
+  getRawBuffer(): Map<number, PartialToolCall> {
+    return this.calls
+  }
+}
+
+/**
+ * Tool specification for rephraseText
+ * AI-powered text rephrasing with modal preview
+ */
+const rephraseTextTool: OpenAI.ChatCompletionTool = {
   type: 'function',
   function: {
-    name: 'replaceText',
-    description: 'Replace a specific text string in the document with new text',
+    name: 'rephraseText',
+    description:
+      'Rephrase/rewrite the SELECTED text. Use when user wants to modify selected text (make longer, shorter, simpler, more formal, etc). ONLY works when text is selected (selection.isEmpty must be false).',
     parameters: {
       type: 'object',
       properties: {
-        searchText: {
-          type: 'string',
-          description: 'The exact text to find and replace in the document'
-        },
         newText: {
           type: 'string',
-          description: 'The replacement text that will replace the search text'
+          description: 'The rephrased/rewritten version of the selected text'
+        },
+        style: {
+          type: 'string',
+          description:
+            'Style applied to the text (e.g., "longer", "shorter", "simpler", "formal", "casual", "professional")',
+          enum: ['longer', 'shorter', 'simpler', 'formal', 'casual', 'professional']
         }
       },
-      required: ['searchText', 'newText']
+      required: ['newText']
+    }
+  }
+}
+
+/**
+ * Tool specification for findAndReplaceAll
+ * Widget-based find and replace with preview
+ */
+const findAndReplaceAllTool: OpenAI.ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'findAndReplaceAll',
+    description: 'Find ALL occurrences of text and replace with new text. Shows preview before execution. Supports case preservation and whole word matching.',
+    parameters: {
+      type: 'object',
+      properties: {
+        searchPattern: {
+          type: 'string',
+          description: 'Text to search for (will find ALL occurrences)'
+        },
+        replacement: {
+          type: 'string',
+          description: 'Replacement text'
+        },
+        options: {
+          type: 'object',
+          properties: {
+            matchCase: {
+              type: 'boolean',
+              description: 'Case-sensitive search (default: false)'
+            },
+            wholeWord: {
+              type: 'boolean',
+              description: 'Match whole words only (default: false)'
+            },
+            preserveCase: {
+              type: 'boolean',
+              description: 'Preserve original case (User→Customer, user→customer, USER→CUSTOMER) (default: true)'
+            }
+          }
+        }
+      },
+      required: ['searchPattern', 'replacement']
     }
   }
 }
@@ -159,6 +282,8 @@ export interface ConversationMessage {
  * @param editor - TipTap editor instance for document manipulation
  * @param selection - Current editor selection context (REQUIRED)
  * @param conversationHistory - Previous messages for context (optional)
+ * @param onStreamUpdate - Optional callback for progressive content updates during streaming
+ * @param abortSignal - Optional AbortSignal for cancellation support
  * @returns Result indicating success/failure with optional message
  *
  * @example
@@ -173,7 +298,9 @@ export async function executeCommand(
   prompt: string,
   editor: Editor,
   selection: EditorSelection,
-  conversationHistory: ConversationMessage[] = []
+  conversationHistory: ConversationMessage[] = [],
+  onStreamUpdate?: (content: string) => void,
+  abortSignal?: AbortSignal
 ): Promise<AICommandResult> {
   // Validate API key
   const openai = await createOpenAIClient()
@@ -232,29 +359,66 @@ ${plainText}
 - Document may contain non-English text (Estonian, Swedish, German, etc.)
 
 **Available Tools**:
-1. **replaceText** - Replace existing text with new text (for fixing, improving, updating)
-   - When searching: Use EXACT RENDERED TEXT (no markdown syntax)
-   - When replacing: Use plain text or markdown as needed
+1. **rephraseText** - Rephrase/rewrite SELECTED text (modal widget with preview)
+   - ONLY use when text is SELECTED (selection.isEmpty === false)
+   - Use for: "make this longer", "simplify this", "rewrite formally", "make it shorter"
+   - AI generates new version, shows original vs new in modal preview
+   - User confirms replacement
 
-2. **insertText** - Add NEW content at a position (for adding, writing new sections, expanding)
+2. **findAndReplaceAll** - Find and replace ALL occurrences of text (widget-based with preview)
+   - Shows preview with count and samples before execution
+   - User confirms replacement in UI widget
+   - Supports case-sensitive search, whole word matching, case preservation
+   - When searching: Use EXACT RENDERED TEXT (no markdown syntax)
+
+3. **insertText** - Add NEW content at a position (for adding, writing new sections, expanding)
    - ALWAYS use markdown formatting in content parameter
    - Examples: "## Heading", "**bold text**", "*italic*", "- list item", "> quote"
    - The editor automatically renders markdown - you don't need a separate formatting tool
 
-**Your Task**: Choose the appropriate tool based on user intent:
-- Use **replaceText** when modifying existing text (e.g., "replace X with Y", "fix this", "improve that")
+**CRITICAL - When to Use Tools vs Conversational Response**:
+
+Use tools ONLY when user explicitly wants to EDIT the document:
+- "replace X with Y" → findAndReplaceAll
+- "make this longer/shorter/simpler" (with selection) → rephraseText
+- "add examples after this" → insertText
+- "write a conclusion" → insertText
+- "change all mentions of X to Y" → findAndReplaceAll
+
+Respond conversationally (NO TOOLS) when user:
+- Asks questions: "what does X mean?", "explain Y", "mida see tähendab?"
+- Wants information: "tell me about...", "what is...", "mis on..."
+- Brainstorming: "give me ideas for...", "suggest topics..."
+- Discussion: "what do you think about...", "how can I improve..."
+- Requests advice: "should I...", "is this correct..."
+
+**If unclear whether user wants to edit or discuss, PREFER CONVERSATIONAL RESPONSE.**
+
+**Tool Selection Guide**:
+- Use **rephraseText** when user wants to MODIFY SELECTED text (e.g., "make this longer", "simplify", "rewrite more formally")
+  - CRITICAL: Check if selection.isEmpty === false BEFORE using this tool
+  - Generate the rephrased version and include it in newText parameter
+- Use **findAndReplaceAll** when user wants to replace text globally (e.g., "replace X with Y", "change all X to Y", "asenda X Y-ga")
 - Use **insertText** when adding new content (e.g., "add examples", "write conclusion", "insert summary")
 - For insertText: ALWAYS include markdown formatting (headings, bold, lists, etc.)
 
 **Critical Rules**:
-- replaceText searchText: Use EXACT RENDERED TEXT from document (no markdown)
+- findAndReplaceAll searchPattern: Use EXACT RENDERED TEXT from document (no markdown)
 - insertText content: USE MARKDOWN FORMATTING (## headings, **bold**, - lists)
 - Never create a separate formatting tool - markdown handles all styling`
     }
 
-    // Create AbortController for timeout
+    // Create AbortController for timeout and cancellation
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout (longer for complex operations)
+
+    // If external abort signal provided, forward abort to our controller
+    if (abortSignal) {
+      abortSignal.addEventListener('abort', () => {
+        console.log('[OpenAI] Request cancelled by user')
+        controller.abort()
+      })
+    }
 
     try {
       // Build messages array: system + conversation history + current prompt
@@ -267,99 +431,106 @@ ${plainText}
         }
       ]
 
-      console.log(`[OpenAI] Sending request with ${messages.length} messages (${conversationHistory.length} history)`)
       const startTime = Date.now()
 
-      // Call OpenAI API with function calling
-      const response = await openai.chat.completions.create(
+      console.log('[OpenAI] Starting streaming request...', {
+        model: 'gpt-5-nano',
+        messageCount: messages.length,
+        toolCount: 3
+      })
+
+      // Call OpenAI API with streaming enabled
+      // Using gpt-5-nano (fastest model) for quick intent detection and tool selection
+      const stream = await openai.chat.completions.create(
         {
-          model: 'gpt-5-mini',
+          model: 'gpt-5-nano',
           messages,
-          tools: [replaceTextTool, insertTextTool],
-          tool_choice: 'auto'
+          tools: [rephraseTextTool, findAndReplaceAllTool, insertTextTool],
+          tool_choice: 'auto',
+          stream: true, // Enable streaming
+          stream_options: { include_usage: true }
         },
         {
           signal: controller.signal
         }
       )
 
-      clearTimeout(timeoutId)
-      const duration = Date.now() - startTime
-      console.log(`[OpenAI] Response received in ${duration}ms`)
+      // Process stream chunks
+      const toolCallBuffer = new ToolCallBuffer()
+      let contentBuffer = ''
+      let lastUpdateTime = Date.now()
+      const UPDATE_INTERVAL_MS = 50 // Update UI every 50ms for smooth rendering
 
-      // Extract tool call from response
-      const toolCall = response.choices[0]?.message?.tool_calls?.[0]
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta
+
+        // Progressive content updates (conversational responses)
+        if (delta?.content) {
+          contentBuffer += delta.content
+
+          // Throttle UI updates to avoid janky rendering
+          const now = Date.now()
+          if (onStreamUpdate && now - lastUpdateTime >= UPDATE_INTERVAL_MS) {
+            onStreamUpdate(contentBuffer)
+            lastUpdateTime = now
+          }
+        }
+
+        // Buffer tool call chunks
+        if (delta?.tool_calls && delta.tool_calls.length > 0) {
+          for (const toolCallChunk of delta.tool_calls) {
+            toolCallBuffer.addChunk(toolCallChunk)
+          }
+        }
+      }
+
+      // Flush final content update
+      if (onStreamUpdate && contentBuffer) {
+        onStreamUpdate(contentBuffer)
+      }
+
+      clearTimeout(timeoutId)
+
+      const elapsedTime = Date.now() - startTime
+      console.log('[OpenAI] Stream completed', {
+        elapsedMs: elapsedTime,
+        hasToolCalls: toolCallBuffer.hasToolCalls(),
+        hasContent: contentBuffer.length > 0
+      })
+
+      // Check if we have a tool call
+      const toolCall = toolCallBuffer.getFirstToolCall()
 
       if (!toolCall) {
-        // AI didn't understand the command or didn't call a tool
-        const aiMessage = response.choices[0]?.message?.content
+        // AI chose to respond conversationally (brainstorming/discussion mode)
         return {
-          success: false,
-          error: aiMessage || "I didn't understand that command. Try something like 'replace hello with goodbye'."
+          success: true,
+          message: contentBuffer || "I can help you brainstorm ideas or edit your document. What would you like to do?"
         }
       }
 
-      // Parse tool call (extract tool name and arguments)
-      let toolName: string
-      let args: any
-      try {
-        // Type assertion for tool call (OpenAI SDK type issue)
-        const functionCall = toolCall as any
-        toolName = functionCall.function.name
-        args = JSON.parse(functionCall.function.arguments)
-      } catch (parseError) {
-        console.error('Failed to parse tool call arguments:', parseError)
+      // Extract tool name and arguments from buffered tool call
+      const toolName = toolCall.name
+      const args = toolCall.arguments
+
+      console.log('[OpenAI] Tool call received', {
+        toolName,
+        argsPreview: JSON.stringify(args).substring(0, 100)
+      })
+
+      // Check if this tool has a widget
+      const widgetPlugin = widgetRegistry.findByToolName(toolName)
+      if (widgetPlugin) {
+        // Create widget instead of executing immediately
+        const widget = widgetPlugin.factory(editor, args)
         return {
-          success: false,
-          error: 'Failed to parse AI response. Please try again.'
+          success: true,
+          widget
         }
       }
 
-      // Execute ToolExecutor
+      // Execute ToolExecutor (legacy tools without widgets)
       const executor = new ToolExecutor(editor, selection)
-
-      // Handle replaceText tool
-      if (toolName === 'replaceText') {
-        // Validate replaceText arguments
-        if (!args.searchText || !args.newText) {
-          return {
-            success: false,
-            error: 'Invalid tool arguments: missing searchText or newText'
-          }
-        }
-
-        // Find text in document using text search utility
-        const position = findTextInDocument(editor, args.searchText)
-
-        if (!position) {
-          return {
-            success: false,
-            error: `Text "${args.searchText}" not found in document`
-          }
-        }
-
-        // Execute replaceText via ToolExecutor
-        const success = executor.execute({
-          tool: 'replaceText',
-          arguments: {
-            from: position.from,
-            to: position.to,
-            newText: args.newText
-          }
-        })
-
-        if (success) {
-          return {
-            success: true,
-            message: `Replaced "${args.searchText}" with "${args.newText}"`
-          }
-        } else {
-          return {
-            success: false,
-            error: `Failed to replace text. Make sure "${args.searchText}" exists in the document.`
-          }
-        }
-      }
 
       // Handle insertText tool
       if (toolName === 'insertText') {
@@ -408,11 +579,55 @@ ${plainText}
     } catch (error) {
       clearTimeout(timeoutId)
 
-      // Handle abort timeout
-      if (error instanceof Error && error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Request timed out after 90 seconds. The AI may be processing a complex request. Please try a simpler command or try again.'
+      // Handle abort signal (timeout or user cancellation)
+      // Check message first (most reliable for OpenAI SDK errors)
+      const errorMessage = (error as any)?.message?.toLowerCase() || ''
+      const errorName = (error as any)?.name || ''
+      const constructorName = (error as any)?.constructor?.name || ''
+
+      const isAbortError =
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('abort') ||
+        errorName === 'AbortError' ||
+        errorName === 'APIUserAbortError' ||
+        constructorName === 'APIUserAbortError'
+
+      if (isAbortError) {
+        // Check if it was user cancellation or timeout
+        if (abortSignal?.aborted) {
+          console.log('[OpenAI] Request stopped by user')
+          // Return empty error - UI will show "Stopped"
+          return {
+            success: false,
+            error: '__USER_STOPPED__'  // Special marker for UI
+          }
+        } else {
+          console.log('[OpenAI] Request timed out after 90 seconds')
+          return {
+            success: false,
+            error: 'Request timed out (90s). Please try a simpler command.'
+          }
+        }
+      }
+
+      // Handle streaming errors
+      if (error instanceof Error) {
+        // Network interruption mid-stream
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          console.error('[OpenAI] Network error during streaming:', error)
+          return {
+            success: false,
+            error: 'Connection lost during streaming. Please check your network and try again.'
+          }
+        }
+
+        // Stream parsing errors
+        if (error.message.includes('parse') || error.message.includes('JSON')) {
+          console.error('[OpenAI] Stream parsing error:', error)
+          return {
+            success: false,
+            error: 'Invalid response from AI. Please try again.'
+          }
         }
       }
 
@@ -421,6 +636,7 @@ ${plainText}
   } catch (error: any) {
     // Handle OpenAI API errors
     if (error?.status === 401) {
+      console.error('[OpenAI] Authentication error:', error)
       return {
         success: false,
         error: 'Invalid API key. Please check your API key in Settings → General.'
@@ -428,6 +644,7 @@ ${plainText}
     }
 
     if (error?.status === 429) {
+      console.error('[OpenAI] Rate limit error:', error)
       return {
         success: false,
         error: 'Rate limit exceeded. Please try again in a moment.'
@@ -435,6 +652,7 @@ ${plainText}
     }
 
     if (error?.status === 500 || error?.status === 502 || error?.status === 503) {
+      console.error('[OpenAI] Service unavailable:', error)
       return {
         success: false,
         error: 'OpenAI service is temporarily unavailable. Please try again later.'
@@ -442,7 +660,11 @@ ${plainText}
     }
 
     // Network or unknown errors
-    console.error('OpenAI API error:', error)
+    console.error('[OpenAI] Unexpected error:', {
+      message: error?.message,
+      status: error?.status,
+      error
+    })
     return {
       success: false,
       error: error?.message || 'An unexpected error occurred. Please try again.'
@@ -465,7 +687,7 @@ export async function testConnection(): Promise<AICommandResult> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
+      model: 'gpt-5-nano',
       messages: [{ role: 'user', content: 'Hello' }],
       max_tokens: 5
     })

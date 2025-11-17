@@ -86,13 +86,17 @@ function App() {
 
   // Clear persisted selection
   const handleClearSelection = useCallback(() => {
-    setLastSelection({
+    // Clear both current and persisted selection
+    const emptySelection = {
       text: '',
       from: 0,
       to: 0,
       isEmpty: true,
       wordCount: 0
-    })
+    }
+
+    setCurrentSelection(emptySelection)
+    setLastSelection(emptySelection)
 
     // Clear persisted highlight in editor
     if (editor) {

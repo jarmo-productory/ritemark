@@ -7,14 +7,14 @@ import { cn } from '@/lib/utils'
 interface RevisionPreviewProps {
   fileId: string
   revisionId: string | null
-  accessToken: string
+  getAccessToken: () => Promise<string | null>
   onRestore: (revisionId: string) => void
 }
 
 export function RevisionPreview({
   fileId,
   revisionId,
-  accessToken,
+  getAccessToken,
   onRestore,
 }: RevisionPreviewProps) {
   const [content, setContent] = useState<string | null>(null)
@@ -22,7 +22,7 @@ export function RevisionPreview({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!revisionId || !accessToken) {
+    if (!revisionId || !getAccessToken) {
       setContent(null)
       setError(null)
       return
@@ -35,6 +35,12 @@ export function RevisionPreview({
       setError(null)
 
       try {
+        // Fetch fresh access token (handles expiration/refresh automatically)
+        const accessToken = await getAccessToken()
+        if (!accessToken) {
+          throw new Error('Authentication required')
+        }
+
         const response = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}/revisions/${revisionId}?alt=media`,
           {
@@ -69,7 +75,7 @@ export function RevisionPreview({
     return () => {
       isMounted = false
     }
-  }, [fileId, revisionId, accessToken])
+  }, [fileId, revisionId, getAccessToken])
 
   if (!revisionId) {
     return (

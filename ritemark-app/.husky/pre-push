@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running type-check before push..."
+npm run type-check || {
+  echo "❌ Type-check failed! Fix TypeScript errors before pushing."
+  exit 1
+}
+
+echo "✅ Type-check passed!"

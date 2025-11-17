@@ -62,6 +62,12 @@ export class ToolExecutor {
   private insertText(args: InsertTextArgs): boolean {
     let insertPosition: number
 
+    // Fallback: If no type specified, default to 'selection' (most common case)
+    if (!args.position.type) {
+      console.warn('[insertText] No position type specified, defaulting to "selection"')
+      args.position = { type: 'selection' }
+    }
+
     // Resolve position strategy to TipTap position
     switch (args.position.type) {
       case 'absolute':
@@ -95,7 +101,7 @@ export class ToolExecutor {
       }
 
       default:
-        console.error('[insertText] Unknown position type')
+        console.error(`[insertText] Unknown position type: "${(args.position as any).type}"`, args.position)
         return false
     }
 
@@ -112,7 +118,6 @@ export class ToolExecutor {
     let htmlContent: string
     try {
       htmlContent = marked(args.content, { breaks: true, gfm: true }) as string
-      console.log(`[insertText] Converted markdown to HTML (${args.content.length} → ${htmlContent.length} chars)`)
     } catch (error) {
       console.error('[insertText] Markdown conversion error:', error)
       // Fallback to raw content if markdown parsing fails
@@ -126,11 +131,7 @@ export class ToolExecutor {
       .insertContentAt(insertPosition, htmlContent)
       .run()
 
-    if (success) {
-      console.log(
-        `[insertText] Inserted ${htmlContent.length} chars at position ${insertPosition} (${args.position.type})`
-      )
-    } else {
+    if (!success) {
       console.error('[insertText] TipTap command failed')
     }
 

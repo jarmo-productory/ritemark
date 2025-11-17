@@ -29,9 +29,15 @@ claude-flow.bat
 claude-flow.ps1
 
 # Internal documentation (not for public consumption)
-# Only docs/user-guide/ should be public
+# Public documentation
+!docs/user-guide/
+!docs/sprints/
+!docs/roadmap.md
+# Keep other docs private
 docs/*
 !docs/user-guide/
+!docs/sprints/
+!docs/roadmap.md
 .env
 node_modules/
 .env.local

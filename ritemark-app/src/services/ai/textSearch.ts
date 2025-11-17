@@ -64,7 +64,6 @@ export function findTextInDocument(
   let textOffset = lowerPlainText.indexOf(lowerSearchText)
 
   if (textOffset !== -1) {
-    console.log('[textSearch] Found with exact match')
     const docFrom = textOffsetToDocPosition(textOffset)
     const docTo = docFrom + searchText.length
     return { from: docFrom, to: docTo }
@@ -76,7 +75,6 @@ export function findTextInDocument(
   textOffset = normalizedDoc.indexOf(normalizedSearch)
 
   if (textOffset !== -1) {
-    console.log('[textSearch] Found with markdown normalization (removed escapes)')
     const docFrom = textOffsetToDocPosition(textOffset)
     const docTo = docFrom + searchText.length
     return { from: docFrom, to: docTo }
@@ -88,7 +86,6 @@ export function findTextInDocument(
   textOffset = unicodeDoc.indexOf(unicodeSearch)
 
   if (textOffset !== -1) {
-    console.log('[textSearch] Found with Unicode normalization (special chars)')
     const docFrom = textOffsetToDocPosition(textOffset)
     const docTo = docFrom + searchText.length
     return { from: docFrom, to: docTo }

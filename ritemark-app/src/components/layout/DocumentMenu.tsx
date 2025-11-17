@@ -39,22 +39,7 @@ interface DocumentMenuProps {
 
 export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, editor, documentTitle, authorName, onShare, isSharing = false }: DocumentMenuProps) {
   const [isModalOpen, setIsModalOpen] = React.useState(false)
-  const [accessToken, setAccessToken] = React.useState<string | null>(null)
   const { getAccessToken } = useAuth()
-
-  // Fetch access token when modal opens
-  React.useEffect(() => {
-    if (isModalOpen && getAccessToken) {
-      getAccessToken().then(token => {
-        setAccessToken(token)
-        if (!token) {
-          toast.error('Authentication required', {
-            description: 'Please sign in to view version history'
-          })
-        }
-      })
-    }
-  }, [isModalOpen, getAccessToken])
 
   const handleVersionHistory = React.useCallback(() => {
     if (!fileId) {
@@ -160,14 +145,23 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
 
   // Handle restore operation
   const handleRestore = React.useCallback(async (revisionId: string) => {
-    if (!fileId || !accessToken) {
+    if (!fileId || !getAccessToken) {
       toast.error('Unable to restore', {
-        description: 'Missing file ID or authentication token'
+        description: 'Missing file ID or authentication'
       })
       return
     }
 
     try {
+      // Fetch fresh access token
+      const accessToken = await getAccessToken()
+      if (!accessToken) {
+        toast.error('Authentication required', {
+          description: 'Please sign in to restore versions'
+        })
+        return
+      }
+
       const result = await restoreRevision({
         fileId,
         revisionId,
@@ -201,7 +195,7 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       })
     }
-  }, [fileId, accessToken])
+  }, [fileId, getAccessToken, onReloadFile])
 
   // Keyboard shortcut: Cmd/Ctrl+Shift+H for Version History
   React.useEffect(() => {
@@ -299,12 +293,12 @@ export function DocumentMenu({ fileId, disabled = false, onReloadFile, content, 
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {fileId && accessToken && (
+      {fileId && getAccessToken && (
         <VersionHistoryModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           fileId={fileId}
-          accessToken={accessToken}
+          getAccessToken={getAccessToken}
           onRestore={handleRestore}
         />
       )}
