@@ -62,6 +62,15 @@ export class ToolExecutor {
   private insertText(args: InsertTextArgs): boolean {
     let insertPosition: number
 
+    // Debug: Log the position object to see what OpenAI is sending
+    console.log('[insertText] Position object from OpenAI:', JSON.stringify(args.position))
+
+    // Fallback: If no type specified, default to 'selection' (most common case)
+    if (!args.position.type) {
+      console.warn('[insertText] No position type specified, defaulting to "selection"')
+      args.position = { type: 'selection' }
+    }
+
     // Resolve position strategy to TipTap position
     switch (args.position.type) {
       case 'absolute':
@@ -95,7 +104,7 @@ export class ToolExecutor {
       }
 
       default:
-        console.error('[insertText] Unknown position type')
+        console.error(`[insertText] Unknown position type: "${(args.position as any).type}"`, args.position)
         return false
     }
 
