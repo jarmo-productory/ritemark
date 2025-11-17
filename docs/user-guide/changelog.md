@@ -4,6 +4,53 @@ All notable changes to RiteMark are documented here. Latest releases appear firs
 
 ---
 
+## November 17, 2025 - AI That Works With You, Not At You
+
+**Faster Editing, Total Control** ⚡
+
+Waiting for AI to finish feels like watching paint dry. Now you see changes as they happen, and stop unwanted edits instantly.
+
+### What's New
+
+**Find and Replace Anything**
+- **Fix mistakes everywhere** - Change "color" to "colour" across your entire document in one command
+- **Bulk updates made easy** - "Replace all mentions of 2024 with 2025"
+- **Smart replacements** - AI understands context (won't replace partial words)
+- **Save hours of manual editing** - No more searching for every instance yourself
+
+**Rephrase On Command**
+- **Change your tone** - "Make this more professional" or "simplify for beginners"
+- **Multiple versions** - Ask AI to try different approaches until it's perfect
+- **Style matching** - "Make this sound like my introduction paragraph"
+- **Your voice, enhanced** - AI adapts to your writing style, not the other way around
+
+**See AI Think (No More Waiting)**
+- **Watch changes appear** - Text flows in as AI writes, not all at once
+- **No waiting anxiety** - See progress in real-time instead of wondering "is it working?"
+- **Stop unwanted responses** - Hit pause if AI goes off track
+- **Stay in control** - You decide what stays and what gets stopped
+
+### How to Use It
+
+**Find and Replace:**
+1. Select text or click anywhere in your document
+2. Tell AI: "replace [this] with [that]" or "change all instances of..."
+3. Watch AI find and update every match
+
+**Rephrase:**
+1. Select the text you want to rewrite
+2. Ask AI: "make this more casual" or "use simpler words"
+3. AI rewrites it while keeping your meaning intact
+
+**Cancel Anytime:**
+- Pause button appears when AI is working
+- Click to stop mid-response
+- Undo if you change your mind
+
+**Technical Note:** Streaming uses progressive rendering for faster perceived performance. All processing still happens in your browser - we never see your documents.
+
+---
+
 ## November 4, 2025 (Later) - AI Gets Smarter + Better Layout
 
 **More Ways to Write, Cleaner Interface** ✨
