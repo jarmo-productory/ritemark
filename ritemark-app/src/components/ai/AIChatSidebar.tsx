@@ -6,10 +6,11 @@ import { APIKeyInput } from '@/components/settings/APIKeyInput'
 import { SelectionIndicator } from '@/components/ai/SelectionIndicator'
 import { WidgetRenderer } from '@/services/ai/widgets'
 import type { ChatWidget, WidgetResult } from '@/services/ai/widgets'
-import { SendHorizontal, RotateCcw, Key, Replace, FilePlus, ChevronRight, BrainCircuit, Sparkles, Square } from 'lucide-react'
+import { SendHorizontal, RotateCcw, Replace, FilePlus, ChevronRight, Sparkles, Square } from 'lucide-react'
 import type { EditorSelection } from '@/types/editor'
 import { useAISidebar, resetAISidebarState } from '@/components/hooks/use-ai-sidebar'
 import { cn } from '@/lib/utils'
+import { AILogoIcon } from '@/components/AILogoIcon'
 
 interface AIChatSidebarProps {
   editor: Editor
@@ -93,8 +94,8 @@ const CollapsedTab = ({
     }
     title="Expand AI Assistant (⌃⇧A)"
   >
-    <div className="w-6 h-6 text-primary">
-      {hasApiKey ? <BrainCircuit /> : <Key />}
+    <div className="text-primary">
+      <AILogoIcon size={24} />
     </div>
 
     {/* Selection Indicator (when text is selected) */}
@@ -523,8 +524,8 @@ export function AIChatSidebar({ editor, fileId, liveSelection, persistedSelectio
           <div className="text-muted-foreground text-sm">Loading...</div>
         ) : (
           <div className="w-full h-full flex flex-col items-center py-3 gap-4">
-            <div className="w-6 h-6 text-primary animate-pulse">
-              <BrainCircuit />
+            <div className="text-primary animate-pulse">
+              <AILogoIcon size={24} />
             </div>
           </div>
         )}
