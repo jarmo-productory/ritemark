@@ -110,59 +110,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Feature details content
   const featureDetails = {
-    wysiwyg: {
-      title: 'Visual Markdown Editing',
-      description: 'Format text visually, export clean markdown. Built for AI workflows, documentation, and content creation. Start writing in 30 seconds—no syntax training required.',
+    ai: {
+      title: 'AI-Powered Writing Assistant',
+      description: 'Fix mistakes everywhere, rephrase paragraphs, improve clarity—all with natural language commands. Watch AI responses stream in real-time. Stop generation anytime. Your OpenAI API key stays private in your browser.',
       benefits: [
-        'Format with toolbar buttons—bold, italic, headings, lists, tables',
-        'Drag images directly into your document—instant upload',
-        'See final output as you type—what you see is what you export',
-        'Master keyboard shortcuts as you grow—Cmd+B, Cmd+K, slash commands',
-        'Zero barriers—if you can format text, you can create markdown'
+        'Find and replace anywhere—fix "color" to "colour" across entire document with one command',
+        'Rephrase on demand—"make this professional" or "simplify for beginners"',
+        'Real-time streaming—see AI think, watch changes appear word by word',
+        'Cancel anytime—stop unwanted responses mid-generation with one click',
+        'Bring your own key (BYOK)—your OpenAI API key never leaves your browser, maximum privacy'
+      ]
+    },
+    wysiwyg: {
+      title: 'Never See Markdown Until You Export',
+      description: 'True WYSIWYG editing—format with buttons and shortcuts, see final output as you type. No split-screen preview, no syntax memorization. Export clean markdown only when you're ready—for ChatGPT custom instructions, Claude Code agents, or GitHub READMEs.',
+      benefits: [
+        'Format with toolbar buttons—bold, italic, headings, lists, tables, code blocks',
+        'Drag images directly into documents—instant upload and embedding',
+        'See exactly what you\'ll get—true WYSIWYG, no edit/preview switching',
+        'Master keyboard shortcuts as you grow—Cmd+B for bold, Cmd+K for links, slash commands',
+        'Zero learning curve—if you can format text in Google Docs, you can create markdown'
       ]
     },
     drive: {
       title: 'Your Files, Your Control',
-      description: 'Auto-saves to YOUR Google Drive every 3 seconds. We can\'t read your documents—they live in your Drive, encrypted and private. Revoke access anytime from Google.',
+      description: 'Auto-saves to YOUR Google Drive every 3 seconds—not our servers. We can\'t read your documents. Access anywhere, share with your team, revoke our access anytime. You own your data, period.',
       benefits: [
-        'Saves every 3 seconds—never lose work from crashes or connection drops',
-        'Access from any device—phone, tablet, desktop, all synced via Drive',
-        'Uses your Google Drive storage—15GB free, or upgrade to Google One for more',
-        'Complete version history—restore any past version with one click',
-        'Works offline—edits sync automatically when connection returns'
+        'Saves every 3 seconds—never lose work from crashes, browser closures, or connection drops',
+        'Access from any device—phone, tablet, desktop, all synced automatically via your Drive',
+        'Uses your Google Drive storage—15GB free tier, or upgrade to Google One for more space',
+        'Complete version history—restore any past version with one click, experiment fearlessly',
+        'Works offline—edits sync automatically when your connection returns, seamless workflow'
       ]
     },
     export: {
-      title: 'Export to AI Tools & GitHub',
-      description: 'One-click markdown export optimized for ChatGPT, Claude, GitHub, and developer workflows. Standard-compliant output—paste directly, no format conversion required.',
+      title: 'Optimized for AI Workflows',
+      description: 'One-click markdown copy optimized for ChatGPT custom instructions, Claude Code agent configs, and GitHub documentation. Standard-compliant output—paste directly, zero conversion hassle.',
       benefits: [
-        'Copy markdown to clipboard—paste into ChatGPT, Claude, or Gemini instantly',
-        'Download .md files—perfect for GitHub READMEs, documentation, and wikis',
-        'Export to Word (.docx)—share with non-technical stakeholders',
-        'CommonMark standard—works everywhere markdown works',
-        'Preserves all formatting—headings, bold, links, images, tables, code blocks'
-      ]
-    },
-    collab: {
-      title: 'Work Together',
-      description: 'Collaborate in real-time with your team—just like Google Docs. See edits instantly, add comments, and co-author documents together.',
-      benefits: [
-        'See teammates\' cursors and selections in real-time',
-        'Add comments and suggestions',
-        'Conflict-free editing—changes never clash',
-        'Share via Google Drive link',
-        'Permission controls (view, comment, edit)'
-      ]
-    },
-    mobile: {
-      title: 'Edit From Any Device',
-      description: 'Start on your phone during commute, finish on desktop at work. All settings and documents sync automatically via Google Drive. No app installation—works in any browser.',
-      benefits: [
-        'Mobile-optimized interface—thumb-friendly toolbar, responsive layout',
-        'Touch gestures—swipe to format, long-press for context menu',
-        'Cross-device sync—preferences, recent files, and editor settings follow you',
-        'Browser-based—no App Store downloads, updates instant and automatic',
-        'Add to home screen—launches like native app, full-screen editing'
+        'Copy for ChatGPT—paste directly into custom instructions or knowledge base files',
+        'Export to Claude Code—perfect for agent configurations and project documentation',
+        'Download .md files—ready for GitHub READMEs, wikis, and version control',
+        'Save as Word (.docx)—share polished documents with non-technical stakeholders',
+        'CommonMark compliant—preserves all formatting (headings, bold, links, images, tables, code)'
       ]
     }
   };

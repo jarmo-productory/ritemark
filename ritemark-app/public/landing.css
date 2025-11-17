@@ -690,9 +690,6 @@ body {
 }
 
 .feature-badge {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
   background: var(--warning-600);
   color: white;
   padding: 4px 12px;
@@ -1733,7 +1730,11 @@ summary:focus {
 
 @media (max-width: 768px) {
   .changelog-item {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-areas:
+      "meta badge"
+      "content content";
+    grid-template-columns: 1fr auto;
     gap: var(--space-4);
   }
 
@@ -1741,20 +1742,6 @@ summary:focus {
     flex-direction: row;
     justify-content: flex-start;
     width: 100%;
-  }
-
-  .changelog-badge {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: end;
-  }
-
-  .changelog-item {
-    display: grid;
-    grid-template-areas:
-      "meta badge"
-      "content content";
-    grid-template-columns: 1fr auto;
   }
 
   .changelog-meta {
