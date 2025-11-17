@@ -22,18 +22,13 @@ class WidgetRegistry {
       console.warn(`[WidgetRegistry] Plugin '${plugin.metadata.id}' already registered, overwriting`)
     }
     this.plugins.set(plugin.metadata.id, plugin)
-    console.log(`[WidgetRegistry] Registered plugin: ${plugin.metadata.id} (tool: ${plugin.metadata.toolName})`)
   }
 
   /**
    * Unregister a widget plugin
    */
   unregister(id: string): boolean {
-    const result = this.plugins.delete(id)
-    if (result) {
-      console.log(`[WidgetRegistry] Unregistered plugin: ${id}`)
-    }
-    return result
+    return this.plugins.delete(id)
   }
 
   /**
@@ -88,7 +83,6 @@ class WidgetRegistry {
    */
   clear(): void {
     this.plugins.clear()
-    console.log('[WidgetRegistry] Cleared all plugins')
   }
 }
 

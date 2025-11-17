@@ -22,10 +22,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const storedUser = sessionStorage.getItem('ritemark_user')
     const storedTokens = sessionStorage.getItem('ritemark_oauth_tokens')
 
-    // Only log session restore if there's actually data to restore
+    // Restore session if data exists
     if (storedUser && storedTokens) {
-      console.log('[AuthContext] 🔍 Restoring session')
-
       try {
         const userData = JSON.parse(storedUser) as GoogleUser
         const tokenData = JSON.parse(storedTokens)
@@ -52,8 +50,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const isExpired = !expiresAt || expiresAt <= Date.now()
 
         if (isExpired) {
-          console.log('[AuthContext] Token expired, refreshing...')
-
           // CRITICAL FIX: Don't logout immediately - try to refresh token first!
           // Restore user state optimistically (will be cleared if refresh fails)
           setUser(userData)
@@ -75,7 +71,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             })
             .then((result) => {
               if (result.success) {
-                console.log('[AuthContext] ✅ Token refreshed successfully')
                 // Token refresh updates memory automatically, no need to update state
               } else {
                 console.warn('[AuthContext] Token refresh failed:', result.error?.message)
