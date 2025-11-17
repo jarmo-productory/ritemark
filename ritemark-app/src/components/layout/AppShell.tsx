@@ -18,8 +18,10 @@ import { EditableTitle } from "@/components/EditableTitle"
 import { DocumentMenu } from "@/components/layout/DocumentMenu"
 import { useDriveSharing } from "@/hooks/useDriveSharing"
 import { useNetworkStatus } from "@/hooks/useNetworkStatus"
-import { Loader2, Cloud, CloudOff } from "lucide-react"
+import { Loader2, Cloud, CloudOff, FileDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { downloadMarkdown } from "@/utils/download"
 import type { DriveSyncStatus } from "@/types/drive"
 import type { Editor as TipTapEditor } from '@tiptap/react'
 
@@ -68,6 +70,25 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
       })
     }
   })
+
+  // Download markdown handler
+  const handleDownloadMarkdown = React.useCallback(() => {
+    if (!content) {
+      toast.error('No content to download')
+      return
+    }
+
+    try {
+      downloadMarkdown(content, documentTitle)
+      toast.success('Markdown downloaded!', {
+        description: `${documentTitle}.md`
+      })
+    } catch (error) {
+      toast.error('Download failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }, [content, documentTitle])
 
   return (
     <SidebarProvider
@@ -120,7 +141,7 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
             </Breadcrumb>
           </div>
 
-          {/* Right side: Status Indicator + Document Menu */}
+          {/* Right side: Status Indicator + Download Button + Document Menu */}
           <div className="flex items-center gap-3">
             {/* Sprint 16: Offline Status Indicator */}
             <div className="flex items-center gap-1.5 text-sm" role="status" aria-live="polite" aria-atomic="true">
@@ -146,6 +167,18 @@ export function AppShell({ children, documentTitle, fileId, syncStatus, editor, 
                 </>
               )}
             </div>
+
+            {/* Primary Download Button */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleDownloadMarkdown}
+              disabled={!content}
+              className="gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">Download</span>
+            </Button>
 
             {/* Sprint 17: Document Menu (Kebab menu) */}
             <DocumentMenu

@@ -533,6 +533,36 @@ h1, h2, h3, h4, h5, h6 {
   user-select: none;
 }
 
+/* AI Logo Icon (compact version) */
+.ai-logo-icon {
+  position: relative;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-logo-icon:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.ai-logo-text {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 600;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  user-select: none;
+  line-height: 1;
+}
+
 .brand-title {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 32px;
