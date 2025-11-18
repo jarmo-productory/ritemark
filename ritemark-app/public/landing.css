@@ -595,6 +595,7 @@ body {
   flex-direction: column;
   gap: var(--space-4);
   min-height: 280px;
+  cursor: pointer;
 }
 
 .feature-card:hover {
