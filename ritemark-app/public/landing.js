@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     wysiwyg: {
       title: 'Never See Markdown Until You Export',
-      description: 'True WYSIWYG editing—format with buttons and shortcuts, see final output as you type. No split-screen preview, no syntax memorization. Export clean markdown only when you're ready—for ChatGPT custom instructions, Claude Code agents, or GitHub READMEs.',
+      description: 'True WYSIWYG editing—format with buttons and shortcuts, see final output as you type. No split-screen preview, no syntax memorization. Export clean markdown only when you\'re ready—for ChatGPT custom instructions, Claude Code agents, or GitHub READMEs.',
       benefits: [
         'Format with toolbar buttons—bold, italic, headings, lists, tables, code blocks',
         'Drag images directly into documents—instant upload and embedding',
